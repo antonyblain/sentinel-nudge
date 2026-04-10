@@ -1,0 +1,14 @@
+.env
+node_modules/
+__pycache__/
+*.pyc
+.vs/
+bin/
+obj/
+dist/
+build/
+.DS_Store
+Thumbs.db
+*.crx
+*.pem
+web-ext-artifacts/
