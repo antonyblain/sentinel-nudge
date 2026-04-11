@@ -1,0 +1,27 @@
+{
+  "_comment": "Domaines cibles pour la détection de typosquatting via Levenshtein (module M2).",
+  "_note": "Fichier placeholder — liste de ~500 domaines populaires à constituer en P4 module M2.",
+  "_format": "Array de domaines en clair (ex: 'paypal.com'). La comparaison Levenshtein se fait sur le hostname.",
+  "targets": [
+    "paypal.com",
+    "google.com",
+    "amazon.com",
+    "microsoft.com",
+    "apple.com",
+    "facebook.com",
+    "netflix.com",
+    "instagram.com",
+    "twitter.com",
+    "linkedin.com",
+    "github.com",
+    "stackoverflow.com",
+    "youtube.com",
+    "gmail.com",
+    "outlook.com",
+    "live.com",
+    "yahoo.com",
+    "bing.com",
+    "dropbox.com",
+    "icloud.com"
+  ]
+}

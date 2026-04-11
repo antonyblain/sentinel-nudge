@@ -1,0 +1,25 @@
+{
+  "extension_name": {
+    "message": "Sentinel Nudge",
+    "description": "Nom de l'extension"
+  },
+  "extension_description": {
+    "message": "Micro-nudges de cyber-hygiène pour améliorer vos habitudes de sécurité",
+    "description": "Description de l'extension"
+  },
+  "m2_overlay_title": {
+    "message": "Ce domaine présente des signaux inhabituels",
+    "description": "Titre de l'overlay M2"
+  },
+  "m2_overlay_btn_dismiss": {
+    "message": "Continuer quand même",
+    "description": "Bouton de fermeture M2"
+  },
+  "quota_remaining": {
+    "message": "$1 nudge(s) restant(s) aujourd'hui",
+    "description": "Indicateur quota restant",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" }
+    }
+  }
+}

@@ -7,11 +7,10 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P3
-- **Dernière action** : PR #2 mergée dans develop — P3 clôturée — 2026-04-11
-- **Prochaine action attendue** : Passage en P4 (conception détaillée) ou P4' (stratégie de tests). Créer branche feature/p4-conception.
-- **Branche Git active** : develop
-- **Branche Git active** : feature/p3-architecture
+- **Phase active** : P4 — Développement
+- **Dernière action** : Branche feature/p4-developpement créée — 2026-04-11
+- **Prochaine action attendue** : Initialiser le socle technique (manifest.json, Vite, TypeScript, structure src/)
+- **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
 

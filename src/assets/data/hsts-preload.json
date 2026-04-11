@@ -1,0 +1,8 @@
+{
+  "_comment": "HSTS preload list compacte — SHA-256 des domaines (O(1) lookup via Set).",
+  "_note": "Fichier placeholder — à remplacer par le script CI qui télécharge la liste officielle Chromium.",
+  "_source": "https://chromium.googlesource.com/chromium/src/+/main/net/http/transport_security_state_static.json",
+  "_updated": "2026-04-11",
+  "_format": "Array de SHA-256 hex (64 chars) des domaines HSTS preload, sans sel (domaines publics).",
+  "hashes": []
+}

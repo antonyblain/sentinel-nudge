@@ -1,0 +1,6 @@
+{
+  "_comment": "Corpus de questions du quiz M6 — format bilingue FR/EN.",
+  "_note": "Fichier placeholder — 50+ questions validées à produire en P4 module M6.",
+  "_format": "{ id, fr: { question, options, correct, explanation }, en: { ... } }",
+  "questions": []
+}

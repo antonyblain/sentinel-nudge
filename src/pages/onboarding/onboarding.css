@@ -1,0 +1,67 @@
+/**
+ * onboarding.css — Styles de la page d'onboarding Sentinel Nudge
+ * Design system tokens CSS (DAT §11.4) — 25 tokens
+ */
+
+:root {
+  --sn-color-fg: #1a1a1a;
+  --sn-color-bg: #ffffff;
+  --sn-color-accent: #2563eb;
+  --sn-color-danger: #dc2626;
+  --sn-color-success: #16a34a;
+  --sn-color-warning: #d97706;
+  --sn-color-muted: #6b7280;
+  --sn-font-size-body: 15px;
+  --sn-font-size-small: 13px;
+  --sn-font-size-title: 18px;
+  --sn-font-weight-normal: 400;
+  --sn-font-weight-bold: 600;
+  --sn-line-height: 1.5;
+  --sn-space-xs: 4px;
+  --sn-space-sm: 8px;
+  --sn-space-md: 16px;
+  --sn-space-lg: 24px;
+  --sn-space-xl: 32px;
+  --sn-radius: 8px;
+  --sn-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: var(--sn-font-size-body);
+  line-height: var(--sn-line-height);
+  color: var(--sn-color-fg);
+  background-color: var(--sn-color-bg);
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--sn-space-xl);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
