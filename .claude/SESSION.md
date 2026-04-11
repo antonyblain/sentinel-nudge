@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement
-- **Dernière action** : Branche feature/p4-developpement créée — 2026-04-11
-- **Prochaine action attendue** : Initialiser le socle technique (manifest.json, Vite, TypeScript, structure src/)
+- **Dernière action** : Socle technique initialisé (62 fichiers, build OK, lint OK, 36/39 tests). PDCA P4 complété (9 anomalies corrigées, DAT/TECH_STACK mis à jour, LL-007) — 2026-04-11
+- **Prochaine action attendue** : Implémenter les modules un par un. Commencer par les modules socles (M9 zxcvbn, M7 hash, M2 risques) puis les modules dépendants (M3 score, M5 update, M6 quiz, M17 clipboard). Corriger les 3 tests crypto (P-012 mock SubtleCrypto).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
