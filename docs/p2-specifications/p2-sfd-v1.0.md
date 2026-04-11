@@ -1312,12 +1312,8 @@ stateDiagram-v2
     Étape2_Profil --> Étape1_Bienvenue : clic "Retour"
     Étape2_Profil --> Étape3_Modules : clic "Suivant" + profil sélectionné
 
-    Note right of Étape2_Profil : Persistance immédiate :<br/>profil enregistré dès sélection
-
     Étape3_Modules --> Étape2_Profil : clic "Retour"
     Étape3_Modules --> Étape4_Confidentialité : clic "Confirmer" + modules cochés
-
-    Note right of Étape3_Modules : Persistance immédiate :<br/>modules enregistrés dès confirmation
 
     Étape4_Confidentialité --> Étape3_Modules : clic "Retour"
     Étape4_Confidentialité --> ConsentementM7 : M7 activé?
