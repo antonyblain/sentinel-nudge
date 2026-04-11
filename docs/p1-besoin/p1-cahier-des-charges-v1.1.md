@@ -2,9 +2,10 @@
 ## Phase P1 — Analyste métier
 
 **Projet :** Sentinel Nudge
-**Version :** 1.0
+**Version :** 1.1
 **Date de production :** 2026-04-11
-**Statut :** Soumis au Commanditaire
+**Date de révision :** 2026-04-11
+**Statut :** Révisé suite aux commentaires du Commanditaire
 **Commanditaire :** Antony (RSSI)
 **Niveau de sensibilité :** Exposé
 
@@ -230,7 +231,7 @@ Wording principal : interrogatif, non accusateur (Wash, 2010). La tonalité évi
 Given l'utilisateur navigue sur une page HTTP (non HTTPS)
   And la page contient un champ <input type="password">
   And le domaine n'est pas dans la whitelist utilisateur
-  And le quota journalier est inférieur à 3
+  And le quota journalier n'est pas atteint
 When l'utilisateur place le focus dans le champ password
 Then le nudge M2 s'affiche dans les 500ms
   And le nudge est non bloquant (l'utilisateur peut continuer à saisir)
@@ -245,10 +246,10 @@ Then aucun nudge M2 ne s'affiche
 
 **CA-M2-03 — Non-déclenchement si quota atteint**
 ```gherkin
-Given 3 nudges ont déjà été affichés aujourd'hui
+Given le quota journalier est atteint (ex : 3 nudges par défaut)
 When un événement M2 est détecté
-Then aucun nudge M2 ne s'affiche
-  And l'événement est enregistré localement sans nudge
+Then le nudge M2 est affiché malgré le quota (exception événementiel critique)
+  And un indicateur dans les paramètres notifie l'utilisateur du dépassement exceptionnel
 ```
 
 **CA-M2-04 — Action "Marquer comme de confiance"**
@@ -291,9 +292,9 @@ Le score est calculé localement à partir des événements stockés en IndexedD
 |------------|-------|--------|--------|
 | Mises à jour navigateur | 20 pts | M5 | 20 pts si navigateur à jour, 0 sinon |
 | Résistance phishing (quiz) | 25 pts | M6 | % bonnes réponses × 25 |
-| Comportement sur sites risqués | 20 pts | M2 | 20 pts si 0 saisie sur site risqué ignoré, décroissant sinon |
-| Diversité des mots de passe | 20 pts | M7 | 20 pts si 0 réutilisation détectée, décroissant sinon |
-| Force des mots de passe créés | 15 pts | M9 | % mots de passe forts créés × 15 |
+| Comportement sur sites risqués | 20 pts | M2 | 20 − (4 × nombre de saisies ignorées sur sites risqués cette semaine), plancher 0. Exemple : 0 saisie ignorée = 20/20 ; 3 saisies ignorées = 8/20 ; 5+ = 0/20 |
+| Diversité des mots de passe | 20 pts | M7 | 20 − (4 × nombre de réutilisations détectées cette semaine), plancher 0. Exemple : 0 réutilisation = 20/20 ; 2 réutilisations = 12/20 ; 5+ = 0/20 |
+| Force des mots de passe créés | 15 pts | M9 | Si aucun mot de passe créé cette semaine : 15/15 (100 %) avec indicateur 0/0 affiché. Sinon : (nombre de mots de passe forts créés / nombre total créés) × 15, avec indicateur X/Y affiché (ex : 3/5) |
 
 Si un module est désactivé, son poids est redistribué proportionnellement entre les modules actifs.
 
@@ -417,7 +418,7 @@ Then les 8 scores hebdomadaires sont affichés sous forme de graphique
 
 #### Description fonctionnelle
 
-M5 détecte si le navigateur Chrome utilisé est en retard de mise à jour par rapport à la version stable disponible. Il affiche un nudge non bloquant proposant la mise à jour en 1 clic. La détection est locale : M5 lit la version du navigateur via l'API Chrome et la compare à une liste de versions stables embarquée dans l'extension (mise à jour lors de chaque publication de l'extension sur le Chrome Web Store).
+M5 détecte si le navigateur Chrome utilisé est en retard de mise à jour par rapport à la version stable disponible. Il affiche un nudge non bloquant proposant la mise à jour en 1 clic. La détection repose sur l'API native `chrome.runtime.requestUpdateCheck()` qui interroge le mécanisme de mise à jour intégré de Chrome — ce n'est pas un appel réseau vers un tiers, c'est le canal natif de mise à jour du navigateur. Cela garantit que la détection est toujours à jour, indépendamment du rythme de publication de l'extension.
 
 Contrainte : M5 ne déclenche pas de nudge si l'utilisateur est en plein écran (jeu, présentation, vidéo) ou si un formulaire est actif.
 
@@ -425,11 +426,11 @@ Contrainte : M5 ne déclenche pas de nudge si l'utilisateur est en plein écran 
 
 | Source | Donnée |
 |--------|--------|
-| `chrome.runtime.getManifest()` + User-Agent | Version courante du navigateur |
-| Extension (bundle statique) | Version stable de référence au moment de la dernière publication |
+| `chrome.runtime.requestUpdateCheck()` | Statut de mise à jour du navigateur (update_available / no_update / throttled) |
+| `navigator.userAgent` ou `navigator.userAgentData` | Version courante du navigateur |
 | Stockage local | Date du dernier nudge M5 affiché |
 
-**Note :** La comparaison de version est strictement locale. Aucun appel réseau vers Google ou un serveur tiers n'est effectué pour obtenir la version stable.
+**Note :** `chrome.runtime.requestUpdateCheck()` utilise le canal de mise à jour natif de Chrome. Ce n'est pas un appel réseau vers un serveur tiers — c'est le mécanisme intégré que Chrome utilise déjà pour ses propres mises à jour. Cela garantit une détection fiable et toujours à jour, sans dépendre du rythme de publication de l'extension.
 
 #### Données de sortie
 
@@ -442,11 +443,12 @@ Contrainte : M5 ne déclenche pas de nudge si l'utilisateur est en plein écran 
 
 ```
 AU DÉMARRAGE du navigateur :
-SI version courante < version de référence embarquée
+Appeler chrome.runtime.requestUpdateCheck()
+SI le résultat indique une mise à jour disponible (update_available)
 ET dernier nudge M5 > 48h (délai de grâce)
 ET aucun formulaire actif sur l'onglet courant
 ET le navigateur n'est pas en mode plein écran
-ET le quota journalier est inférieur à 3
+ET le quota journalier n'est pas atteint
 ALORS afficher le nudge M5
 ```
 
@@ -488,9 +490,9 @@ Le délai de 48h évite la fatigue de répétition (Anderson et al., 2016). L'ut
 
 **CA-M5-01 — Déclenchement sur navigateur obsolète**
 ```gherkin
-Given la version du navigateur est inférieure à la version de référence embarquée
+Given chrome.runtime.requestUpdateCheck() retourne "update_available"
   And le dernier nudge M5 a été affiché il y a plus de 48h
-  And le quota journalier est inférieur à 3
+  And le quota journalier n'est pas atteint
 When le navigateur démarre
 Then le toast M5 s'affiche dans les 5 secondes suivant l'ouverture du premier onglet
 ```
@@ -513,7 +515,7 @@ Then aucun nudge M5 ne s'affiche pendant les 4 heures suivantes
 
 **CA-M5-04 — Non-déclenchement si navigateur à jour**
 ```gherkin
-Given la version du navigateur est égale ou supérieure à la version de référence
+Given chrome.runtime.requestUpdateCheck() retourne "no_update"
 When le navigateur démarre
 Then aucun nudge M5 ne s'affiche
   And la composante "Mises à jour" dans M3 est créditée de 20/20
@@ -537,7 +539,7 @@ Chaque quiz présente un exemple visuel (capture d'écran ou description textuel
 - J70 : quiz 4
 - Puis mensuel jusqu'à désactivation par l'utilisateur
 
-**Corpus minimum en v1 :** 50 exemples, catégorisés par technique (urgence, autorité, gain, menace). Difficulté adaptative selon le profil auto-déclaré et le score des quiz précédents.
+**Corpus minimum en v1 :** 50 exemples, catégorisés par technique (urgence, autorité, gain, menace). Difficulté adaptative selon le profil auto-déclaré et le score des quiz précédents. Le corpus est produit en phase P4 par l'Analyste métier, validé par le Commanditaire, et stocké sous forme de fichiers JSON embarqués dans le bundle (`src/data/quiz-corpus-fr.json` + `quiz-corpus-en.json`). La structure d'un exemple (format, champs, niveaux, catégories) est définie en phase P3.
 
 #### Données d'entrée
 
@@ -561,7 +563,7 @@ Chaque quiz présente un exemple visuel (capture d'écran ou description textuel
 ```
 SELON le calendrier spaced repetition basé sur la date d'installation :
   SI la date planifiée est atteinte
-  ET le quota journalier est inférieur à 3
+  ET le quota journalier n'est pas atteint
   ET l'utilisateur n'est pas en train de saisir dans un formulaire
   ALORS afficher la notification de disponibilité du quiz
 
@@ -689,7 +691,7 @@ Then la notification est retardée jusqu'à la fin de la saisie active
 
 M7 détecte la réutilisation de mots de passe sur plusieurs domaines. La détection repose sur le hachage local (SHA-256) de la valeur du mot de passe au moment de la saisie dans un formulaire de connexion. Ce hash est comparé aux hash précédemment stockés. Aucun mot de passe en clair n'est jamais stocké.
 
-En cas de réutilisation détectée, M7 affiche un nudge proposant des informations sur les gestionnaires de mots de passe. Il ne nomme aucun gestionnaire spécifique (neutralité).
+En cas de réutilisation détectée, M7 affiche un nudge proposant des informations sur les gestionnaires de mots de passe. Le nudge met en avant que le gestionnaire décharge l'utilisateur de mémoriser ses mots de passe — premier frein à l'adoption identifié dans la littérature. Il cite uniquement des projets open source (KeePass, KeePassXC, Bitwarden, Vaultwarden) via une page d'explication dédiée, accompagnée d'un disclaimer : "Sentinel Nudge n'est affilié à aucun de ces projets."
 
 **Contrainte RGPD explicite :** Le traitement de hash de mots de passe constitue un traitement de données personnelles au sens du RGPD, même en local. Ce traitement est documenté dans la politique de confidentialité avec les mentions suivantes : traitement strictement local, aucune transmission, durée de conservation définie (90 jours glissants par défaut, configurable).
 
@@ -718,7 +720,7 @@ En cas de réutilisation détectée, M7 affiche un nudge proposant des informati
   Calculer SHA-256(valeur_saisie)
   SI ce hash existe déjà dans le store local
   ET ce domaine n'a pas reçu de nudge M7 depuis 30 jours
-  ET le quota journalier est inférieur à 3
+  ET le quota journalier n'est pas atteint
   ALORS afficher le nudge M7
 
 Stocker le hash dans tous les cas (même sans nudge).
@@ -740,7 +742,8 @@ Ne stocker que les N=100 derniers hash (FIFO, limite de volumétrie).
 │  vos comptes sont en danger.                   │
 │                                                │
 │  Un gestionnaire de mots de passe génère       │
-│  un mot de passe unique pour chaque site.      │
+│  un mot de passe unique pour chaque site       │
+│  — et les retient pour vous.                   │
 │                                                │
 │  [Voir comment ça marche]  [OK, compris]       │
 │                                                │
@@ -748,7 +751,7 @@ Ne stocker que les N=100 derniers hash (FIFO, limite de volumétrie).
 └────────────────────────────────────────────────┘
 ```
 
-- **[Voir comment ça marche]** : ouvre une page d'explication statique intégrée à l'extension sur les gestionnaires de mots de passe.
+- **[Voir comment ça marche]** : ouvre une page d'explication statique intégrée à l'extension sur les gestionnaires de mots de passe open source (KeePass, KeePassXC, Bitwarden, Vaultwarden). Un disclaimer explicite précise : "Sentinel Nudge n'est affilié à aucun de ces projets."
 - **[OK, compris]** : ferme le toast.
 - **[Ne plus afficher pour ce site]** : ajoute le domaine à une liste de suppression locale (sans supprimer les hash).
 
@@ -805,12 +808,14 @@ M9 affiche un indicateur visuel de force du mot de passe en temps réel lors de 
 
 M9 ne s'active que sur les champs de création (formulaire d'inscription) et non sur les formulaires de connexion (où M2 et M7 sont prioritaires).
 
-**Critères de force (algorithme zxcvbn ou équivalent local) :**
-- Très faible : longueur < 8 ou pattern trivial (123456, password)
-- Faible : longueur 8-11, caractères basiques
-- Moyen : longueur 12+, mix lettres/chiffres
-- Fort : longueur 12+, mix lettres/chiffres/symboles, pas de pattern
-- Très fort : longueur 16+, entropie élevée
+**Critères de force (algorithme zxcvbn ou équivalent local, alignés sur les recommandations ANSSI) :**
+- Très faible : longueur < 8 ou pattern trivial (123456, password) — **Déconseillé par l'ANSSI** (indicateur rouge + icône avertissement)
+- Faible : longueur 8-11, caractères basiques — **Déconseillé par l'ANSSI** (indicateur rouge + icône avertissement)
+- Moyen : longueur 12+, mix lettres/chiffres — **Acceptable sous conditions** (indicateur jaune)
+- Fort : longueur 12+, mix lettres/chiffres/symboles, pas de pattern — **Recommandé** (indicateur vert clair)
+- Très fort : longueur 16+, entropie élevée — **Recommandé** (indicateur vert foncé)
+
+La page d'explication de M9 (cf. 2.9.7) cite explicitement les recommandations de l'ANSSI (Guide des mots de passe, 2021) et la distinction entre niveaux acceptables et déconseillés.
 
 #### Données d'entrée
 
@@ -861,9 +866,11 @@ M9 ne bloque jamais la soumission, même si le mot de passe est évalué comme f
 └──────────────────────────────────────────────────┘
 ```
 
-Couleurs : rouge (Très faible), orange (Faible), jaune (Moyen), vert clair (Fort), vert foncé (Très fort).
+Couleurs : rouge (Très faible), rouge (Faible), jaune (Moyen), vert clair (Fort), vert foncé (Très fort).
+Pour les niveaux Très faible et Faible, un marqueur "Déconseillé par l'ANSSI" est affiché à côté du label de force.
+Pour les niveaux Fort et Très fort, un marqueur "Recommandé" est affiché.
 
-- **[?] Pourquoi...** : lien vers explication de l'entropie et des risques, dans la page statique de l'extension.
+- **[?] Pourquoi...** : lien vers la page d'explication statique de M9 (cf. 2.9.7), incluant l'entropie, les risques, et les recommandations ANSSI.
 
 #### Interactions avec les autres modules
 
@@ -909,7 +916,23 @@ Then le formulaire est soumis normalement sans blocage
   And le niveau de force (Très faible) est enregistré localement pour M3
 ```
 
-**CA-M9-05 — Aucun stockage du mot de passe**
+**CA-M9-05 — Score 100 % si aucun mot de passe créé**
+```gherkin
+Given aucun mot de passe n'a été créé cette semaine
+When le score M3 est calculé
+Then la composante "Force des mots de passe créés" vaut 15/15 (100 %)
+  And l'indicateur affiché est "0/0" dans le détail du score
+```
+
+**CA-M9-06 — Indicateur X/Y affiché**
+```gherkin
+Given l'utilisateur a créé 5 mots de passe cette semaine dont 3 évalués "Fort" ou "Très fort"
+When le score M3 est calculé
+Then la composante "Force des mots de passe créés" vaut (3/5) × 15 = 9/15
+  And l'indicateur affiché est "3/5" dans le détail du score
+```
+
+**CA-M9-07 — Aucun stockage du mot de passe**
 ```gherkin
 Given l'utilisateur a saisi "MonMotDePasse123" dans un champ de création
 When le formulaire est soumis
@@ -960,7 +983,7 @@ SUR événement DOM `paste` dans tout <input> ou <textarea>
   Récupérer la valeur collée depuis event.clipboardData
   Appliquer les patterns de détection en mémoire
   Si un pattern sensible correspond :
-    ET le quota journalier est inférieur à 3
+    ET le quota journalier n'est pas atteint
     ALORS afficher le nudge M17 (toast post-collage)
   Dans tous les cas : ne pas stocker la valeur collée
 ```
@@ -1038,12 +1061,22 @@ Then l'extension n'accède à aucun moment au contenu du presse-papiers
 
 #### 2.9.1 Système de quota journalier
 
-**Règle :** Maximum 3 nudges actifs par jour toutes catégories confondues. Au-delà, compliance chute exponentiellement (Anderson et al., 2016).
+**Règle :** Maximum 3 nudges actifs par jour toutes catégories confondues (défaut). Au-delà de ce seuil, l'extension cesse d'envoyer de nouveaux avertissements. La compliance chute exponentiellement au-delà de 3 nudges/jour (Anderson et al., 2016).
+
+**Quota configurable :** L'utilisateur peut augmenter le quota dans les paramètres :
+- **3** (défaut, recommandé par la recherche)
+- **5** (pour les utilisateurs souhaitant plus de nudges)
+- **10** (pour un suivi renforcé)
+- **Tous** (illimité — un avertissement s'affiche : "Un nombre élevé de nudges peut provoquer une fatigue d'alerte et réduire votre attention aux avertissements importants.")
+
+Le quota ne peut pas être réduit en deçà de 3. Le seuil de 3 est le plafond recommandé par la littérature scientifique ; descendre en dessous priverait l'utilisateur de nudges potentiellement importants sans bénéfice démontré.
 
 **Compteur :**
 - Réinitialisé chaque jour à minuit (heure locale)
 - Stocké en `chrome.storage.local` (persistant, accès synchrone)
 - Incrémenté de 1 à chaque affichage d'un nudge (toast, overlay, popup)
+
+**Comportement au-delà du quota :** Lorsque le quota est atteint, un message discret est ajouté au badge de l'extension : "Quota du jour atteint — paramètres pour ajuster". Les événements sont toujours enregistrés localement pour le score M3, même sans nudge affiché.
 
 **Priorités (en cas de compétition entre modules) :**
 1. Événementiel critique : M2 (contexte risqué immédiat), M17 (donnée sensible en cours de collage)
@@ -1056,15 +1089,25 @@ En cas de quota atteint, les nudges de priorité inférieure sont différés au 
 **Critères d'acceptation du quota :**
 
 ```gherkin
-Given 3 nudges ont été affichés aujourd'hui
+Given le quota journalier est atteint (ex : 3/3)
 When un événement M5 (programmé ponctuel) est détecté
 Then le nudge M5 n'est pas affiché
   And il est planifié pour le lendemain
+  And l'événement est enregistré localement pour le score M3
 
-Given 3 nudges ont été affichés aujourd'hui
+Given le quota journalier est atteint
 When un événement M2 (événementiel critique) est détecté
 Then le nudge M2 est affiché (exception au quota)
   And un indicateur dans les paramètres notifie l'utilisateur que le quota a été dépassé exceptionnellement
+
+Given le quota journalier est atteint
+Then le badge de l'extension affiche le message "Quota du jour atteint"
+  And un lien vers les paramètres permet à l'utilisateur d'augmenter le quota
+
+Given l'utilisateur modifie le quota à "Tous" dans les paramètres
+Then un avertissement s'affiche expliquant le risque de fatigue d'alerte
+  And si confirmé, tous les nudges sont affichés sans limitation
+  And le quota est modifiable à tout moment depuis les paramètres
 ```
 
 #### 2.9.2 Stockage local
@@ -1136,13 +1179,13 @@ Liste des 7 modules avec une case à cocher pour chacun (tous activés par défa
 ┌────────────────────────────────────────────────────────────┐
 │  Choisissez vos protections                                │
 │                                                            │
-│  [✓] M2 — Alerte saisie sur site suspect                  │
-│  [✓] M3 — Score de cyber-hygiène hebdomadaire             │
-│  [✓] M5 — Rappel de mise à jour navigateur                │
-│  [✓] M6 — Quiz phishing (inoculation)                     │
-│  [✓] M7 — Alerte réutilisation mot de passe               │
-│  [✓] M9 — Force du mot de passe à la création             │
-│  [✓] M17 — Alerte copier-coller sensible                  │
+│  [✓] 🛡 Protection contre les sites suspects               │
+│  [✓] 📊 Score de cyber-hygiène                             │
+│  [✓] 🔄 Rappel de mise à jour                              │
+│  [✓] 🎯 Entraînement anti-phishing                         │
+│  [✓] 🔑 Détection de mots de passe réutilisés              │
+│  [✓] 💪 Indicateur de force du mot de passe                 │
+│  [✓] 📋 Protection du presse-papiers                       │
 │                                                            │
 │  Vous pouvez modifier ces choix à tout moment.             │
 │                                                            │
@@ -1168,8 +1211,8 @@ Accessible depuis l'icône de l'extension > Paramètres ou depuis tout nudge via
 
 **Sections :**
 
-1. **Modules actifs** : activation/désactivation module par module avec description de chaque module.
-2. **Quota** : affichage du quota journalier (défaut : 3), possibilité de le modifier de 1 à 5.
+1. **Modules actifs** : activation/désactivation module par module. Chaque module est identifié par son nom parlant (ex : "Protection contre les sites suspects") et non par son identifiant interne.
+2. **Quota** : affichage du quota journalier (défaut : 3), possibilité de l'augmenter (3, 5, 10, ou Tous). Le quota ne peut pas être réduit en deçà de 3. L'option "Tous" affiche un avertissement sur le risque de fatigue d'alerte.
 3. **Profil** : modification du profil auto-déclaré (Débutant / Intermédiaire / Avancé).
 4. **Données** : affichage du volume de données stockées, bouton "Effacer toutes mes données".
 5. **Transparence radicale** : pour chaque module, description du mécanisme comportemental exploité et des sources scientifiques associées. Cette section est le coeur de l'engagement éthique de Sentinel Nudge.
@@ -1211,16 +1254,71 @@ Then le score courant est affiché avec le delta semaine/semaine
 
 | Type | Déclenchement | Durée affichage | Position | Module(s) |
 |------|--------------|-----------------|----------|-----------|
-| Toast | Événement contextuel | 8 secondes (ou jusqu'à interaction) | Coin supérieur droit | M5, M7, M17 |
+| Toast | Événement contextuel | 8 secondes (ou jusqu'à interaction) — timer en pause au survol souris (hover-pause) | Coin supérieur droit | M5, M7, M17 |
 | Overlay interstitiel | Risque immédiat (priorité élevée) | Jusqu'à interaction obligatoire | Centre de l'écran | M2 |
 | Overlay inline | Saisie en cours (temps réel) | Pendant la saisie | Sous le champ de formulaire | M9 |
-| Badge icône | Hebdomadaire | Permanent jusqu'à consultation | Icône extension | M3, M6 |
+| Badge icône | Hebdomadaire / quota atteint | Permanent jusqu'à consultation | Icône extension | M3, M6, Quota |
+
+**Durée de 8 secondes — justification :** Les toasts contiennent environ 30-40 mots. À ~200 mots/minute en lecture rapide, il faut ~10-12s pour lire et comprendre. 8s incite à l'action rapide tout en laissant le temps de lire (WCAG 2.1 SC 2.2.1 recommande ~1s par 12 mots). Le hover-pause garantit que le timer ne s'écoule pas si l'utilisateur lit activement. Compromis validé par les design systems de référence (Material Design : 4-10s). La durée est configurable dans les paramètres avancés.
+
+**Badge icône — code couleur :**
+| Couleur | Condition | Signification |
+|---------|-----------|---------------|
+| Vert | Score >= 70 | Bonne cyber-hygiène |
+| Orange | Score 40-69 | À améliorer |
+| Rouge | Score < 40 | Attention requise |
+| Bleu + chiffre | Notification en attente | Quiz disponible, rapport lundi, quota atteint |
+
+Le badge change de couleur à chaque recalcul hebdomadaire du score (M3). C'est un renforcement positif (Fogg, 2009) qui motive sans être intrusif.
 
 **Règles communes :**
 - Tout nudge peut être fermé par la croix sans action (autonomie préservée).
 - Aucun nudge ne bloque la navigation ou la soumission d'un formulaire.
 - La position des toasts ne chevauche pas les contrôles natifs du navigateur.
 - En mode responsive, les nudges s'adaptent à la taille de la fenêtre.
+- Les toasts mettent le timer en pause au survol de la souris (hover-pause), conformément aux bonnes pratiques d'accessibilité.
+
+#### 2.9.7 Pages d'explication statiques
+
+Plusieurs nudges proposent des liens "Pourquoi c'est important ?", "Comment ça marche ?", "En savoir plus". Ces liens renvoient vers des pages HTML statiques intégrées à l'extension (aucun appel réseau).
+
+**Structure :** Une page par module, accessible depuis :
+- Le nudge lui-même (lien contextuel)
+- La section "Transparence radicale" des paramètres
+
+**Contenu type de chaque page :**
+
+| Section | Description |
+|---------|-------------|
+| Pourquoi c'est important | Explication du risque en langage accessible, avec un exemple concret |
+| Comment ça marche | Description du mécanisme comportemental utilisé (nudge, inoculation, framing, etc.) |
+| Sources scientifiques | Références des études citées dans le cahier des charges |
+| Conseils pratiques | Actions concrètes que l'utilisateur peut prendre immédiatement |
+| Recommandations officielles | Le cas échéant, références aux recommandations ANSSI, CNIL, ou autres autorités |
+
+**Pages prévues en v1 :**
+
+| Page | Accessible depuis | Contenu spécifique |
+|------|-------------------|-------------------|
+| Sites suspects | M2 "Pourquoi ce message ?" | Signaux de risque (HTTP, typosquatting), sources : Sunshine et al. 2009 |
+| Mises à jour navigateur | M5 "Pourquoi c'est important ?" | Failles corrigées, délais d'exploitation, source : Beautement et al. 2016 |
+| Phishing | M6 feedback quiz | Techniques de phishing, signaux d'alerte, statistiques |
+| Gestionnaires de mots de passe | M7 "Voir comment ça marche" | Fonctionnement, projets open source recommandés (KeePass, KeePassXC, Bitwarden, Vaultwarden), disclaimer de non-affiliation |
+| Force des mots de passe | M9 "Pourquoi la force compte ?" | Entropie, attaques par force brute, recommandations ANSSI (Guide des mots de passe, 2021) |
+| Presse-papiers | M17 "En savoir plus" | Risque du presse-papiers partagé entre applications |
+| Calcul du score | M3 "Comment est calculé ce score ?" | Formule détaillée, poids, sources |
+
+```gherkin
+Given un nudge est affiché avec un lien "Pourquoi c'est important ?"
+When l'utilisateur clique sur ce lien
+Then une page d'explication statique s'ouvre dans un nouvel onglet
+  And la page ne génère aucune requête réseau
+  And la page contient les sections standard (risque, mécanisme, sources, conseils)
+
+Given l'utilisateur est dans les paramètres section "Transparence radicale"
+When il consulte un module
+Then un lien vers la page d'explication correspondante est disponible
+```
 
 ---
 
@@ -1279,8 +1377,8 @@ Niveau cible : WCAG 2.1 AA.
 |----------|-------------|-----------------|
 | ENF-COMPAT-01 | Navigateur cible principal | Google Chrome, versions N et N-1 (canal stable) |
 | ENF-COMPAT-02 | Compatibilité Manifest V3 | Obligatoire — pas de rétrocompatibilité MV2 |
-| ENF-COMPAT-03 | Compatibilité Edge | Objectif v2 (Chromium-based — réutilisation du code MV3) |
-| ENF-COMPAT-04 | Firefox | Hors périmètre v1 (Manifest V3 Firefox partiel) |
+| ENF-COMPAT-03 | Compatibilité Edge | Objectif v2 (Chromium-based — réutilisation quasi intégrale du code MV3, impact faible) |
+| ENF-COMPAT-04 | Firefox | Objectif v2+ (Manifest V3 Firefox via `browser_specific_settings`, APIs browser.* vs chrome.* — impact architectural modéré, prévoir couche d'abstraction navigateur dès la v1) |
 | ENF-COMPAT-05 | Résolutions écran | 1024×768 minimum, optimisé 1920×1080 |
 
 ### 3.6 Sécurité de l'extension elle-même
@@ -1336,13 +1434,13 @@ L'extension ne doit émettre aucune requête HTTP vers un serveur tiers, y compr
 - Pas de vérification de version en ligne
 - Pas de résolution DNS externe (toutes les listes sont embarquées dans le bundle)
 
-Les mises à jour de contenu (corpus de quiz, HSTS preload list, liste de versions Chrome) sont distribuées via les mises à jour régulières de l'extension sur le Chrome Web Store.
+Les mises à jour de contenu (corpus de quiz, HSTS preload list) sont distribuées via les mises à jour régulières de l'extension sur le Chrome Web Store.
 
-**Conséquence :** La détection de la version stable de Chrome (M5) repose sur la version embarquée dans le bundle de l'extension, pas sur une requête réseau. Ce choix implique un léger délai entre la sortie d'une nouvelle version Chrome et la mise à jour du référentiel — acceptable car le Chrome Web Store met à jour les extensions en arrière-plan.
+**Exception M5 :** La détection de mise à jour navigateur (M5) utilise `chrome.runtime.requestUpdateCheck()`, le mécanisme natif de Chrome. Ce n'est pas un appel réseau vers un serveur tiers — c'est le canal de mise à jour intégré que Chrome utilise déjà pour ses propres mises à jour. Cela garantit une détection toujours à jour, sans dépendre du rythme de publication de l'extension.
 
 ### 4.4 Open source et auditabilité
 
-- Licence : à définir en P3 (MIT ou Apache 2.0 recommandé pour l'open source)
+- Licence : **GNU GPL v3** (validée par le Commanditaire le 2026-04-11 — cf. p1-analyse-licences-open-source-v1.0.md)
 - Dépôt public : https://github.com/antonyblain/sentinel-nudge
 - SBOM généré à chaque release (format SPDX ou CycloneDX)
 - Aucune obfuscation du code
@@ -1358,9 +1456,20 @@ Ces critères s'appliquent à l'ensemble de l'extension en phase de recette (P7)
 **CA-GLOBAL-01 — Quota journalier respecté**
 ```gherkin
 Given un scénario simulant 10 événements déclencheurs dans la même journée
-When le quota journalier est à 3
-Then seuls 3 nudges (+ les exceptions critiques) sont affichés
-  And les nudges supprimés sont loggués localement
+  And le quota journalier est à 3 (défaut)
+When les événements sont traités
+Then seuls 3 nudges (+ les exceptions critiques M2/M17) sont affichés
+  And les événements non affichés sont enregistrés localement pour le score M3
+  And le badge de l'extension indique "Quota du jour atteint"
+  And un lien vers les paramètres permet d'augmenter le quota
+```
+
+**CA-GLOBAL-01b — Quota "Tous"**
+```gherkin
+Given l'utilisateur a configuré le quota à "Tous"
+  And un scénario simulant 10 événements déclencheurs dans la même journée
+When les événements sont traités
+Then les 10 nudges sont affichés sans limitation
 ```
 
 **CA-GLOBAL-02 — Désactivation d'un module**
@@ -1436,6 +1545,9 @@ Ces modules sont Should dans la priorité globale et ont été reportés en v2 p
 | M13 | Détection de lien raccourci avant navigation | Should | Liste de raccourcisseurs à constituer et maintenir |
 | M20 | Détection de requête de permission abusive | Should | Détection MV3 via `Notification.requestPermission()` à valider |
 
+**Navigateurs v2 :**
+- **Microsoft Edge** : basé sur Chromium, l'extension Chrome MV3 fonctionne avec peu ou pas de modifications. Publication sur le Microsoft Edge Add-ons Store. Impact faible.
+
 **Prérequis pour v2 :**
 - Stabilité de la v1 prouvée (60 jours de disponibilité publique sans régression critique)
 - Architecture validée pour l'ajout de modules sans refactoring majeur
@@ -1446,6 +1558,9 @@ Ces modules sont Should dans la priorité globale et ont été reportés en v2 p
 Modules Could : validés scientifiquement mais à risque de faux positifs élevé ou de friction utilisateur significative.
 
 M1 (Audit extensions), M8 (Forced Pause formulaires), M10 (Session ouverte), M12 (Mode incognito), M14 (HTTP alerte), M15 (Nettoyage cache), M16 (Formulaires données excessives), M19 (Cookies et tracking).
+
+**Navigateurs v2+ :**
+- **Firefox** : nécessite une adaptation du Manifest V3 (via `browser_specific_settings`), et le remplacement des APIs `chrome.*` par `browser.*`. L'impact architectural est modéré. La couche d'abstraction navigateur prévue dès la v1 (cf. ENF-COMPAT-04) facilitera cette transition.
 
 Ces modules seront instruits lors de la roadmap v2 en fonction des retours utilisateurs sur la v1.
 
@@ -1505,5 +1620,5 @@ Ces modules seront instruits lors de la roadmap v2 en fonction des retours utili
 ---
 
 *Cahier des charges produit par l'Analyste métier — Fabrique — Phase P1*
-*Version 1.0 — 2026-04-11*
+*Version 1.1 — 2026-04-11 — Révisé suite aux commentaires du Commanditaire*
 *Ce document sera soumis au Référent qualité avant transmission au Commanditaire.*
