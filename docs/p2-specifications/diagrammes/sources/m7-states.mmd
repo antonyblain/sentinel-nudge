@@ -1,0 +1,31 @@
+stateDiagram-v2
+    [*] --> Dormant
+    Dormant --> Interception : submit formulaire password
+    Interception --> Hachage : capturer + SHA-256(sel + valeur)
+    Hachage --> Stockage : stocker hash (FIFO 100)
+    Stockage --> Comparaison : hash existe déjà?
+
+    Comparaison --> Dormant : hash nouveau (pas de réutilisation)
+    Comparaison --> VérificationSuppression : réutilisation détectée
+
+    VérificationSuppression --> Dormant : domaine dans liste suppression
+    VérificationSuppression --> VérificationDélai : domaine actif
+
+    VérificationDélai --> Dormant : dernier nudge < 30 jours
+    VérificationDélai --> QuotaCheck : délai >= 30 jours
+
+    QuotaCheck --> Silencieux : quota atteint
+    QuotaCheck --> Affiché : quota disponible
+
+    Silencieux --> Archivé : événement logué
+    Affiché --> EnSavoirPlus : "Voir comment ça marche"
+    Affiché --> Compris : "OK, compris"
+    Affiché --> Supprimé : "Ne plus afficher pour ce site"
+    Affiché --> Fermé : timeout 8s / croix
+
+    EnSavoirPlus --> Archivé : ouvrir page statique
+    Compris --> Archivé
+    Supprimé --> Archivé : ajouter à suppression_list
+    Fermé --> Archivé
+
+    Archivé --> Dormant

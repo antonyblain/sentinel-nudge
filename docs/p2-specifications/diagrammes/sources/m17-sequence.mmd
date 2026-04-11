@@ -1,0 +1,47 @@
+sequenceDiagram
+    participant U as Utilisateur
+    participant CS as Content Script
+    participant SW as Service Worker
+    participant ST as Stockage Local
+    participant UI as Toast M17
+
+    U->>CS: Événement paste dans <input> ou <textarea>
+    CS->>CS: Lire event.clipboardData.getData('text')
+    CS->>CS: Pattern matching en mémoire
+
+    Note over CS: Patterns :<br/>1. Carte bancaire (Luhn)<br/>2. IBAN (mod 97)<br/>3. Clé API (32+ alphanum, haute entropie)
+
+    alt Aucun pattern sensible détecté
+        CS->>CS: Nullifier la variable clipboard
+        Note over CS: D-SEC-002 : < 10ms
+    else Pattern sensible détecté
+        CS->>CS: Identifier le type (carte/IBAN/API)
+        CS->>CS: Nullifier la variable clipboard
+        Note over CS: D-SEC-002 : < 10ms
+        CS->>SW: sendMessage({module: 'M17', type: 'credit_card'})
+
+        SW->>ST: Lire quota
+        alt Quota atteint
+            SW->>ST: Enregistrer événement silencieux
+        else Quota disponible
+            SW->>ST: Incrémenter quota
+            SW-->>CS: Afficher toast M17
+            CS->>UI: Rendre toast (type de donnée mentionné)
+
+            alt Vider le presse-papiers
+                U->>UI: Clic
+                UI->>CS: navigator.clipboard.writeText('')
+                CS->>SW: action: 'clipboard_cleared'
+                SW->>ST: Enregistrer événement
+                UI->>UI: Fermer toast
+            else OK, merci
+                U->>UI: Clic
+                UI->>SW: action: 'acknowledged'
+                SW->>ST: Enregistrer événement
+                UI->>UI: Fermer toast
+            else En savoir plus
+                U->>UI: Clic
+                UI->>SW: Ouvrir page statique M17
+            end
+        end
+    end

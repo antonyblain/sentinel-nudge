@@ -1,0 +1,32 @@
+stateDiagram-v2
+    [*] --> Veille
+    Veille --> Vérification : startup OU alarme périodique
+    Vérification --> AJour : no_update
+    Vérification --> Throttled : throttled (trop de requêtes)
+    Vérification --> MiseAJourDispo : update_available
+
+    AJour --> Veille : M3 = 20/20
+    Throttled --> Veille : réessai dans 1h
+
+    MiseAJourDispo --> DélaiGrâce : dernier nudge < 48h
+    DélaiGrâce --> Veille : attendre expiration
+
+    MiseAJourDispo --> VérificationContexte : dernier nudge >= 48h
+    VérificationContexte --> Reporté : plein écran OU formulaire actif
+    Reporté --> VérificationContexte : retour mode normal
+
+    VérificationContexte --> QuotaCheck : contexte OK
+    QuotaCheck --> Silencieux : quota atteint
+    Silencieux --> Veille : événement logué
+
+    QuotaCheck --> Affiché : quota disponible
+    Affiché --> MisAJour : "Mettre à jour"
+    Affiché --> Rappel4h : "Me rappeler dans 4h"
+    Affiché --> Fermé : fermeture X / timeout 8s
+    Affiché --> PageExplication : "Pourquoi c'est important ?"
+    PageExplication --> Affiché
+
+    MisAJour --> Archivé : ouvrir chrome://settings/help
+    Rappel4h --> Archivé : programmer alarme 4h
+    Fermé --> Archivé
+    Archivé --> Veille

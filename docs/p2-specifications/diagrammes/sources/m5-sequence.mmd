@@ -1,0 +1,59 @@
+sequenceDiagram
+    participant BR as Navigateur (démarrage)
+    participant SW as Service Worker
+    participant API as chrome.runtime.requestUpdateCheck()
+    participant ST as Stockage Local
+    participant CS as Content Script
+    participant UI as Toast M5
+
+    BR->>SW: Événement 'startup' / alarme périodique
+    SW->>API: requestUpdateCheck()
+    API-->>SW: {status: 'update_available' | 'no_update' | 'throttled'}
+
+    alt status = 'no_update'
+        SW->>ST: Marquer navigateur à jour
+        Note over SW: M3 composante MAJ = 20/20
+    else status = 'throttled'
+        SW->>SW: Réessayer dans 1h (alarme)
+    else status = 'update_available'
+        SW->>ST: Lire date dernier nudge M5
+        ST-->>SW: last_m5_nudge_date
+
+        alt Dernier nudge M5 < 48h
+            SW->>SW: Reporter (délai de grâce)
+        else Dernier nudge M5 >= 48h
+            SW->>CS: Vérifier état onglet actif
+            CS-->>SW: {fullscreen, form_active}
+
+            alt Plein écran ou formulaire actif
+                SW->>SW: Reporter au retour mode normal
+            else Mode normal, pas de formulaire
+                SW->>ST: Lire quota journalier
+                ST-->>SW: quota_count
+
+                alt Quota atteint
+                    SW->>ST: Enregistrer événement silencieux
+                else Quota disponible
+                    SW->>ST: Incrémenter quota
+                    SW-->>CS: Afficher toast M5
+                    CS->>UI: Rendre toast
+
+                    U->>UI: Action utilisateur
+                    alt Mettre à jour maintenant
+                        UI->>SW: action: 'update_now'
+                        SW->>BR: chrome.tabs.create({url: 'chrome://settings/help'})
+                        SW->>ST: Enregistrer événement (action: 'update_now')
+                    else Me rappeler dans 4 heures
+                        UI->>SW: action: 'remind_4h'
+                        SW->>SW: Programmer alarme dans 4h
+                        SW->>ST: Enregistrer événement (action: 'remind_4h')
+                    else Pourquoi c'est important ?
+                        UI->>UI: Ouvrir page statique M5
+                    else Fermer (X) / Timeout 8s
+                        UI->>SW: action: 'closed'
+                        SW->>ST: Enregistrer événement (action: 'closed')
+                    end
+                end
+            end
+        end
+    end

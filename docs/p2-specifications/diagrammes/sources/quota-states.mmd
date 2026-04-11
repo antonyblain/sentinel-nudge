@@ -1,0 +1,15 @@
+stateDiagram-v2
+    [*] --> Disponible : quota_count = 0 (minuit)
+    Disponible --> Disponible : nudge affiché (quota_count++)
+    Disponible --> Atteint : quota_count >= quota_max
+
+    Atteint --> ExceptionCritique : événement M2 ou M17
+    Atteint --> Différé : événement non critique
+    Atteint --> Disponible : reset minuit
+
+    ExceptionCritique --> Atteint : nudge affiché (quota_count++), notification utilisateur
+    Différé --> FileDAttente : ajouter à la file triée
+    FileDAttente --> Disponible : reset minuit → dépiler
+    FileDAttente --> Expiré : 24h sans reset
+
+    Note right of Atteint : Badge "Quota du jour atteint"

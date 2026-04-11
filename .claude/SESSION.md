@@ -7,10 +7,10 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P1
-- **Dernière action** : CdC v1.1 validé, licence GPL v3 validée et appliquée, PDCA LL-002 intégré — 2026-04-11
-- **Prochaine action attendue** : Passage en P2 (spécifications fonctionnelles détaillées)
-- **Branche Git active** : develop
+- **Phase active** : P2
+- **Dernière action** : SFD v1.0 validé par le Commanditaire (5 décisions UX intégrées, revues accessibilité + UX/UI) — 2026-04-11
+- **Prochaine action attendue** : Passage en P3 (architecture technique — DAT)
+- **Branche Git active** : feature/p2-specifications
 
 ## Livrables produits
 
@@ -19,6 +19,8 @@
 | P1 | p1-analyse-litterature-nudging-v2.0.md | v2.0 | Validé | 2026-04-11 |
 | P1 | p1-cahier-des-charges-v1.1.md | v1.1 | Validé | 2026-04-11 |
 | P1 | p1-analyse-licences-open-source-v1.0.md | v1.0 | Validé (GPL v3 retenue) | 2026-04-11 |
+| P2 | gouvernance-pv-securite-p2-v1.0.md | v1.0 | Produit | 2026-04-11 |
+| P2 | p2-sfd-v1.0.md | v1.0 | Validé | 2026-04-11 |
 
 ## Actions manuelles en attente
 
