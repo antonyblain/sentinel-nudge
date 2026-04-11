@@ -7,10 +7,10 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P1
-- **Dernière action** : CdC v1.1 validé, licence GPL v3 validée et appliquée, PDCA LL-002 intégré — 2026-04-11
-- **Prochaine action attendue** : Passage en P2 (spécifications fonctionnelles détaillées)
-- **Branche Git active** : develop
+- **Phase active** : P2
+- **Dernière action** : Ouverture P2, branche feature/p2-specifications créée — 2026-04-11
+- **Prochaine action attendue** : Comité de sécurité pré-P2 (STRIDE, RGPD, risques), puis rédaction SFD
+- **Branche Git active** : feature/p2-specifications
 
 ## Livrables produits
 
