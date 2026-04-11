@@ -1,0 +1,47 @@
+sequenceDiagram
+    participant U as Utilisateur
+    participant CS as Content Script
+    participant SW as Service Worker
+    participant ST as Stockage Local
+    participant UI as Overlay M2
+
+    U->>CS: Focus sur <input type="password">
+    CS->>CS: Détecter les signaux de risque
+    Note over CS: 1. Schéma HTTP?<br/>2. Hors HSTS preload?<br/>3. Typosquatting (Levenshtein)?<br/>4. Cert auto-signé?
+    CS->>SW: sendMessage({module: 'M2', signals: [...], domain_hash})
+    SW->>ST: Lire whitelist + quota + session M2
+    ST-->>SW: {whitelist, quota_count, session_domains}
+
+    alt Domaine dans whitelist
+        SW-->>CS: {action: 'skip', reason: 'whitelisted'}
+    else Moins de 2 signaux
+        SW-->>CS: {action: 'skip', reason: 'insufficient_signals'}
+    else Déjà nudgé cette session pour ce domaine
+        SW-->>CS: {action: 'skip', reason: 'session_duplicate'}
+    else Quota atteint ET M2 non critique
+        SW-->>CS: {action: 'skip', reason: 'quota_reached'}
+        SW->>ST: Enregistrer événement silencieux (pour M3)
+    else Conditions remplies
+        SW->>ST: Incrémenter quota
+        SW->>ST: Enregistrer domaine dans session M2
+        SW-->>CS: {action: 'show', signals: [...]}
+        CS->>UI: Afficher overlay M2
+        U->>UI: Action utilisateur
+
+        alt Continuer quand même
+            UI->>CS: fermer overlay
+            CS->>SW: {action: 'dismissed'}
+            SW->>ST: Enregistrer événement (action: 'dismissed')
+        else Marquer comme de confiance
+            UI->>CS: fermer overlay
+            CS->>SW: {action: 'trusted', domain_hash}
+            SW->>ST: Ajouter à whitelist
+            SW->>ST: Enregistrer événement (action: 'trusted')
+        else Abandonner la saisie
+            UI->>CS: fermer overlay + focus barre d'adresse
+            CS->>SW: {action: 'abandoned'}
+            SW->>ST: Enregistrer événement (action: 'abandoned')
+        else Pourquoi ce message ?
+            UI->>UI: Afficher explication inline (signaux détectés + source scientifique)
+        end
+    end

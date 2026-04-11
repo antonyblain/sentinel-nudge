@@ -1,0 +1,19 @@
+stateDiagram-v2
+    [*] --> Verification : extension demarree
+    Verification --> Etape1_Bienvenue : onboarding_completed == false
+    Verification --> Normal : onboarding_completed == true
+
+    Etape1_Bienvenue --> Etape2_Profil : clic Suivant
+    Etape2_Profil --> Etape1_Bienvenue : clic Retour
+    Etape2_Profil --> Etape3_Modules : clic Suivant + profil selectionne
+
+    Etape3_Modules --> Etape2_Profil : clic Retour
+    Etape3_Modules --> Etape4_Confidentialite : clic Confirmer + modules coches
+
+    Etape4_Confidentialite --> Etape3_Modules : clic Retour
+    Etape4_Confidentialite --> ConsentementM7 : M7 active
+
+    ConsentementM7 --> OnboardingTermine : consentement M7 donne OU M7 desactive
+    Etape4_Confidentialite --> OnboardingTermine : M7 non active
+
+    OnboardingTermine --> Normal : onboarding_completed = true

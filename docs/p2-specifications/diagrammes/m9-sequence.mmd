@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant U as Utilisateur
+    participant CS as Content Script
+    participant SW as Service Worker
+    participant UI as Overlay inline M9
+
+    CS->>CS: Observer les champs password sur la page
+    CS->>CS: Détecter formulaire de création (champ confirmation présent?)
+    CS->>CS: Vérifier présence gestionnaire de mots de passe
+
+    alt Gestionnaire détecté (autocomplete, data-form-type)
+        CS->>CS: Ne pas activer M9
+    else Formulaire de création sans gestionnaire
+        U->>CS: Focus sur champ password
+        CS->>UI: Afficher overlay inline (vide, en attente)
+
+        loop À chaque frappe
+            U->>CS: Input event (caractère ajouté/supprimé)
+            CS->>CS: Évaluer force (zxcvbn local)
+            Note over CS: Critères ANSSI :<br/>Très faible/Faible = Déconseillé<br/>Moyen = Acceptable<br/>Fort/Très fort = Recommandé
+            CS->>UI: Mettre à jour barre + label + suggestion + marqueur ANSSI
+        end
+
+        U->>CS: Submit formulaire
+        CS->>CS: Capturer le niveau de force final (1-5)
+        CS->>SW: sendMessage({module: 'M9', strength_level})
+        SW->>ST: Enregistrer évaluation (niveau uniquement, pas de mdp)
+        Note over SW: Jamais de valeur de mot de passe
+        CS->>UI: Masquer overlay
+    end

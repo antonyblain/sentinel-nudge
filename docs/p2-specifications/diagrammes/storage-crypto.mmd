@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant App as Application
+    participant WC as Web Crypto API
+    participant IDB as IndexedDB
+    participant CSL as chrome.storage.local
+
+    Note over App: Écriture d'un enregistrement chiffré
+
+    App->>CSL: Lire encryption_key (raw AES-256)
+    CSL-->>App: key_material
+
+    App->>WC: crypto.subtle.importKey('raw', key_material, 'AES-GCM')
+    WC-->>App: CryptoKey
+
+    App->>App: Sérialiser l'enregistrement (JSON.stringify)
+    App->>WC: crypto.subtle.encrypt({name: 'AES-GCM', iv: random_12_bytes}, key, data)
+    WC-->>App: {iv, ciphertext}
+
+    App->>IDB: put({id, iv, ciphertext})
+    IDB-->>App: OK
+
+    Note over App: Lecture d'un enregistrement chiffré
+
+    App->>IDB: get(id)
+    IDB-->>App: {id, iv, ciphertext}
+
+    App->>CSL: Lire encryption_key
+    CSL-->>App: key_material
+    App->>WC: crypto.subtle.importKey + decrypt({name: 'AES-GCM', iv}, key, ciphertext)
+    WC-->>App: plaintext (JSON)
+    App->>App: JSON.parse(plaintext)

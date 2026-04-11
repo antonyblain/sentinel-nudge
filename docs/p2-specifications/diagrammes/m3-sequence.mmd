@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant AL as Alarme (lundi 09h)
+    participant SW as Service Worker
+    participant ST as Stockage Local
+    participant BD as Badge Extension
+    participant PU as Popup
+    participant DB as Dashboard
+
+    AL->>SW: alarm 'weekly_score' fired
+    SW->>ST: Lire événements M2 de la semaine
+    SW->>ST: Lire état M5 (navigateur à jour?)
+    SW->>ST: Lire résultats quiz M6 de la semaine
+    SW->>ST: Lire événements M7 de la semaine
+    SW->>ST: Lire évaluations M9 de la semaine
+    SW->>ST: Lire score précédent
+    ST-->>SW: Données brutes de chaque module
+
+    SW->>SW: Calculer les 5 composantes
+    Note over SW: 1. MAJ nav: 20 si à jour, 0 sinon<br/>2. Phishing: %bonnes réponses × 25<br/>3. Sites risqués: 20-(4×ignorés)<br/>4. Diversité mdp: 20-(4×réutilisations)<br/>5. Force mdp: (forts/total)×15 ou 15 si 0/0
+
+    SW->>SW: Gérer les modules désactivés (redistribution proportionnelle)
+    SW->>SW: Calculer delta vs semaine précédente
+    SW->>SW: Sélectionner l'action recommandée (composante la plus faible)
+
+    SW->>ST: Stocker score (week_id, score, composantes, delta)
+    SW->>BD: Mettre à jour badge couleur (vert/orange/rouge)
+    SW->>BD: Afficher chiffre si notification
+
+    U->>PU: Clic sur icône extension
+    PU->>ST: Lire score courant + delta + action recommandée
+    ST-->>PU: Données du score
+    PU->>PU: Afficher le rapport hebdomadaire
+
+    U->>DB: Clic "Voir l'historique"
+    DB->>ST: Lire scores (12 ou 52 semaines)
+    ST-->>DB: Données historiques
+    DB->>DB: Afficher graphique de progression

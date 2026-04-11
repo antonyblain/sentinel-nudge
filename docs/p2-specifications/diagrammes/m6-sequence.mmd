@@ -1,0 +1,59 @@
+sequenceDiagram
+    participant AL as Alarme spaced repetition
+    participant SW as Service Worker
+    participant ST as Stockage Local
+    participant CS as Content Script
+    participant UI as Notification toast
+    participant QZ as Quiz overlay
+
+    AL->>SW: alarm 'quiz_scheduled' fired
+    SW->>ST: Lire next_quiz_date + profil utilisateur
+    ST-->>SW: {next_quiz_date, profile, quiz_history}
+
+    alt Date non atteinte
+        SW->>SW: Attendre (rien à faire)
+    else Date atteinte
+        SW->>ST: Lire quota journalier
+        ST-->>SW: quota_count
+
+        alt Quota atteint
+            SW->>SW: Reporter au lendemain
+        else Quota disponible
+            SW->>CS: Vérifier si formulaire actif
+            CS-->>SW: {form_active}
+
+            alt Formulaire actif
+                SW->>SW: Reporter à la fin de la saisie
+            else Pas de formulaire
+                SW->>ST: Incrémenter quota (notification uniquement)
+                SW-->>CS: Afficher notification quiz
+                CS->>UI: Rendre toast "Quiz disponible"
+
+                alt Commencer maintenant
+                    U->>UI: Clic "Commencer"
+                    UI->>QZ: Ouvrir quiz overlay
+                    SW->>SW: Sélectionner 3 questions (difficulté adaptative)
+
+                    loop Pour chaque question (1 à 3)
+                        QZ->>U: Afficher question + exemple phishing
+                        U->>QZ: Sélectionner réponse + Valider
+                        QZ->>QZ: Afficher feedback détaillé
+                        U->>QZ: Clic "Question suivante"
+                    end
+
+                    QZ->>SW: Résultats {score_pct, categories_failed}
+                    SW->>ST: Enregistrer résultats quiz
+                    SW->>SW: Calculer prochaine date (spaced repetition)
+                    SW->>ST: Mettre à jour next_quiz_date
+                    QZ->>U: Afficher résumé final + score
+
+                else Plus tard
+                    U->>UI: Clic "Plus tard"
+                    UI->>SW: Quiz reporté
+                    SW->>ST: Quiz accessible depuis dashboard pendant 7 jours
+                else Fermer (X)
+                    UI->>SW: Notification fermée
+                end
+            end
+        end
+    end

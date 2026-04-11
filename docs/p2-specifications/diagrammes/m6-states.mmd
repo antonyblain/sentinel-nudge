@@ -1,0 +1,24 @@
+stateDiagram-v2
+    [*] --> Planifié : date calculée par spaced repetition
+    Planifié --> Vérification : date atteinte
+    Vérification --> Reporté_Quota : quota atteint
+    Vérification --> Reporté_Formulaire : formulaire actif
+    Vérification --> Notifié : conditions OK, toast affiché
+
+    Reporté_Quota --> Planifié : reporter au lendemain
+    Reporté_Formulaire --> Vérification : fin de saisie
+
+    Notifié --> QuizEnCours : "Commencer maintenant"
+    Notifié --> Disponible7j : "Plus tard" / fermeture
+    Disponible7j --> QuizEnCours : accès depuis dashboard
+    Disponible7j --> Expiré : 7 jours écoulés
+
+    QuizEnCours --> Question : afficher question
+    Question --> Feedback : réponse validée
+    Feedback --> Question : question suivante
+    Feedback --> Terminé : dernière question
+
+    Terminé --> RésultatEnregistré : score + catégories échouées
+    RésultatEnregistré --> Planifié : calculer prochaine date
+
+    Expiré --> Planifié : quiz manqué, reprendre le calendrier

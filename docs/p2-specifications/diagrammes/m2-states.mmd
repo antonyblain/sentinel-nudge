@@ -1,0 +1,18 @@
+stateDiagram-v2
+    [*] --> Dormant
+    Dormant --> Détection : focus sur password field
+    Détection --> Évaluation : signaux collectés
+    Évaluation --> Dormant : < 2 signaux OU whitelist OU session_duplicate
+    Évaluation --> EnAttenteQuota : >= 2 signaux ET domaine non whitelist
+    EnAttenteQuota --> Affiché : quota disponible OU exception critique
+    EnAttenteQuota --> Silencieux : quota atteint (événement logué sans affichage)
+    Silencieux --> Dormant : événement archivé pour M3
+    Affiché --> Fermé_Ignoré : "Continuer quand même"
+    Affiché --> Fermé_Confiance : "Marquer comme de confiance"
+    Affiché --> Fermé_Abandonné : "Abandonner la saisie"
+    Affiché --> Explication : "Pourquoi ce message ?"
+    Explication --> Affiché : retour au nudge
+    Fermé_Ignoré --> Archivé : enregistrer action
+    Fermé_Confiance --> Archivé : enregistrer action + whitelist
+    Fermé_Abandonné --> Archivé : enregistrer action
+    Archivé --> Dormant

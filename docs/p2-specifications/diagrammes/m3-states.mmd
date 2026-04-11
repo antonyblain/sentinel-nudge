@@ -1,0 +1,17 @@
+stateDiagram-v2
+    [*] --> Attente : extension installée
+    Attente --> Calcul : alarme lundi 09h OU premier démarrage lundi
+    Calcul --> ModulesActifs : identifier les modules activés
+    ModulesActifs --> CollecteMetriques : lire les événements de la semaine
+    CollecteMetriques --> CalculComposantes : calculer chaque composante
+    CalculComposantes --> Redistribution : module(s) désactivé(s)?
+
+    Redistribution --> ScoreFinal : oui → redistribuer les poids
+    CalculComposantes --> ScoreFinal : non → poids standard
+
+    ScoreFinal --> Stockage : enregistrer score + composantes + delta
+    Stockage --> MiseAJourBadge : mettre à jour badge couleur
+    MiseAJourBadge --> NotificationDisponible : préparer le rapport popup
+    NotificationDisponible --> Attente : attendre la semaine suivante
+
+    Note right of Calcul : Si navigateur fermé à 09h,<br/>calcul au prochain démarrage le lundi

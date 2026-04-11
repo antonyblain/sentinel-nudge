@@ -1,0 +1,51 @@
+sequenceDiagram
+    participant U as Utilisateur
+    participant CS as Content Script
+    participant SW as Service Worker
+    participant ST as Stockage Local
+    participant UI as Toast M7
+
+    U->>CS: Submit formulaire avec <input type="password">
+    CS->>CS: Capturer valeur password au submit
+    CS->>CS: Calculer SHA-256(sel_local + valeur)
+    Note over CS: D-SEC-001 : sel local obligatoire
+    CS->>CS: Effacer valeur en clair de la mémoire
+    CS->>SW: sendMessage({module: 'M7', hash, domain_hash})
+
+    SW->>ST: Lire password_hashes + suppression_list + last_m7_nudge
+    ST-->>SW: {hashes[], suppression_domains[], last_nudge_by_domain}
+
+    SW->>ST: Stocker le hash (FIFO max 100)
+
+    alt Hash déjà présent dans le store (réutilisation détectée)
+        alt Domaine dans la liste de suppression
+            SW->>SW: Pas de nudge (utilisateur a demandé "Ne plus afficher")
+        else Dernier nudge M7 pour ce domaine < 30 jours
+            SW->>SW: Pas de nudge (délai de grâce)
+        else Conditions remplies
+            SW->>ST: Lire quota
+            alt Quota atteint
+                SW->>ST: Enregistrer événement silencieux
+            else Quota disponible
+                SW->>ST: Incrémenter quota
+                SW-->>CS: Afficher toast M7
+                CS->>UI: Rendre toast
+
+                alt Voir comment ça marche
+                    U->>UI: Clic
+                    UI->>SW: Ouvrir page statique gestionnaires mdp
+                    SW->>ST: Enregistrer événement (action: 'learn_more')
+                else OK, compris
+                    U->>UI: Clic
+                    UI->>SW: Fermer toast
+                    SW->>ST: Enregistrer événement (action: 'acknowledged')
+                else Ne plus afficher pour ce site
+                    U->>UI: Clic
+                    UI->>SW: Ajouter domaine à suppression_list
+                    SW->>ST: Enregistrer suppression + événement
+                end
+            end
+        end
+    else Hash nouveau (pas de réutilisation)
+        SW->>SW: Rien à signaler
+    end
