@@ -8,9 +8,9 @@
 
 ## État courant
 - **Phase active** : P2
-- **Dernière action** : SFD v1.0 validé par le Commanditaire (5 décisions UX intégrées, revues accessibilité + UX/UI) — 2026-04-11
-- **Prochaine action attendue** : Passage en P3 (architecture technique — DAT)
-- **Branche Git active** : feature/p2-specifications
+- **Dernière action** : SFD v1.0 validé, PR #1 mergée dans develop — 2026-04-11
+- **Prochaine action attendue** : Passage en P3 (architecture technique — DAT). Créer branche feature/p3-architecture.
+- **Branche Git active** : develop
 
 ## Livrables produits
 
