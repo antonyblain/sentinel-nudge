@@ -2,13 +2,20 @@
 ## Phase P2 — Analyste métier
 
 **Projet :** Sentinel Nudge
-**Version :** 1.0
+**Version :** 1.1
 **Date de production :** 2026-04-11
 **Statut :** En cours de rédaction
 **Commanditaire :** Antony (RSSI)
 **Niveau de sensibilité :** Exposé
 **Document de référence :** p1-cahier-des-charges-v1.1.md
 **Comité de sécurité pré-P2 :** Tenu le 2026-04-11 (cf. gouvernance-pv-securite-p2-v1.0.md)
+
+**Historique des révisions :**
+
+| Version | Date | Modifications |
+|---------|------|---------------|
+| 1.0 | 2026-04-11 | Version initiale |
+| 1.1 | 2026-04-11 | INC-001 : renommage stores `quiz_sessions` / `weekly_scores` — INC-002 : schéma `password_hashes` (clé `id`, champ `value` chiffré, index `tag`, champ `iv`) — INC-003 : sel en représentation hexadécimale — INC-004 : chiffrement étendu à `quiz_sessions` et `weekly_scores` — INC-007 : domain_hash salé `SHA-256(installation_salt + domain)` — OMI-002 : ajout ENF-PBD-09 droit à la portabilité |
 
 ---
 
@@ -143,7 +150,7 @@ stateDiagram-v2
 | `current_url` | string | `chrome.tabs` API | URL complète de l'onglet actif | Jamais stockée en clair |
 | `url_scheme` | enum('http','https') | Extraction de `current_url` | Schéma de la page | — |
 | `domain` | string | Extraction de `current_url` | Domaine de la page courante | Hashé avant tout stockage |
-| `domain_hash` | string(64) | SHA-256(`domain`) | Empreinte du domaine | Stocké, jamais le domaine |
+| `domain_hash` | string(64) | SHA-256(`installation_salt` + `domain`) | Empreinte salée du domaine | Stocké, jamais le domaine |
 | `is_hsts` | boolean | Lookup dans HSTS preload list embarquée | Domaine dans la HSTS preload list | Liste mise à jour via Chrome Web Store |
 | `levenshtein_score` | integer | Algorithme Levenshtein vs liste cibles | Distance typographique minimale avec un domaine connu | Seuil : distance ≤ 2 = suspect |
 | `is_self_signed` | boolean | `chrome.tabs` security state | Certificat TLS auto-signé | API MV3 à valider en P3 |
@@ -156,7 +163,7 @@ stateDiagram-v2
 | `event_id` | auto-increment | IndexedDB `events` | Identifiant unique de l'événement | 90 jours |
 | `module` | string('M2') | IndexedDB `events` | Identifiant du module source | 90 jours |
 | `timestamp` | ISO 8601 | IndexedDB `events` | Date/heure de l'événement | 90 jours |
-| `domain_hash` | string(64) | IndexedDB `events` | Hash SHA-256 du domaine | 90 jours |
+| `domain_hash` | string(64) | IndexedDB `events` | SHA-256(installation_salt + domain) | 90 jours |
 | `signals` | string[] | IndexedDB `events` | Liste des signaux détectés (ex: ['http','typosquatting']) | 90 jours |
 | `action_user` | enum | IndexedDB `events` | Action de l'utilisateur : 'dismissed', 'trusted', 'abandoned', 'silent' | 90 jours |
 | `quota_increment` | integer(1) | chrome.storage.local | Incrément du compteur de quota journalier | Réinitialisé à minuit |
@@ -303,7 +310,7 @@ stateDiagram-v2
 | Composante | Source | Requête IndexedDB | Calcul |
 |-----------|--------|-------------------|--------|
 | MAJ navigateur | M5 | Dernier événement M5 de la semaine | `is_up_to_date ? 20 : 0` |
-| Résistance phishing | M6 | Derniers résultats quiz (`quiz_history` WHERE `timestamp` >= lundi précédent) | `(sum(correct) / sum(total)) × 25`. Si aucun quiz cette semaine : reprendre le dernier score connu |
+| Résistance phishing | M6 | Derniers résultats quiz (`quiz_sessions` WHERE `timestamp` >= lundi précédent) | `(sum(correct) / sum(total)) × 25`. Si aucun quiz cette semaine : reprendre le dernier score connu |
 | Comportement sites risqués | M2 | `events` WHERE `module='M2'` AND `action_user='dismissed'` AND `timestamp` >= lundi | `max(0, 20 - (4 × count(dismissed)))` |
 | Diversité mots de passe | M7 | `events` WHERE `module='M7'` AND nudge affiché AND `timestamp` >= lundi | `max(0, 20 - (4 × count(reuse_detected)))` |
 | Force mots de passe | M9 | `events` WHERE `module='M9'` AND `timestamp` >= lundi | Si 0 créations : `15` (indicateur 0/0). Sinon : `(count(force >= 4) / count(total)) × 15` (indicateur X/Y) |
@@ -312,11 +319,11 @@ stateDiagram-v2
 
 | Champ | Type | Destination | Rétention |
 |-------|------|-------------|-----------|
-| `week_id` | string('YYYY-Www') | IndexedDB `scores` | 52 semaines |
-| `score` | integer(0-100) | IndexedDB `scores` | 52 semaines |
-| `composantes` | object | IndexedDB `scores` | 52 semaines |
-| `delta` | integer(-100..+100) | IndexedDB `scores` | 52 semaines |
-| `action_recommandee` | string | IndexedDB `scores` | 52 semaines |
+| `week_id` | string('YYYY-Www') | IndexedDB `weekly_scores` | 52 semaines |
+| `score` | integer(0-100) | IndexedDB `weekly_scores` | 52 semaines |
+| `composantes` | object | IndexedDB `weekly_scores` | 52 semaines |
+| `delta` | integer(-100..+100) | IndexedDB `weekly_scores` | 52 semaines |
+| `action_recommandee` | string | IndexedDB `weekly_scores` | 52 semaines |
 | `badge_color` | enum('green','orange','red') | Badge extension | Jusqu'au prochain calcul |
 
 **Algorithme de redistribution des poids :**
@@ -567,7 +574,7 @@ sequenceDiagram
 
     AL->>SW: alarm 'quiz_scheduled' fired
     SW->>ST: Lire next_quiz_date + profil utilisateur
-    ST-->>SW: {next_quiz_date, profile, quiz_history}
+    ST-->>SW: {next_quiz_date, profile, quiz_sessions}
 
     alt Date non atteinte
         SW->>SW: Attendre (rien à faire)
@@ -681,11 +688,11 @@ stateDiagram-v2
 
 | Champ | Type | Destination | Rétention |
 |-------|------|-------------|-----------|
-| `quiz_session_id` | auto-increment | IndexedDB `quiz_history` | Illimité |
-| `timestamp` | ISO 8601 | IndexedDB `quiz_history` | Illimité |
-| `score_pct` | integer(0-100) | IndexedDB `quiz_history` | Illimité |
-| `questions_ids` | string[] | IndexedDB `quiz_history` | Illimité |
-| `categories_failed` | string[] | IndexedDB `quiz_history` | Illimité |
+| `quiz_session_id` | auto-increment | IndexedDB `quiz_sessions` | Illimité |
+| `timestamp` | ISO 8601 | IndexedDB `quiz_sessions` | Illimité |
+| `score_pct` | integer(0-100) | IndexedDB `quiz_sessions` | Illimité |
+| `questions_ids` | string[] | IndexedDB `quiz_sessions` | Illimité |
+| `categories_failed` | string[] | IndexedDB `quiz_sessions` | Illimité |
 | `next_quiz_date` | ISO 8601 | chrome.storage.local | Jusqu'au prochain quiz |
 
 **Calendrier spaced repetition — algorithme :**
@@ -843,18 +850,37 @@ stateDiagram-v2
 | Champ | Type | Source | Contrainte sécurité |
 |-------|------|--------|-------------------|
 | `password_value` | string | DOM `<input type="password">` au submit | **Jamais stocké** — effacé immédiatement après hachage |
-| `installation_salt` | string(32) | chrome.storage.local (généré à l'installation) | D-SEC-001 : `crypto.getRandomValues(new Uint8Array(16))` |
-| `password_hash` | string(64) | SHA-256(`installation_salt` + `password_value`) | Stocké dans IndexedDB `password_hashes` |
-| `domain_hash` | string(64) | SHA-256(`domain`) | Stocké pour la suppression_list |
+| `installation_salt` | string(32) | chrome.storage.local (généré à l'installation) | D-SEC-001 : `crypto.getRandomValues(new Uint8Array(16))`, stocké en hex (32 chars) |
+| `password_hash` | string(64) | SHA-256(`installation_salt` + `password_value`) | Stocké dans IndexedDB `password_hashes` (champ `value`, chiffré AES-256-GCM) |
+| `domain_hash` | string(64) | SHA-256(`installation_salt` + `domain`) | Stocké pour la suppression_list |
 
 **Données de sortie :**
 
 | Champ | Type | Destination | Rétention |
 |-------|------|-------------|-----------|
-| `hash` | string(64) | IndexedDB `password_hashes` | 90 jours FIFO max 100 |
+| `id` | auto-increment | IndexedDB `password_hashes` | 90 jours FIFO max 100 |
+| `value` | ArrayBuffer (AES-256-GCM) | IndexedDB `password_hashes` | 90 jours FIFO max 100 |
+| `iv` | Uint8Array (12 bytes) | IndexedDB `password_hashes` | 90 jours |
+| `tag` | string(8) | IndexedDB `password_hashes` | 90 jours (index de pré-filtration) |
 | `timestamp` | ISO 8601 | IndexedDB `password_hashes` | 90 jours |
 | `event` | object | IndexedDB `events` | 90 jours |
 | `suppression_domain_hash` | string(64) | IndexedDB `whitelist` (module='M7') | Illimité (gestion manuelle) |
+
+**Lookup par hash (détection de réutilisation) :**
+
+La recherche d'un hash existant dans `password_hashes` s'effectue en deux étapes pour optimiser les performances :
+
+```
+1. Pré-filtration par index `tag` (4 premiers bytes du hash en clair) :
+   cursor = password_hashes.index('tag').getAll(hash_to_find.substring(0, 8))
+
+2. Pour chaque enregistrement retourné :
+   - Déchiffrer le champ `value` avec la clé AES-256-GCM et l'`iv` associé
+   - Comparer le hash déchiffré avec le hash entrant
+   - Si correspondance : réutilisation détectée
+```
+
+Cette approche garantit que la clé AES n'est sollicitée que sur un sous-ensemble restreint d'enregistrements (collision sur `tag` attendue < 1 pour 4 milliards), réduisant la charge cryptographique.
 
 #### 2.5.4 Cas limites et gestion d'erreurs
 
@@ -1277,9 +1303,9 @@ stateDiagram-v2
 | Store | Clé primaire | Index | Champs | Chiffré (AES-256-GCM) |
 |-------|-------------|-------|--------|----------------------|
 | `events` | `id` (auto-increment) | `module` (non-unique), `timestamp` (non-unique) | `id`, `module`, `timestamp`, `type`, `action_user`, `domain_hash`, `signals`, `data_type` | Oui |
-| `password_hashes` | `hash` | `timestamp` (non-unique) | `hash`, `timestamp` | Oui |
-| `scores` | `week_id` | — | `week_id`, `score`, `composantes`, `delta`, `action_recommandee` | Non (pas de donnée personnelle) |
-| `quiz_history` | `id` (auto-increment) | `timestamp` (non-unique) | `id`, `timestamp`, `score_pct`, `questions_ids`, `categories_failed`, `next_quiz_date` | Non |
+| `password_hashes` | `id` (auto-increment) | `tag` (non-unique), `timestamp` (non-unique) | `id`, `value` (AES-256-GCM), `iv`, `tag`, `timestamp` | Oui (`value` chiffré ; `tag` et `timestamp` en clair pour indexation) |
+| `weekly_scores` | `week_id` | — | `week_id`, `score`, `composantes`, `delta`, `action_recommandee` | Oui |
+| `quiz_sessions` | `id` (auto-increment) | `timestamp` (non-unique) | `id`, `timestamp`, `score_pct`, `questions_ids`, `categories_failed`, `next_quiz_date` | Oui |
 | `whitelist` | `domain_hash` | `module` (non-unique) | `domain_hash`, `timestamp_added`, `module` | Non |
 
 #### 3.2.2 Flux chiffrement / déchiffrement
@@ -1324,9 +1350,15 @@ sequenceDiagram
 À la première installation :
   key_bytes = crypto.getRandomValues(new Uint8Array(32))  // 256 bits
   salt_bytes = crypto.getRandomValues(new Uint8Array(16))  // 128 bits (D-SEC-001)
+  
+  // Conversion du sel en représentation hexadécimale (string de 32 caractères)
+  installation_salt_hex = Array.from(salt_bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  
   chrome.storage.local.set({
     encryption_key: Array.from(key_bytes),
-    installation_salt: Array.from(salt_bytes),
+    installation_salt: installation_salt_hex,  // hex string, 32 chars
     db_version: 1
   })
 ```
@@ -1358,7 +1390,7 @@ ALARME quotidienne 'data_cleanup' (02h00) :
   SI count > 100 : supprimer les plus anciens jusqu'à 100
 
   // Scores : 52 semaines glissantes
-  Supprimer de 'scores' WHERE week_id < now - 52 semaines
+  Supprimer de 'weekly_scores' WHERE week_id < now - 52 semaines
 ```
 
 ### 3.3 Onboarding — Premier lancement
@@ -1421,12 +1453,12 @@ stateDiagram-v2
 
 | Vue | Requête IndexedDB | Données affichées |
 |-----|-------------------|-------------------|
-| Score courant | `scores.get(current_week_id)` | Score, delta, composantes, action recommandée |
-| Historique 12 semaines | `scores.getAll()` + tri par week_id DESC + limit 12 | Graphique linéaire (semaines en X, score 0-100 en Y) |
-| Historique complet | `scores.getAll()` + tri par week_id DESC | Graphique étendu (52 semaines max) |
+| Score courant | `weekly_scores.get(current_week_id)` | Score, delta, composantes, action recommandée |
+| Historique 12 semaines | `weekly_scores.getAll()` + tri par week_id DESC + limit 12 | Graphique linéaire (semaines en X, score 0-100 en Y) |
+| Historique complet | `weekly_scores.getAll()` + tri par week_id DESC | Graphique étendu (52 semaines max) |
 | Détail par composante | Extraction des `composantes` du score courant | 5 barres de progression (une par composante active) |
 | Stats nudges | `events.index('module').getAll()` + groupBy module | Nombre de nudges par module, taux de réponse positive |
-| Quiz M6 | `quiz_history.getAll()` + tri par timestamp DESC | Scores progressifs, prochaine date, catégories à travailler |
+| Quiz M6 | `quiz_sessions.getAll()` + tri par timestamp DESC | Scores progressifs, prochaine date, catégories à travailler |
 
 #### 3.5.2 Graphique de progression
 
@@ -1556,11 +1588,12 @@ Chaque page utilise `chrome.i18n.getMessage('key')` pour afficher le texte dans 
 | ENF-PBD-01 | Aucun appel réseau sortant | Tous sauf M5 | `chrome://net-internals` pendant 1h : 0 requête de l'extension |
 | ENF-PBD-02 | Aucune télémétrie | Tous | Audit code : aucun `fetch`, `XMLHttpRequest`, `navigator.sendBeacon` |
 | ENF-PBD-03 | Minimisation des données | M2, M7, M9, M17 | Vérifier : seuls les hash/niveaux sont stockés, jamais les valeurs |
-| ENF-PBD-04 | Chiffrement au repos | events, password_hashes | Test : lire IndexedDB directement → données illisibles sans clé |
+| ENF-PBD-04 | Chiffrement au repos | events, password_hashes, quiz_sessions, weekly_scores | Test : lire IndexedDB directement → données illisibles sans clé |
 | ENF-PBD-05 | Droit à l'effacement | Paramètres | Test : "Effacer toutes mes données" → stores vides + onboarding |
 | ENF-PBD-06 | Aucun identifiant persistant | Installation | Audit : pas d'UUID, pas de fingerprinting, sel = aléatoire non traçable |
-| ENF-PBD-07 | Domaines jamais en clair | M2, M7 | Audit code : `SHA-256(domain)` avant tout stockage |
+| ENF-PBD-07 | Domaines jamais en clair | M2, M7 | Audit code : `SHA-256(installation_salt + domain)` avant tout stockage |
 | ENF-PBD-08 | Politique de confidentialité plain language | Onboarding, Paramètres | Revue texte : Flesch-Kincaid ≤ 12 (compréhensible par un collégien) |
+| ENF-PBD-09 | Droit à la portabilité | Paramètres | Test : clic "Exporter mes données" → fichier JSON structuré téléchargé localement, contenant l'ensemble des données de l'utilisateur |
 
 ### 4.2 Performance — budget par module
 
@@ -1653,7 +1686,7 @@ Exemples :
 
 | Réf. CdC | Description | Réf. SFD | Couvert |
 |-----------|-------------|----------|---------|
-| ENF-PBD-01 à 08 | Privacy by design | SFD 4.1 | ✓ |
+| ENF-PBD-01 à 09 | Privacy by design | SFD 4.1 | ✓ |
 | ENF-PERF-01 à 06 | Performance | SFD 4.2 | ✓ |
 | ENF-ACC-01 à 06 | Accessibilité | SFD 4.3 | ✓ |
 | ENF-I18N-01 à 05 | Internationalisation | SFD 4.4 | ✓ |
@@ -1688,9 +1721,12 @@ Le glossaire du CdC v1.1 (section 7) est repris intégralement et complété :
 | **MutationObserver** | API DOM permettant de détecter les modifications dynamiques du DOM (ajout/suppression de nœuds). Utilisée par M9 pour détecter les champs password ajoutés dynamiquement dans les SPA. |
 | **Shadow DOM** | Encapsulation DOM native permettant d'isoler le CSS et le JavaScript d'un composant. Utilisée pour les nudges afin d'éviter les conflits de style avec les pages hôtes. |
 | **Entropie de Shannon** | Mesure théorique de l'imprévisibilité d'une chaîne de caractères (bits/caractère). Utilisée par M17 pour distinguer les clés API (entropie ≥ 4.0) des chaînes ordinaires. |
+| **domain_hash** | Empreinte d'un domaine calculée via SHA-256(installation_salt + domain). Le sel d'installation garantit que les hash ne sont pas corrélables entre deux installations distinctes. |
+| **installation_salt** | Valeur aléatoire de 16 octets générée à la première installation, stockée en représentation hexadécimale (32 caractères) dans chrome.storage.local. Utilisée pour saler les hash de domaines et de mots de passe. |
+| **tag (password_hashes)** | Les 4 premiers octets (8 caractères hexadécimaux) du hash de mot de passe, stockés en clair dans l'index secondaire du store `password_hashes`. Permet une pré-filtration rapide avant déchiffrement complet. |
 
 ---
 
 *Spécifications Fonctionnelles Détaillées produites par l'Analyste métier — Fabrique — Phase P2*
-*Version 1.0 — 2026-04-11*
+*Version 1.1 — 2026-04-11*
 *Ce document sera soumis au Référent qualité avant transmission au Commanditaire.*

@@ -7,10 +7,10 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P2
-- **Dernière action** : SFD v1.0 validé, PR #1 mergée dans develop — 2026-04-11
-- **Prochaine action attendue** : Passage en P3 (architecture technique — DAT). Créer branche feature/p3-architecture.
-- **Branche Git active** : develop
+- **Phase active** : P3
+- **Dernière action** : AIPD M7 v1.0 produite et validée par le référent qualité — 2026-04-11. D-SEC-005 satisfait.
+- **Prochaine action attendue** : Commit AIPD, merge PR #2, clôture P3.
+- **Branche Git active** : feature/p3-architecture
 
 ## Livrables produits
 
@@ -21,6 +21,10 @@
 | P1 | p1-analyse-licences-open-source-v1.0.md | v1.0 | Validé (GPL v3 retenue) | 2026-04-11 |
 | P2 | gouvernance-pv-securite-p2-v1.0.md | v1.0 | Produit | 2026-04-11 |
 | P2 | p2-sfd-v1.0.md | v1.0 | Validé | 2026-04-11 |
+| P2 | p2-sfd-v1.1.md | v1.1 | Validé | 2026-04-11 |
+| P3 | p3-dat-v1.1.md | v1.1 | Validé | 2026-04-11 |
+| P3 | gouvernance-pv-architecture-v1.0.md | v1.0 | Validé | 2026-04-11 |
+| P3 | p3-aipd-m7-v1.0.md | v1.0 | Validé (D-SEC-005 satisfait) | 2026-04-11 |
 
 ## Actions manuelles en attente
 

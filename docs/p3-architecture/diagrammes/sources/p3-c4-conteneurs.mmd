@@ -1,0 +1,30 @@
+C4Container
+    title Sentinel Nudge — Conteneurs
+
+    Person(user, "Utilisateur")
+
+    Container_Boundary(ext, "Extension Sentinel Nudge (Chrome MV3)") {
+        Container(sw, "Service Worker", "TypeScript", "Orchestrateur central : quota, calculs, alarmes, chiffrement, communication")
+        Container(cs_detector, "Content Scripts — Détecteurs", "TypeScript", "Injection dans pages web : détection password focus (M2/M7/M9), paste (M17), formulaires")
+        Container(cs_ui, "Content Scripts — UI", "TypeScript + Shadow DOM", "Injection d'overlays et toasts dans les pages web : M2, M7, M9, M17")
+        Container(popup, "Popup", "HTML/TypeScript", "Score M3 résumé, statut modules, accès rapide dashboard")
+        Container(options, "Options Page", "HTML/TypeScript", "Configuration : modules on/off, quota, profil, données, transparence")
+        Container(dashboard, "Dashboard", "HTML/TypeScript", "Score historique 52 semaines, stats nudges, résultats quiz M6")
+        Container(onboarding, "Onboarding", "HTML/TypeScript", "4 étapes obligatoires au premier lancement")
+        Container(static_pages, "Pages statiques", "HTML statique", "Explication des mécanismes par module (risque, mécanisme, sources)")
+        ContainerDb(idb, "IndexedDB", "5 stores chiffrés AES-256-GCM", "events, password_hashes, quiz_sessions, weekly_scores, whitelist")
+        ContainerDb(storage, "chrome.storage.local", "JSON chiffré", "config, clé de chiffrement, quota journalier, session M2")
+    }
+
+    Rel(user, popup, "Consulte")
+    Rel(user, options, "Configure")
+    Rel(user, dashboard, "Visualise l'historique")
+    Rel(user, onboarding, "Initialise à l'installation")
+    Rel(cs_detector, sw, "sendMessage() — signaux détectés")
+    Rel(sw, cs_ui, "sendMessage() — instruction d'affichage")
+    Rel(cs_ui, user, "Affiche nudges (overlays, toasts)")
+    Rel(sw, idb, "Lecture/écriture chiffrée")
+    Rel(sw, storage, "Lecture/écriture config et état")
+    Rel(popup, sw, "sendMessage() — demande état")
+    Rel(options, sw, "sendMessage() �� mise à jour config")
+    Rel(dashboard, idb, "Lecture directe pour visualisation")

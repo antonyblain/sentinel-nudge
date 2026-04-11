@@ -1,0 +1,16 @@
+C4Context
+    title Sentinel Nudge — Contexte système
+
+    Person(user, "Utilisateur", "Tout utilisateur de Chrome souhaitant améliorer sa cyber-hygiène")
+    System(extension, "Sentinel Nudge", "Extension navigateur Chrome qui produit des micro-nudges contextuels de cyber-hygiène. Tout traitement local, aucune télémétrie.")
+    System_Ext(chrome, "Google Chrome", "Navigateur hôte — API MV3, stockage, onglets, alarmes")
+    System_Ext(webstore, "Chrome Web Store", "Distribution de l'extension — mise à jour automatique")
+    System_Ext(github, "GitHub", "Dépôt source public — audit communautaire, CI/CD")
+
+    Rel(user, extension, "Navigue, reçoit des nudges, consulte son score")
+    Rel(extension, chrome, "Utilise les API MV3 : tabs, storage, alarms, scripting, runtime, clipboardWrite")
+    Rel(chrome, extension, "Déclenche les alarmes, injecte les content scripts, stocke les données")
+    Rel(webstore, chrome, "Distribue les mises à jour de l'extension")
+    Rel(github, webstore, "CI/CD : build, lint, test, package, publication automatisée")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

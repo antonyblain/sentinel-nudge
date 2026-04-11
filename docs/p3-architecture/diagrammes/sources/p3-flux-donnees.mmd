@@ -1,0 +1,42 @@
+flowchart TD
+    subgraph "Détection événementielle"
+        E1[focus password field] -->|M2/M7/M9| CS_PWD[PasswordDetector]
+        E2[paste event] -->|M17| CS_PASTE[PasteDetector]
+    end
+
+    subgraph "Analyse locale"
+        CS_PWD --> RISK[RiskAnalyzer\nHTTP + HSTS + Levenshtein + cert]
+        CS_PWD --> HASH[SHA-256 password\npour M7]
+        CS_PWD --> ZXCVBN[zxcvbn-ts\npour M9]
+    end
+
+    subgraph "Service Worker"
+        RISK -->|signals + domain_hash SHA-256 salt+domain| SW[MessageRouter\n+ MessageValidator]
+        HASH -->|hash comparaison| SW
+        ZXCVBN -->|score force| CS_UI_M9[OverlayM9\naffichage direct local]
+        CS_PASTE -->|type + extrait masqué| SW
+
+        SW --> QM[QuotaManager]
+        QM -->|quota OK| SHOW[Instruction affichage]
+        QM -->|quota KO + non critique| SILENT[Événement silencieux\npour M3]
+        QM -->|quota KO + critique M2/M17| SHOW
+
+        SHOW -->|sendMessage tabId| CS_UI[UI Content Scripts]
+        SILENT --> STORE[StorageService]
+        CS_UI --> STORE
+    end
+
+    subgraph "Alarmes planifiées"
+        ALM_M3[Alarme lundi 09h] --> SCORE_CALC[ScoreCalculator\n5 composantes M3]
+        ALM_M5[Alarme startup + 48h] --> M5_CHECK[chrome.runtime.requestUpdateCheck]
+        ALM_M6[Alarme spaced repetition] --> M6_TRIGGER[Déclenchement quiz]
+        SCORE_CALC --> STORE
+        M5_CHECK --> CS_UI
+        M6_TRIGGER --> CS_UI
+    end
+
+    subgraph "Persistance chiffrée"
+        STORE --> CRYPTO[CryptoService AES-256-GCM]
+        CRYPTO --> IDB[(IndexedDB\n5 stores chiffrés)]
+        STORE --> CSL[(chrome.storage.local\nconfig + quota)]
+    end
