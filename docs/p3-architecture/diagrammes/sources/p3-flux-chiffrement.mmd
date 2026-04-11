@@ -1,0 +1,7 @@
+flowchart LR
+    A[Génération clé\nà l'installation\nAES-256-GCM] --> B[Export CryptoKey\n- ArrayBuffer]
+    B --> C[Stockage dans\nchrome.storage.local\nencryption_key_material]
+    C --> D[Rechargement\nà chaque réveil SW\nImport CryptoKey]
+    D --> E[Chiffrement\nsubtleCrypto.encrypt\nav: 12 bytes random]
+    E --> F[Écriture IndexedDB\nvalue=ciphertext + iv]
+    F --> G[Déchiffrement\nsubtleCrypto.decrypt\nav: lu depuis record]

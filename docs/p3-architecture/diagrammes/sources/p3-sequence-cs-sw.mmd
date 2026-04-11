@@ -1,0 +1,32 @@
+sequenceDiagram
+    autonumber
+    participant DOM as Page Web (DOM)
+    participant DET as ContentScript Detector
+    participant SW as Service Worker
+    participant QM as QuotaManager
+    participant ST as StorageService
+    participant UI as ContentScript UI Component
+
+    DOM->>DET: focus event sur input[type=password]
+    DET->>DET: Analyser signaux risque (RiskAnalyzer)
+    DET->>SW: chrome.runtime.sendMessage({module:'M2', signals, domain_hash: SHA-256(salt+domain)})
+    Note over SW: Service Worker réveillé si endormi
+    Note over SW: MessageValidator : module in MODULE_IDS, payload validé
+    SW->>QM: checkQuota(module, isCritical=false)
+    QM->>ST: getQuotaState()
+    ST-->>QM: {count: 1, limit: 3, date: today}
+    QM-->>SW: {allowed: true, remaining: 2}
+    SW->>ST: logEvent({module:'M2', signals, domain_hash, timestamp})
+    ST->>ST: CryptoService.encrypt(event)
+    ST-->>SW: {eventId: 42}
+    SW->>SW: incrementQuota()
+    SW->>ST: saveQuotaState({count: 2})
+    SW->>DET: response {action:'show', signals}
+    DET->>UI: chrome.tabs.sendMessage(tabId, {action:'show', signals})
+    Note over UI: Injection Shadow DOM dans la page
+    UI->>DOM: Afficher OverlayM2 (Shadow DOM isolé)
+    DOM->>UI: Action utilisateur (ex: dismissed)
+    UI->>SW: chrome.runtime.sendMessage({module:'M2', action:'dismissed', domain_hash})
+    SW->>ST: updateEvent(eventId, {action:'dismissed'})
+    SW-->>UI: {success: true}
+    UI->>DOM: Retirer overlay du DOM

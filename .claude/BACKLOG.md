@@ -10,6 +10,8 @@
 | TACHE-006 | TÂCHE | Produire les 50 exemples du corpus quiz M6 (FR + EN) | Must | À faire | P4 | — | Analyste métier | Orchestrateur |
 | TACHE-007 | TÂCHE | Rédiger les 7 pages d'explication statiques (cf. CdC 2.9.7) | Should | À faire | P4 | — | Analyste métier | Orchestrateur |
 | TACHE-008 | TÂCHE | AIPD (Analyse d'Impact) pour le traitement M7 (hash mots de passe) | Must | À faire | P3 | — | DPO | Comité sécurité (D-SEC-005) |
+| TACHE-009 | TÂCHE | Documenter le statut de responsable de traitement dans la politique de confidentialité | Should | À faire | P3 | — | DPO | Revue qualité P3 |
+| TACHE-010 | TÂCHE | Checklist accessibilité des pages statiques (LA-06) | Should | À faire | P4 | — | Expert accessibilité | Revue qualité P3 |
 
 ## Légende
 - **Type TÂCHE** : tâche de production normale

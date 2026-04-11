@@ -1,0 +1,49 @@
+C4Component
+    title Sentinel Nudge — Composants internes
+
+    Container_Boundary(sw_bound, "Service Worker") {
+        Component(router, "MessageRouter", "TypeScript", "Reçoit, valide via MessageValidator, et dispatche tous les messages entrants")
+        Component(validator, "MessageValidator", "TypeScript", "Validation runtime : module contre liste blanche, payload par type guard strict")
+        Component(quota, "QuotaManager", "TypeScript", "Gère le compteur journalier, exceptions critiques, file d'attente 24h")
+        Component(score, "ScoreCalculator", "TypeScript", "Calcule le score M3 sur 5 composantes, 100 pts")
+        Component(crypto, "CryptoService", "SubtleCrypto", "Chiffrement/déchiffrement AES-256-GCM, dérivation clé")
+        Component(storage, "StorageService", "TypeScript", "Abstraction IndexedDB + chrome.storage.local, migration schéma")
+        Component(alarm, "AlarmManager", "TypeScript", "Crée et gère les alarmes M3/M5/M6 via chrome.alarms")
+    }
+
+    Container_Boundary(cs_bound, "Content Scripts") {
+        Component(pwd_det, "PasswordDetector", "TypeScript", "Écoute focus/blur/input sur input type password")
+        Component(paste_det, "PasteDetector", "TypeScript", "Écoute événement paste, détecte IBAN/CB/clé API (M17)")
+        Component(risk, "RiskAnalyzer", "TypeScript", "Évalue signaux HTTP/HSTS/Levenshtein/cert pour M2")
+        Component(base_ui, "BaseNudge", "TypeScript + Shadow DOM", "Classe abstraite Web Component : root Shadow DOM, focus trap, ARIA, tokens CSS")
+        Component(overlay_m2, "OverlayM2", "TypeScript + Shadow DOM", "Overlay interstitiel 400px, 3 actions + explication")
+        Component(overlay_m6, "OverlayM6", "TypeScript + Shadow DOM", "Overlay quiz M6 : 3 questions, fieldset/legend, feedback, score final")
+        Component(overlay_m9, "OverlayM9", "TypeScript + Shadow DOM", "Barre de force inline zxcvbn, suggestions")
+        Component(toast_generic, "ToastNudge", "TypeScript + Shadow DOM", "Toast générique réutilisé par M5/M7/M17")
+    }
+
+    Container_Boundary(pages_bound, "Pages UI") {
+        Component(popup_comp, "Popup", "TypeScript", "Score M3 résumé, modules actifs, lien dashboard")
+        Component(options_comp, "Options", "TypeScript", "Configuration complète, droit effacement données")
+        Component(dash_comp, "Dashboard", "TypeScript", "Historique SVG 52 semaines, résultats quiz")
+    }
+
+    Rel(router, validator, "Valide chaque message entrant")
+    Rel(router, quota, "Vérifie quota avant affichage")
+    Rel(router, score, "Déclenche calcul M3 sur alarme")
+    Rel(router, storage, "Lit/écrit via StorageService")
+    Rel(crypto, storage, "Chiffre avant écriture, déchiffre après lecture")
+    Rel(alarm, router, "Déclenche événements planifiés")
+    Rel(pwd_det, router, "sendMessage M2/M7/M9")
+    Rel(paste_det, router, "sendMessage M17")
+    Rel(risk, pwd_det, "Résultat analyse signaux")
+    Rel(router, overlay_m2, "sendMessage - show/skip")
+    Rel(router, overlay_m6, "sendMessage - show/skip")
+    Rel(router, toast_generic, "sendMessage - show/skip")
+    Rel(overlay_m2, base_ui, "Hérite de BaseNudge")
+    Rel(overlay_m6, base_ui, "Hérite de BaseNudge")
+    Rel(overlay_m9, base_ui, "Hérite de BaseNudge")
+    Rel(toast_generic, base_ui, "Hérite de BaseNudge")
+    Rel(popup_comp, router, "sendMessage getState")
+    Rel(options_comp, router, "sendMessage updateConfig")
+    Rel(dash_comp, storage, "Lecture directe IndexedDB")
