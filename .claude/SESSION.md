@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P2
-- **Dernière action** : Ouverture P2, branche feature/p2-specifications créée — 2026-04-11
-- **Prochaine action attendue** : Comité de sécurité pré-P2 (STRIDE, RGPD, risques), puis rédaction SFD
+- **Dernière action** : SFD v1.0 produit, contrôle qualité passé — 2026-04-11
+- **Prochaine action attendue** : Validation du SFD v1.0 par le Commanditaire
 - **Branche Git active** : feature/p2-specifications
 
 ## Livrables produits
@@ -19,6 +19,8 @@
 | P1 | p1-analyse-litterature-nudging-v2.0.md | v2.0 | Validé | 2026-04-11 |
 | P1 | p1-cahier-des-charges-v1.1.md | v1.1 | Validé | 2026-04-11 |
 | P1 | p1-analyse-licences-open-source-v1.0.md | v1.0 | Validé (GPL v3 retenue) | 2026-04-11 |
+| P2 | gouvernance-pv-securite-p2-v1.0.md | v1.0 | Produit | 2026-04-11 |
+| P2 | p2-sfd-v1.0.md | v1.0 | Soumis | 2026-04-11 |
 
 ## Actions manuelles en attente
 

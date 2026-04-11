@@ -4,7 +4,7 @@
 |----|------|-------|----------|--------|-------|----------------|-------------|---------|
 | TACHE-001 | TÂCHE | Exploration littérature nudging cyber-hygiène | Must | Terminé | P1 | — | Analyste métier | Commanditaire |
 | TACHE-002 | TÂCHE | Rédaction du cahier des charges (7 modules v1) | Must | Terminé | P1 | — | Analyste métier | Commanditaire |
-| TACHE-003 | TÂCHE | Spécifications fonctionnelles détaillées (P2) | Must | À faire | P2 | — | Analyste métier | Orchestrateur |
+| TACHE-003 | TÂCHE | Spécifications fonctionnelles détaillées (P2) | Must | Terminé | P2 | — | Analyste métier | Orchestrateur |
 | TACHE-004 | TÂCHE | Analyse comparative des licences open source | Must | Terminé | P1 | — | Analyste métier | Commanditaire |
 | TACHE-005 | TÂCHE | Définir la structure du corpus quiz M6 (format JSON, champs, niveaux) | Must | À faire | P3 | — | Analyste métier | Orchestrateur |
 | TACHE-006 | TÂCHE | Produire les 50 exemples du corpus quiz M6 (FR + EN) | Must | À faire | P4 | — | Analyste métier | Orchestrateur |
