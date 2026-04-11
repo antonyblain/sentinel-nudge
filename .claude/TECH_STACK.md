@@ -6,7 +6,7 @@ Ce fichier est enrichi à chaque décision technologique validée. Il sert de m�
 
 | Type | Technologie | Version | Justification | Projet d'origine | Plan B |
 |------|------------|---------|---------------|-------------------|--------|
-| Build extension navigateur | Vite + vite-plugin-web-extension | 5.x / ^0.13 | HMR rapide, configuration déclarative manifest.json, multi-entry natif, tree-shaking optimisé | Sentinel Nudge | Webpack + webpack-extension-manifest |
+| Build extension navigateur | Vite + vite-plugin-web-extension | 5.x / ^4.5 | HMR rapide, configuration déclarative manifest.json, multi-entry natif, tree-shaking optimisé. Requiert `root: 'src'`, extensions .ts dans manifest et HTML. | Sentinel Nudge | Webpack + webpack-extension-manifest |
 | UI extension (content scripts) | Vanilla TypeScript + Shadow DOM natif | — | Isolation CSS garantie, zéro framework, légèreté maximale, transparence pour audit communautaire | Sentinel Nudge | Lit (Web Components library, ~6 Ko) |
 
 ## Langages
@@ -28,7 +28,7 @@ Ce fichier est enrichi à chaque décision technologique validée. Il sert de m�
 |---------|-------|-----------|---------|-------------------|--------|-----------------|
 | chrome.runtime.requestUpdateCheck | Vérification mise à jour navigateur (M5) | Oui | API native Chrome MV3 uniquement | Sentinel Nudge | Aucun (API spécifique) | — |
 | SubtleCrypto (Web Crypto API) | Chiffrement AES-256-GCM, SHA-256 | Oui (natif) | Chrome/Firefox/Edge | Sentinel Nudge | @noble/ciphers (MIT) | Faible |
-| GitHub Actions | CI/CD (lint, test, build, release) | Oui (dépôts publics) | — | Sentinel Nudge | GitLab CI (si migration) | Moyen |
+| GitHub Actions | CI/CD (lint, test, build, release) | Oui (2 000 min/mois privé, illimité public) | — | Sentinel Nudge | GitLab CI (si migration) | Moyen |
 | Syft (Anchore) | Génération SBOM SPDX-JSON | Oui | — | Sentinel Nudge | cyclonedx-npm | Faible |
 
 ## Hébergement
@@ -42,7 +42,8 @@ Ce fichier est enrichi à chaque décision technologique validée. Il sert de m�
 
 | Outil | Usage | Configuration |
 |-------|-------|---------------|
-| ESLint 9 + @typescript-eslint | Linting TypeScript | no-restricted-properties (innerHTML interdit D-SEC-003) |
+| ESLint 9 + @typescript-eslint 8 | Linting TypeScript | Flat config `eslint.config.js` (ESLint 9 ne supporte plus `.eslintrc`). D-SEC-003 enforced. Requiert `"type": "module"` dans package.json. |
+| jsdom ^29.0 | Environnement DOM pour Vitest | Requis par `environment: 'jsdom'`. SubtleCrypto non disponible — mock nécessaire pour tests crypto. |
 | Prettier 3 | Formatage code | — |
 | Vitest 2 | Tests unitaires et intégration | Coverage v8, mode ESM natif |
 | Playwright 1 + playwright-crx | Tests E2E extension Chrome | Charge l'extension réelle dans Chrome |

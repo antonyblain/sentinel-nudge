@@ -324,6 +324,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   - Parcel : support MV3 expérimental, moins mature.
 - **Conséquences positives :** Démarrage dev < 500ms, HMR pour les pages UI, configuration déclarative via `manifest.json` comme source de vérité, multi-entry natif, tree-shaking optimisé.
 - **Conséquences négatives :** `vite-plugin-web-extension` est un plugin communautaire (non officiel Google). Risque de dépréciation à surveiller.
+- **Contraintes d'implémentation (retour P4) :**
+  - Configurer `root: 'src'` dans `vite.config.ts` pour que les chemins du manifest soient résolus relativement à `src/`.
+  - Le manifest source (`src/manifest.json`) doit utiliser des extensions `.ts` (ex: `"service_worker": "background/service-worker.ts"`) — le plugin compile en `.js` dans `dist/`.
+  - Les fichiers HTML doivent référencer les scripts avec l'extension `.ts` (`<script src="popup.ts">`), pas `.js`.
+  - Le `outDir` doit être défini en chemin absolu (`resolve(__dirname, 'dist')`) quand `root` est différent de la racine du projet.
+  - `jsdom` est requis en devDependency pour l'environnement de test Vitest.
+  - SubtleCrypto (Web Crypto API) n'est pas disponible dans jsdom — les tests crypto nécessitent un polyfill ou un mock.
 - **Plan B :** Migration vers Webpack si le plugin Vite n'est plus maintenu. Le code source TypeScript est identique — seule la configuration de build change.
 
 ---
@@ -505,7 +512,7 @@ sentinel-nudge/
 ├── vite.config.ts
 ├── tsconfig.json
 ├── tsconfig.test.json
-├── .eslintrc.json
+├── eslint.config.js
 ├── .prettierrc
 ├── package.json
 ├── .env.example
@@ -964,7 +971,7 @@ La CSP est déclarée dans `manifest.json` sous `content_security_policy`. Elle 
 Cette règle est enforced par ESLint avec une règle custom :
 
 ```json
-// .eslintrc.json
+// eslint.config.js
 {
   "rules": {
     "no-restricted-properties": [
@@ -1429,13 +1436,15 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
 |---------|--------------------|---------|--------------------|
 | typescript | ^5.4.0 | npm | Apache 2.0 — Oui |
 | vite | ^5.2.0 | npm | MIT — Oui |
-| vite-plugin-web-extension | ^0.13.0 | npm | MIT — Oui |
+| vite-plugin-web-extension | ^4.5.0 | npm | MIT — Oui |
 | vitest | ^2.0.0 | npm | MIT — Oui |
 | @playwright/test | ^1.44.0 | npm | Apache 2.0 — Oui |
 | playwright-crx | ^0.2.0 | npm | Apache 2.0 — Oui |
 | @axe-core/playwright | ^4.9.0 | npm | MPL 2.0 — Oui (outillage dev uniquement) |
 | eslint | ^9.0.0 | npm | MIT — Oui |
-| @typescript-eslint/parser | ^7.0.0 | npm | MIT — Oui |
+| @typescript-eslint/eslint-plugin | ^8.0.0 | npm | MIT — Oui |
+| @typescript-eslint/parser | ^8.0.0 | npm | MIT — Oui |
+| jsdom | ^29.0.0 | npm | MIT — Oui |
 | prettier | ^3.2.0 | npm | MIT — Oui |
 | @zxcvbn-ts/core | ^3.0.4 | npm | MIT — Oui |
 | license-checker | ^25.0.1 | npm | BSD-3 — Oui |
@@ -1460,7 +1469,7 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
     "clipboardWrite"
   ],
   "background": {
-    "service_worker": "background/service-worker.js",
+    "service_worker": "background/service-worker.ts",
     "type": "module"
   },
   "action": {
