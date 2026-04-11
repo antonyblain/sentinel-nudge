@@ -1447,25 +1447,25 @@ stateDiagram-v2
 
 *Section revue par l'expert accessibilité et l'expert UX/UI (2026-04-11).*
 
-**Décisions UX en attente d'arbitrage du Commanditaire :**
+**Décisions UX validées par le Commanditaire (2026-04-11) :**
 
-| ID | Question | Option A (recommandée) | Option B | Option C |
-|----|----------|----------------------|----------|----------|
-| UX-01 | Position des toasts | Bas à droite (zone moins utilisée) | Haut à droite (convention Material Design, actuel) | Position configurable |
-| UX-02 | Overlay M2 : bloque la visibilité de l'URL | Panel latéral droit (400px, backdrop léger) | Overlay centré avec backdrop allégé (0.3) | Toast amélioré sans backdrop |
-| UX-03 | Animation overlay M2 | Scale-in 200ms ease-out | Slide-in depuis le haut 300ms | — |
-| UX-04 | Indication file d'attente toasts | Indicateur "1 autre notification" | Empilage 2 toasts max (décalés) | File invisible (actuel) |
-| UX-05 | Symboles ✓/◐/✗ dans le badge Chrome | Couleur + chiffre dans le badge, symboles dans la popup uniquement | Symboles dans le badge (test empirique) | — |
+| ID | Décision | Détail |
+|----|----------|--------|
+| UX-01 | Toasts positionnés en bas à droite | `bottom: 16px; right: 16px` — zone moins utilisée par les sites web |
+| UX-02 | Overlay M2 = panel latéral droit | `width: 400px; right: 0; top: 0; bottom: 0` avec backdrop semi-transparent (0.3) permettant de voir la barre d'adresse |
+| UX-03 | Animation overlay M2 : scale-in | `transform: scale(0.95) → scale(1)` en 200ms ease-out |
+| UX-04 | Indicateur de file d'attente sous le toast | Texte discret "1 autre notification" affiché sous le toast actif si la file n'est pas vide |
+| UX-05 | Badge Chrome : couleur + chiffre uniquement | Symboles ✓/◐/✗ réservés à la popup, pas au badge 16×16 |
 
 **Toast (M5, M7, M17) :**
 
 | Propriété | Valeur |
 |-----------|--------|
-| Position | `position: fixed; top: 16px; right: 16px; z-index: 2147483647` |
+| Position | `position: fixed; bottom: 16px; right: 16px; z-index: 2147483647` (UX-01) |
 | Largeur | `min-width: min(320px, calc(100vw - 32px)); max-width: 420px` |
 | Timer | 8s par défaut (configurable). Pause au hover (`mouseenter` → pause, `mouseleave` → resume). Option "Pas de disparition automatique" dans les paramètres d'accessibilité (WCAG 2.2.1 Timing Adjustable) |
 | Animation | Slide-in depuis la droite (300ms ease-out). Fade-out au close (200ms). Animations supprimées si `prefers-reduced-motion: reduce` |
-| Empilage | Max 1 toast à la fois. Si un toast est déjà affiché, le nouveau attend en file |
+| Empilage | Max 1 toast à la fois. Si un toast est déjà affiché, le nouveau attend en file. Indicateur "1 autre notification" affiché sous le toast actif si la file n'est pas vide (UX-04) |
 | Shadow DOM | Toasts rendus dans un Shadow DOM isolé (pas de conflit CSS avec la page hôte) |
 | ARIA | `role="status"`, `aria-live="polite"`, `aria-atomic="true"` |
 
@@ -1473,9 +1473,9 @@ stateDiagram-v2
 
 | Propriété | Valeur |
 |-----------|--------|
-| Position | `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2147483647` |
-| Backdrop | `position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2147483646` |
-| Largeur | `max-width: 520px; width: 90vw` |
+| Position | Panel latéral droit : `position: fixed; top: 0; right: 0; bottom: 0; width: 400px; z-index: 2147483647` (UX-02) |
+| Backdrop | `position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 2147483646` — semi-transparent pour permettre de voir la barre d'adresse (UX-02) |
+| Animation | `transform: scale(0.95) → scale(1)` en 200ms ease-out. Supprimée si `prefers-reduced-motion: reduce` (UX-03) |
 | Fermeture | Croix + Escape. `Escape` = fermeture neutre (équivalent croix, pas d'action risquée). Le backdrop n'est pas cliquable (pas de fermeture accidentelle) |
 | Focus trap | Le focus clavier est piégé dans l'overlay (Tab cycle entre les boutons). Premier focus sur "Abandonner la saisie" (action la plus sûre) |
 | Shadow DOM | Oui |
@@ -1497,8 +1497,7 @@ stateDiagram-v2
 |-----------|--------|
 | API | `chrome.action.setBadgeBackgroundColor` + `chrome.action.setBadgeText` |
 | Couleurs | Vert (#4CAF50) score ≥ 70, Orange (#FF9800) 40-69, Rouge (#F44336) < 40, Bleu (#2196F3) notification |
-| Indicateur non-chromatique | ✓ (score ≥ 70), ◐ (score 40-69), ✗ (score < 40) — visible indépendamment de la couleur (daltonisme) |
-| Texte | Chiffre (nombre de notifications) ou icône d'état seule |
+| Texte | Chiffre (nombre de notifications) ou vide (juste la couleur). Symboles ✓/◐/✗ réservés à la popup, pas au badge 16×16 (UX-05) |
 
 #### 3.6.2 Accessibilité clavier
 
