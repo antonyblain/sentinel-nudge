@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P3
-- **Dernière action** : DAT v1.1 + SFD v1.1 validés par le Commanditaire — 2026-04-11
-- **Prochaine action attendue** : Commit + PR feature/p3-architecture → develop. Puis AIPD M7 **bloquante** pour clôture P3 (D-SEC-005).
+- **Dernière action** : AIPD M7 v1.0 produite et validée par le référent qualité — 2026-04-11. D-SEC-005 satisfait.
+- **Prochaine action attendue** : Commit AIPD, merge PR #2, clôture P3.
 - **Branche Git active** : feature/p3-architecture
 
 ## Livrables produits
@@ -24,6 +24,7 @@
 | P2 | p2-sfd-v1.1.md | v1.1 | Validé | 2026-04-11 |
 | P3 | p3-dat-v1.1.md | v1.1 | Validé | 2026-04-11 |
 | P3 | gouvernance-pv-architecture-v1.0.md | v1.0 | Validé | 2026-04-11 |
+| P3 | p3-aipd-m7-v1.0.md | v1.0 | Validé (D-SEC-005 satisfait) | 2026-04-11 |
 
 ## Actions manuelles en attente
 
