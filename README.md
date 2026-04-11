@@ -17,4 +17,6 @@ Projet en phase d'analyse (P1).
 
 ## Licence
 
-MIT
+Ce projet est distribue sous licence [GNU General Public License v3.0](LICENSE).
+
+Vous etes libre d'utiliser, modifier et redistribuer ce logiciel, a condition que toute version derivee reste sous la meme licence GPL v3. Cela garantit que Sentinel Nudge et ses derivees restent open source.
