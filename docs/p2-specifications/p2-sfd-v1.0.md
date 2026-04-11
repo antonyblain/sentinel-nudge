@@ -1445,16 +1445,29 @@ stateDiagram-v2
 
 #### 3.6.1 Spécifications techniques par type
 
+*Section revue par l'expert accessibilité et l'expert UX/UI (2026-04-11).*
+
+**Décisions UX en attente d'arbitrage du Commanditaire :**
+
+| ID | Question | Option A (recommandée) | Option B | Option C |
+|----|----------|----------------------|----------|----------|
+| UX-01 | Position des toasts | Bas à droite (zone moins utilisée) | Haut à droite (convention Material Design, actuel) | Position configurable |
+| UX-02 | Overlay M2 : bloque la visibilité de l'URL | Panel latéral droit (400px, backdrop léger) | Overlay centré avec backdrop allégé (0.3) | Toast amélioré sans backdrop |
+| UX-03 | Animation overlay M2 | Scale-in 200ms ease-out | Slide-in depuis le haut 300ms | — |
+| UX-04 | Indication file d'attente toasts | Indicateur "1 autre notification" | Empilage 2 toasts max (décalés) | File invisible (actuel) |
+| UX-05 | Symboles ✓/◐/✗ dans le badge Chrome | Couleur + chiffre dans le badge, symboles dans la popup uniquement | Symboles dans le badge (test empirique) | — |
+
 **Toast (M5, M7, M17) :**
 
 | Propriété | Valeur |
 |-----------|--------|
 | Position | `position: fixed; top: 16px; right: 16px; z-index: 2147483647` |
-| Largeur | `min-width: 320px; max-width: 420px` |
-| Timer | 8s par défaut (configurable). Pause au hover (`mouseenter` → pause, `mouseleave` → resume) |
-| Animation | Slide-in depuis la droite (300ms ease-out). Fade-out au close (200ms) |
+| Largeur | `min-width: min(320px, calc(100vw - 32px)); max-width: 420px` |
+| Timer | 8s par défaut (configurable). Pause au hover (`mouseenter` → pause, `mouseleave` → resume). Option "Pas de disparition automatique" dans les paramètres d'accessibilité (WCAG 2.2.1 Timing Adjustable) |
+| Animation | Slide-in depuis la droite (300ms ease-out). Fade-out au close (200ms). Animations supprimées si `prefers-reduced-motion: reduce` |
 | Empilage | Max 1 toast à la fois. Si un toast est déjà affiché, le nouveau attend en file |
 | Shadow DOM | Toasts rendus dans un Shadow DOM isolé (pas de conflit CSS avec la page hôte) |
+| ARIA | `role="status"`, `aria-live="polite"`, `aria-atomic="true"` |
 
 **Overlay interstitiel (M2) :**
 
@@ -1463,9 +1476,10 @@ stateDiagram-v2
 | Position | `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2147483647` |
 | Backdrop | `position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2147483646` |
 | Largeur | `max-width: 520px; width: 90vw` |
-| Fermeture | Croix + Escape. Le backdrop n'est pas cliquable (pas de fermeture accidentelle) |
-| Focus trap | Le focus clavier est piégé dans l'overlay (Tab cycle entre les boutons) |
+| Fermeture | Croix + Escape. `Escape` = fermeture neutre (équivalent croix, pas d'action risquée). Le backdrop n'est pas cliquable (pas de fermeture accidentelle) |
+| Focus trap | Le focus clavier est piégé dans l'overlay (Tab cycle entre les boutons). Premier focus sur "Abandonner la saisie" (action la plus sûre) |
 | Shadow DOM | Oui |
+| ARIA | `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby` (titre), `aria-describedby` (détail des signaux de risque détectés) |
 
 **Overlay inline (M9) :**
 
@@ -1475,6 +1489,7 @@ stateDiagram-v2
 | Largeur | Même largeur que le champ password parent |
 | z-index | `z-index: 2147483645` (sous les toasts et overlays) |
 | Shadow DOM | Oui |
+| ARIA | `role="status"`, `aria-live="polite"` (mises à jour annoncées aux lecteurs d'écran à chaque changement de niveau) |
 
 **Badge icône :**
 
@@ -1482,16 +1497,25 @@ stateDiagram-v2
 |-----------|--------|
 | API | `chrome.action.setBadgeBackgroundColor` + `chrome.action.setBadgeText` |
 | Couleurs | Vert (#4CAF50) score ≥ 70, Orange (#FF9800) 40-69, Rouge (#F44336) < 40, Bleu (#2196F3) notification |
-| Texte | Chiffre (nombre de notifications) ou vide (juste la couleur) |
+| Indicateur non-chromatique | ✓ (score ≥ 70), ◐ (score 40-69), ✗ (score < 40) — visible indépendamment de la couleur (daltonisme) |
+| Texte | Chiffre (nombre de notifications) ou icône d'état seule |
 
 #### 3.6.2 Accessibilité clavier
 
 | Composant | Comportement clavier |
 |-----------|---------------------|
 | Toast | `Tab` : parcourir les boutons. `Escape` : fermer le toast. `Enter/Space` : activer le bouton focused |
-| Overlay M2 | Focus trap : `Tab`/`Shift+Tab` cyclent entre les boutons. `Escape` = "Continuer quand même". Premier focus sur le bouton le moins risqué ("Abandonner la saisie") |
-| Overlay M9 | Non focusable (informatif uniquement, pas d'action clavier requise) |
-| Tous | `role="alert"` ou `role="dialog"` selon le type. `aria-live="polite"` pour les toasts, `aria-modal="true"` pour l'overlay M2 |
+| Overlay M2 | Focus trap : `Tab`/`Shift+Tab` cyclent entre les boutons. `Escape` = fermeture neutre (ferme le nudge, aucune action). Premier focus sur "Abandonner la saisie" (action la plus sûre) |
+| Overlay M9 | Non focusable mais annoncé par les lecteurs d'écran via `aria-live="polite"` |
+| Tous | Attributs ARIA définis dans le tableau 3.6.1 par type de composant |
+
+**Paramètre d'accessibilité — Timing :**
+
+| Clé | Type | Défaut | Description |
+|-----|------|--------|-------------|
+| `toast_auto_dismiss` | boolean | true | Si false, les toasts ne disparaissent pas automatiquement (WCAG 2.2.1) |
+
+Ce paramètre est proposé dans la section "Accessibilité" des paramètres de l'extension.
 
 ### 3.7 Pages d'explication statiques
 
@@ -1556,8 +1580,8 @@ Chaque page utilise `chrome.i18n.getMessage('key')` pour afficher le texte dans 
 
 | Composant UI | Clavier | Lecteur d'écran | Contraste | Cible 44px | Zoom 200% |
 |-------------|---------|-----------------|-----------|-----------|-----------|
-| Toast (M5, M7, M17) | Tab, Escape, Enter | role="alert", aria-live="polite" | 4.5:1 min | Boutons 44×44 | Responsive |
-| Overlay M2 | Focus trap, Escape | role="dialog", aria-modal="true", aria-labelledby | 4.5:1 min | Boutons 44×44 | Responsive |
+| Toast (M5, M7, M17) | Tab, Escape, Enter | role="status", aria-live="polite", aria-atomic="true" | 4.5:1 min | Boutons 44×44 | Responsive |
+| Overlay M2 | Focus trap, Escape (neutre) | role="alertdialog", aria-modal="true", aria-labelledby, aria-describedby | 4.5:1 min | Boutons 44×44 | Responsive |
 | Overlay M9 | Non focusable | role="status", aria-live="polite" | 4.5:1 min | N/A (informatif) | Responsive |
 | Popup M3 | Tab dans la popup | Structure sémantique h1/h2/p | 4.5:1 min | Liens/boutons 44×44 | Responsive |
 | Dashboard | Navigation standard | Structure sémantique, tableau alternatif pour le graphique | 4.5:1 min | Tous interactifs 44×44 | Responsive |

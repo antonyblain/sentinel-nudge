@@ -26,6 +26,7 @@ Extension navigateur open-source de cyber-hygiène comportementale. Produit des 
 | Architecte sécurité | architecte-securite.md | Opus | STRIDE, mesures sécurité, référentiel, risques |
 | DPO | dpo.md | Opus | AIPD, RGPD, registre des traitements |
 | Expert accessibilité | expert-accessibilite.md | Sonnet | WCAG, RGAA, audit |
+| Expert UX/UI | expert-ux-ui.md | Sonnet | Design system, interfaces, ergonomie |
 | Développeur | developpeur.md | Sonnet | Code source |
 | Testeur QA | testeur-qa.md | Sonnet | Tests unitaires, intégration, sécurité |
 | Intégrateur DevSecOps | integrateur-devsecops.md | Sonnet | CI/CD, SBOM, déploiement |
