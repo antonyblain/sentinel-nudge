@@ -14,17 +14,23 @@ sequenceDiagram
         U->>CS: Focus sur champ password
         CS->>UI: Afficher overlay inline (vide, en attente)
 
-        loop À chaque frappe
-            U->>CS: Input event (caractère ajouté/supprimé)
+        loop À chaque frappe (debounce 150ms)
+            U->>CS: Input event
             CS->>CS: Évaluer force (zxcvbn local)
-            Note over CS: Critères ANSSI :<br/>Très faible/Faible = Déconseillé<br/>Moyen = Acceptable<br/>Fort/Très fort = Recommandé
-            CS->>UI: Mettre à jour barre + label + suggestion + marqueur ANSSI
+            CS->>CS: Détecter type (password ou passphrase)
+
+            alt Mode passphrase (>= 3 espaces ET >= 20 chars)
+                CS->>UI: Suggestions passphrase (nombre de mots, originalité)
+            else Mode password classique
+                CS->>UI: Suggestions password (longueur, complexité, patterns)
+            end
+
+            CS->>UI: Mettre à jour barre + label + marqueur ANSSI
         end
 
         U->>CS: Submit formulaire
         CS->>CS: Capturer le niveau de force final (1-5)
-        CS->>SW: sendMessage({module: 'M9', strength_level})
-        SW->>ST: Enregistrer évaluation (niveau uniquement, pas de mdp)
-        Note over SW: Jamais de valeur de mot de passe
+        CS->>SW: sendMessage({module: 'M9', strength_level, type: password|passphrase})
+        SW->>ST: Enregistrer évaluation (niveau + type, jamais le mdp)
         CS->>UI: Masquer overlay
     end

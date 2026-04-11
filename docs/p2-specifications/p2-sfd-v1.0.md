@@ -917,18 +917,24 @@ sequenceDiagram
         U->>CS: Focus sur champ password
         CS->>UI: Afficher overlay inline (vide, en attente)
 
-        loop À chaque frappe
-            U->>CS: Input event (caractère ajouté/supprimé)
+        loop À chaque frappe (debounce 150ms)
+            U->>CS: Input event
             CS->>CS: Évaluer force (zxcvbn local)
-            Note over CS: Critères ANSSI :<br/>Très faible/Faible = Déconseillé<br/>Moyen = Acceptable<br/>Fort/Très fort = Recommandé
-            CS->>UI: Mettre à jour barre + label + suggestion + marqueur ANSSI
+            CS->>CS: Détecter type (password ou passphrase)
+
+            alt Mode passphrase (>= 3 espaces ET >= 20 chars)
+                CS->>UI: Suggestions passphrase (nombre de mots, originalité)
+            else Mode password classique
+                CS->>UI: Suggestions password (longueur, complexité, patterns)
+            end
+
+            CS->>UI: Mettre à jour barre + label + marqueur ANSSI
         end
 
         U->>CS: Submit formulaire
         CS->>CS: Capturer le niveau de force final (1-5)
-        CS->>SW: sendMessage({module: 'M9', strength_level})
-        SW->>ST: Enregistrer évaluation (niveau uniquement, pas de mdp)
-        Note over SW: Jamais de valeur de mot de passe
+        CS->>SW: sendMessage({module: 'M9', strength_level, type: password|passphrase})
+        SW->>ST: Enregistrer évaluation (niveau + type, jamais le mdp)
         CS->>UI: Masquer overlay
     end
 ```
@@ -953,15 +959,42 @@ sequenceDiagram
 | 3 | Fort | "Fort" | Vert clair | "Recommandé" | Comptabilisé comme "fort" |
 | 4 | Très fort | "Très fort" | Vert foncé | "Recommandé" | Comptabilisé comme "fort" |
 
-**Suggestions textuelles dynamiques :**
+**Détection du type de mot de passe :**
+
+M9 distingue deux stratégies de création, chacune avec ses propres suggestions :
+
+```
+FONCTION détecter_type(valeur):
+  SI valeur contient >= 3 espaces ET longueur >= 20
+    RETOURNER 'passphrase'
+  SINON
+    RETOURNER 'password'
+```
+
+Une phrase de passe (passphrase) tire sa force de sa longueur et du nombre de mots, pas de la complexité des caractères. Demander des symboles ou des chiffres à un utilisateur qui a choisi une phrase de passe est contre-productif et dégrade l'expérience.
+
+**Suggestions textuelles dynamiques — mode `password` (classique) :**
 
 | Condition | Suggestion |
 |-----------|-----------|
 | Longueur < 12 | "Ajoutez des caractères — visez au moins 12" |
-| Pas de chiffre | "Ajoutez un chiffre pour renforcer la force" |
-| Pas de symbole ET longueur >= 12 | "Ajoutez un caractère spécial (@, #, !) pour passer à Fort" |
+| Pas de chiffre ET pas de symbole | "Ajoutez un chiffre ou un caractère spécial pour renforcer la force" |
+| Pas de symbole ET longueur >= 12 | "Un caractère spécial (@, #, !) vous ferait passer à Fort" |
 | Pattern détecté (123, abc, azerty) | "Évitez les séquences prévisibles" |
+| Score >= 3 | "Bon mot de passe ! Pensez aussi à la phrase de passe : plus longue, plus facile à retenir" |
 | Score = 4 | "Excellent ! Ce mot de passe est très solide" |
+
+**Suggestions textuelles dynamiques — mode `passphrase` :**
+
+| Condition | Suggestion |
+|-----------|-----------|
+| Nombre de mots < 4 | "Ajoutez un ou deux mots pour renforcer votre phrase de passe" |
+| Nombre de mots >= 4 ET score < 3 | "Essayez des mots moins courants ou sans lien logique entre eux" |
+| Mots très courants détectés (le, la, de, un, je, et) | "Remplacez les mots très courants par des mots plus originaux" |
+| Score >= 3 | "Bonne phrase de passe ! Facile à retenir, difficile à deviner" |
+| Score = 4 | "Excellente phrase de passe ! Longue et imprévisible" |
+
+**Note :** L'algorithme zxcvbn gère nativement les phrases de passe (il analyse les séquences de mots via son dictionnaire). Le score zxcvbn reste la référence pour le mapping ANSSI, quel que soit le type détecté. Seules les suggestions textuelles sont adaptées.
 
 #### 2.6.3 Cas limites et gestion d'erreurs
 
@@ -972,10 +1005,40 @@ sequenceDiagram
 | Formulaire avec 3+ champs password (cas rare) | Activer M9 sur le premier champ non-confirmation |
 | Page SPA qui change le formulaire dynamiquement | MutationObserver sur les champs password pour détecter les ajouts/suppressions |
 | Évaluation zxcvbn > 100ms sur appareil lent | Debounce de 150ms sur l'input event pour limiter les évaluations |
+| Phrase de passe sans chiffre ni symbole (ex: "le soleil brille sur la montagne") | Suggestions adaptées au mode passphrase (nombre de mots, originalité). Ne pas demander de chiffres/symboles. |
+| Saisie qui bascule entre modes (ajout/suppression d'espaces) | Réévaluer le type à chaque frappe. La transition est transparente pour l'utilisateur. |
 
 #### 2.6.4 Critères d'acceptation enrichis
 
-**CA-M9-08 — Marqueur ANSSI affiché**
+**CA-M9-08 — Phrase de passe : suggestions adaptées**
+```gherkin
+Given l'overlay M9 est affiché
+  And l'utilisateur saisit "le soleil brille sur la montagne"
+When la saisie est évaluée
+Then le mode "passphrase" est détecté (>= 3 espaces ET longueur >= 20)
+  And la suggestion ne mentionne pas de chiffres ni de caractères spéciaux
+  And la suggestion est adaptée au mode passphrase (ex: "Bonne phrase de passe !")
+```
+
+**CA-M9-09 — Phrase de passe avec mots trop courants**
+```gherkin
+Given l'overlay M9 est affiché
+  And l'utilisateur saisit "le chat est sur la table"
+When la saisie est évaluée
+Then le mode "passphrase" est détecté
+  And la suggestion indique "Remplacez les mots très courants par des mots plus originaux"
+```
+
+**CA-M9-10 — Mot de passe classique : suggestion de phrase de passe**
+```gherkin
+Given l'overlay M9 est affiché
+  And l'utilisateur saisit "Tr0ub4dor&3" (mot de passe classique, score zxcvbn = 3)
+When la saisie est évaluée
+Then le mode "password" est détecté
+  And la suggestion mentionne "Pensez aussi à la phrase de passe : plus longue, plus facile à retenir"
+```
+
+**CA-M9-11 — Marqueur ANSSI affiché**
 ```gherkin
 Given l'overlay M9 est affiché
   And le mot de passe est évalué "Faible" (score zxcvbn = 1)
@@ -984,7 +1047,7 @@ Then le label "Faible" est affiché en rouge
   And le marqueur "Déconseillé par l'ANSSI" est visible à côté du label
 ```
 
-**CA-M9-09 — Détection autocomplete="new-password"**
+**CA-M9-12 — Détection autocomplete="new-password"**
 ```gherkin
 Given une page contient un seul champ password avec autocomplete="new-password"
   And aucun champ de confirmation
@@ -992,7 +1055,7 @@ When l'utilisateur place le focus dans ce champ
 Then l'overlay M9 s'affiche (formulaire de création détecté)
 ```
 
-**CA-M9-10 — Debounce sur appareil lent**
+**CA-M9-13 — Debounce sur appareil lent**
 ```gherkin
 Given l'utilisateur saisit rapidement 10 caractères en 500ms
 When les input events sont reçus
@@ -1583,10 +1646,10 @@ Exemples :
 | M5 | 4 (CA-M5-01 à 04) | 2 (CA-M5-05 à 06) | 6 |
 | M6 | 5 (CA-M6-01 à 05) | 3 (CA-M6-06 à 08) | 8 |
 | M7 | 4 (CA-M7-01 à 04) | 3 (CA-M7-05 à 07) | 7 |
-| M9 | 7 (CA-M9-01 à 07) | 3 (CA-M9-08 à 10) | 10 |
+| M9 | 7 (CA-M9-01 à 07) | 6 (CA-M9-08 à 13) | 13 |
 | M17 | 4 (CA-M17-01 à 04) | 4 (CA-M17-05 à 08) | 8 |
 | Global | 8 (CA-GLOBAL-01 à 08) | 0 | 8 |
-| **Total** | **43** | **23** | **66** |
+| **Total** | **43** | **26** | **69** |
 
 ---
 
