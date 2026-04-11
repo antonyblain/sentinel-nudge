@@ -8,8 +8,9 @@
 
 ## État courant
 - **Phase active** : P3
-- **Dernière action** : AIPD M7 v1.0 produite et validée par le référent qualité — 2026-04-11. D-SEC-005 satisfait.
-- **Prochaine action attendue** : Commit AIPD, merge PR #2, clôture P3.
+- **Dernière action** : PR #2 mergée dans develop — P3 clôturée — 2026-04-11
+- **Prochaine action attendue** : Passage en P4 (conception détaillée) ou P4' (stratégie de tests). Créer branche feature/p4-conception.
+- **Branche Git active** : develop
 - **Branche Git active** : feature/p3-architecture
 
 ## Livrables produits
