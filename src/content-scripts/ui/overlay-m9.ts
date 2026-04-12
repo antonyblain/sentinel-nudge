@@ -449,7 +449,12 @@ export class OverlayM9 extends BaseNudge {
   }
 }
 
-// Déclaration du custom element
-if (!customElements.get('sn-overlay-m9')) {
-  customElements.define('sn-overlay-m9', OverlayM9);
+/**
+ * Enregistre le custom element sn-overlay-m9 dans le DOM.
+ * Appelé par le détecteur associé pour garantir l'inclusion dans le bundle Vite.
+ */
+export function registerOverlayM9(): void {
+  if (!customElements.get('sn-overlay-m9')) {
+    customElements.define('sn-overlay-m9', OverlayM9);
+  }
 }

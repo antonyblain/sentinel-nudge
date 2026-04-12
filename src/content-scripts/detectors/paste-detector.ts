@@ -28,8 +28,11 @@
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
-import { ToastM17 } from '@/content-scripts/ui/toast-m17';
+import { ToastM17, registerToastM17 } from '@/content-scripts/ui/toast-m17';
 import type { SensitiveDataType } from '@/content-scripts/ui/toast-m17';
+
+// Enregistrer le custom element au chargement du content script
+registerToastM17();
 
 /** Limite de caractères pour l'analyse (SFD §2.7.3 CA-M17-08 : > 10k → 1000 premiers) */
 const MAX_ANALYZE_LENGTH = 1000;

@@ -438,7 +438,13 @@ export class ToastM17 extends BaseNudge {
   }
 }
 
-// Déclaration du custom element
-if (!customElements.get('sn-toast-m17')) {
-  customElements.define('sn-toast-m17', ToastM17);
+/**
+ * Enregistre le custom element sn-toast-m17 dans le DOM.
+ * Appelé par le paste-detector pour s'assurer que le composant est disponible
+ * avant de créer une instance via document.createElement('sn-toast-m17').
+ */
+export function registerToastM17(): void {
+  if (!customElements.get('sn-toast-m17')) {
+    customElements.define('sn-toast-m17', ToastM17);
+  }
 }

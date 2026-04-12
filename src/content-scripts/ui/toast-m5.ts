@@ -330,7 +330,12 @@ export class ToastM5 extends BaseNudge {
   }
 }
 
-// Déclaration du custom element
-if (!customElements.get('sn-toast-m5')) {
-  customElements.define('sn-toast-m5', ToastM5);
+/**
+ * Enregistre le custom element sn-toast-m5 dans le DOM.
+ * Appelé par le détecteur associé pour garantir l'inclusion dans le bundle Vite.
+ */
+export function registerToastM5(): void {
+  if (!customElements.get('sn-toast-m5')) {
+    customElements.define('sn-toast-m5', ToastM5);
+  }
 }

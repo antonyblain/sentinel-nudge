@@ -382,7 +382,12 @@ export class ToastM7 extends BaseNudge {
   }
 }
 
-// Déclaration du custom element
-if (!customElements.get('sn-toast-m7')) {
-  customElements.define('sn-toast-m7', ToastM7);
+/**
+ * Enregistre le custom element sn-toast-m7 dans le DOM.
+ * Appelé par le détecteur associé pour garantir l'inclusion dans le bundle Vite.
+ */
+export function registerToastM7(): void {
+  if (!customElements.get('sn-toast-m7')) {
+    customElements.define('sn-toast-m7', ToastM7);
+  }
 }

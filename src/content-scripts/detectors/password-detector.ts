@@ -32,11 +32,17 @@
 
 import { browser } from '@/shared/browser/browser-adapter';
 import { hashPassword, hashDomain } from '@/shared/utils/hash';
-import { OverlayM9 } from '@/content-scripts/ui/overlay-m9';
-import { ToastM7 } from '@/content-scripts/ui/toast-m7';
-import { OverlayM2 } from '@/content-scripts/ui/overlay-m2';
+import { OverlayM9, registerOverlayM9 } from '@/content-scripts/ui/overlay-m9';
+import { ToastM7, registerToastM7 } from '@/content-scripts/ui/toast-m7';
+import { OverlayM2, registerOverlayM2 } from '@/content-scripts/ui/overlay-m2';
 import { analyzeRisks } from '@/content-scripts/detectors/risk-analyzer';
 import { zxcvbn } from '@zxcvbn-ts/core';
+
+// Enregistrer les custom elements au chargement du content script
+// Garantit leur inclusion dans le bundle Vite (évite le tree-shaking)
+registerOverlayM2();
+registerOverlayM9();
+registerToastM7();
 
 /** Délai de debounce pour l'évaluation zxcvbn (ms) */
 const DEBOUNCE_MS = 150;
