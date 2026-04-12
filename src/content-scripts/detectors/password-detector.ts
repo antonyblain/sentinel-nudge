@@ -84,11 +84,52 @@ const submittedFields = new WeakSet<HTMLInputElement>();
 const fieldsWithM2Active = new WeakSet<HTMLInputElement>();
 
 /**
- * Cache local des domain_hash marqués de confiance dans cette session.
- * Évite de re-déclencher M2 si le SW est endormi ou redémarré
- * entre le whitelist et le prochain focus (race condition MV3).
+ * Cache mémoire des domain_hash marqués de confiance (session courante).
+ * Chargé depuis chrome.storage.local au démarrage, enrichi à chaque "confiance".
+ * Persiste via chrome.storage.local pour survivre aux rechargements de page.
  */
 const trustedDomainHashes = new Set<string>();
+
+/** Clé chrome.storage.local pour la whitelist M2 du content script */
+const M2_CS_WHITELIST_KEY = 'm2_trusted_domains';
+
+/**
+ * Charge la whitelist M2 depuis chrome.storage.local dans le cache mémoire.
+ * Appelé une seule fois à l'initialisation du content script.
+ */
+async function loadTrustedDomains(): Promise<void> {
+  try {
+    const result = await browser.storage.local.get([M2_CS_WHITELIST_KEY]);
+    const domains = result[M2_CS_WHITELIST_KEY];
+    if (Array.isArray(domains)) {
+      for (const d of domains) {
+        if (typeof d === 'string') trustedDomainHashes.add(d);
+      }
+    }
+  } catch {
+    // Silencieux — le cache mémoire reste vide, le SW prendra le relais
+  }
+}
+
+/**
+ * Persiste un domain_hash de confiance dans chrome.storage.local.
+ * Fonctionne indépendamment du SW (pas de sendMessage).
+ */
+async function persistTrustedDomain(domainHash: string): Promise<void> {
+  trustedDomainHashes.add(domainHash);
+  try {
+    const result = await browser.storage.local.get([M2_CS_WHITELIST_KEY]);
+    const domains: string[] = Array.isArray(result[M2_CS_WHITELIST_KEY])
+      ? (result[M2_CS_WHITELIST_KEY] as string[])
+      : [];
+    if (!domains.includes(domainHash)) {
+      domains.push(domainHash);
+      await browser.storage.local.set({ [M2_CS_WHITELIST_KEY]: domains });
+    }
+  } catch {
+    // Silencieux — le cache mémoire est déjà à jour pour cette session
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Détection du gestionnaire de mots de passe
@@ -570,8 +611,8 @@ function createOverlayM2DOM(
         field.value = '';
         field.blur();
       } else if (action === 'trusted') {
-        // Cache local — empêche le réaffichage même si le SW redémarre
-        trustedDomainHashes.add(domainHash);
+        // Persister dans chrome.storage.local — survit aux rechargements de page
+        await persistTrustedDomain(domainHash);
         field.focus();
       } else if (action === 'dismissed') {
         field.focus();
@@ -1322,6 +1363,9 @@ function observeDynamicForms(): void {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
+  // Charger la whitelist M2 persistée (chrome.storage.local)
+  void loadTrustedDomains();
+
   // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
   document.addEventListener(
     'focusin',

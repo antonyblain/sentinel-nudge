@@ -752,6 +752,9 @@ async function handleResetWhitelist(statusEl: HTMLElement): Promise<void> {
       };
     });
 
+    // Vider aussi la whitelist M2 du content script (chrome.storage.local)
+    await browser.storage.local.remove('m2_trusted_domains');
+
     statusEl.textContent =
       browser.i18n.getMessage('options_whitelist_reset_success') ||
       'La liste de confiance a été réinitialisée.';
