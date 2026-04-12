@@ -60,7 +60,10 @@ const PATTERNS = {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasteDetector(): void {
-  document.addEventListener('paste', handlePaste);
+  // {capture: true} : interception en phase de capture, avant tout stopPropagation()
+  // Google Search et d'autres sites modernes bloquent la remontée de l'événement paste.
+  // Sans capture, le listener n'est jamais déclenché sur ces inputs enrichis.
+  document.addEventListener('paste', handlePaste, { capture: true });
 }
 
 /**
@@ -297,7 +300,9 @@ async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
       showToastM17(primaryType);
     }
   } catch {
-    // SW endormi — silencieux
+    // SW endormi ou inaccessible — M17 est un module critique (bypass quota),
+    // afficher le toast directement sans attendre la validation du SW
+    showToastM17(primaryType);
   }
 }
 

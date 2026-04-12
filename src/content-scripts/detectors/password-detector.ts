@@ -585,7 +585,7 @@ function observeDynamicForms(): void {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
-  // Listener global focusin pour M2 et M9
+  // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
   document.addEventListener('focusin', (event: FocusEvent) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
