@@ -588,7 +588,7 @@
     "description": "Step 1 title"
   },
   "onboarding_step1_intro": {
-    "message": "Sentinel Nudge is a behavioral cyber-hygiene extension. It helps you adopt better security habits through contextual micro-nudges based on behavioral science research.",
+    "message": "Sentinel Nudge helps you build better security habits every day. The extension sends you discreet, personalized reminders at the right moment — for example when you create a weak password or visit a suspicious site.",
     "description": "Step 1 introduction"
   },
   "onboarding_step1_privacy_title": {
@@ -600,7 +600,7 @@
     "description": "Step 1 privacy description"
   },
   "onboarding_step1_opensource": {
-    "message": "Open source — GPL v3 license",
+    "message": "Open source — GPL v3 license — View source on GitHub",
     "description": "Step 1 open source mention"
   },
   "onboarding_step2_title": {
@@ -608,23 +608,23 @@
     "description": "Step 2 title"
   },
   "onboarding_step2_desc": {
-    "message": "Your profile influences the difficulty of security awareness quizzes (module M6). You can change it at any time in Settings.",
+    "message": "Your profile influences the difficulty of security awareness quizzes. You can change it at any time in Settings.",
     "description": "Step 2 description"
   },
   "onboarding_step3_title": {
-    "message": "Activate modules",
+    "message": "Module selection",
     "description": "Step 3 title"
   },
   "onboarding_step3_desc": {
-    "message": "Each module monitors one aspect of your cyber-hygiene. All are active by default. Module M7 requires explicit consent in the next step.",
+    "message": "Each module monitors one aspect of your cyber-hygiene. All are active by default.",
     "description": "Step 3 description"
   },
   "onboarding_step4_title": {
-    "message": "M7 Consent — Password hashing",
+    "message": "Consent — Password reuse detection",
     "description": "Step 4 title"
   },
   "onboarding_step4_desc": {
-    "message": "Module M7 detects password reuse. To do this, it computes a local hash of your passwords. This hash is encrypted and never leaves your browser.",
+    "message": "This module detects when you reuse the same password on multiple sites. To do this, it computes a local fingerprint of your passwords. This fingerprint is encrypted and never leaves your browser.",
     "description": "Step 4 description"
   },
   "onboarding_step4_consent_label": {
@@ -640,7 +640,7 @@
     "description": "Missing profile error"
   },
   "module_m2_name": {
-    "message": "Suspicious sites (M2)",
+    "message": "Suspicious sites",
     "description": "M2 module name"
   },
   "module_m2_desc": {
@@ -648,7 +648,7 @@
     "description": "M2 module description"
   },
   "module_m3_name": {
-    "message": "Cyber-hygiene score (M3)",
+    "message": "Cyber-hygiene score",
     "description": "M3 module name"
   },
   "module_m3_desc": {
@@ -656,7 +656,7 @@
     "description": "M3 module description"
   },
   "module_m5_name": {
-    "message": "Browser update (M5)",
+    "message": "Browser update",
     "description": "M5 module name"
   },
   "module_m5_desc": {
@@ -664,7 +664,7 @@
     "description": "M5 module description"
   },
   "module_m6_name": {
-    "message": "Phishing quiz (M6)",
+    "message": "Phishing quiz",
     "description": "M6 module name"
   },
   "module_m6_desc": {
@@ -672,7 +672,7 @@
     "description": "M6 module description"
   },
   "module_m7_name": {
-    "message": "Password reuse (M7)",
+    "message": "Password reuse",
     "description": "M7 module name"
   },
   "module_m7_desc": {
@@ -680,7 +680,7 @@
     "description": "M7 module description"
   },
   "module_m9_name": {
-    "message": "Password strength (M9)",
+    "message": "Password strength",
     "description": "M9 module name"
   },
   "module_m9_desc": {
@@ -688,7 +688,7 @@
     "description": "M9 module description"
   },
   "module_m17_name": {
-    "message": "Clipboard sensitive data (M17)",
+    "message": "Clipboard sensitive data",
     "description": "M17 module name"
   },
   "module_m17_desc": {

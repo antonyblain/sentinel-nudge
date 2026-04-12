@@ -322,6 +322,24 @@ body {
   line-height: 1.5;
 }
 
+/* Note jaune d'avertissement M7 dans l'étape 3 (modules) */
+.module-row-m7-note {
+  background: #fef3c7;
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  margin-top: var(--sn-space-xs);
+  font-size: var(--sn-font-size-small);
+  color: #92400e;
+  line-height: 1.5;
+}
+
+/* Lien GitHub dans la section open source */
+.github-link {
+  color: var(--sn-color-accent);
+  text-decoration: underline;
+}
+
 .privacy-link {
   display: inline-flex;
   align-items: center;

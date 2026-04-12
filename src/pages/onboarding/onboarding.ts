@@ -159,8 +159,19 @@ function renderStep1(stepContainer: HTMLElement): void {
 
   const opensourceEl = document.createElement('p');
   opensourceEl.className = 'opensource-badge';
-  opensourceEl.textContent =
-    browser.i18n.getMessage('onboarding_step1_opensource') || 'Open source — licence GPL v3';
+
+  const opensourceText = document.createElement('span');
+  opensourceText.textContent = 'Open source — licence GPL v3 — ';
+  opensourceEl.appendChild(opensourceText);
+
+  const githubLink = document.createElement('a');
+  githubLink.href = 'https://github.com/antonyblain/sentinel-nudge';
+  githubLink.target = '_blank';
+  githubLink.rel = 'noopener noreferrer';
+  githubLink.textContent = 'Voir le code sur GitHub';
+  githubLink.className = 'github-link';
+  opensourceEl.appendChild(githubLink);
+
   privacyBox.appendChild(opensourceEl);
 
   stepContainer.appendChild(privacyBox);
@@ -325,6 +336,13 @@ function renderStep3(stepContainer: HTMLElement): void {
         'aria-label',
         `${browser.i18n.getMessage(mod.nameKey)} (consentement requis à l'étape suivante)`,
       );
+
+      // Indicateur visuel sous le toggle M7
+      const m7Note = document.createElement('p');
+      m7Note.className = 'module-row-m7-note';
+      m7Note.textContent =
+        "Ce module nécessite votre consentement explicite. Il sera proposé à l'étape suivante.";
+      wrapper.appendChild(m7Note);
     }
 
     input.addEventListener('change', () => {
@@ -392,7 +410,7 @@ function renderStep4(stepContainer: HTMLElement): void {
 
   // Lien politique de confidentialité
   const privacyLink = document.createElement('a');
-  privacyLink.href = browser.runtime.getURL('pages/static/privacy.html');
+  privacyLink.href = browser.runtime.getURL('pages/static/politique-confidentialite.html');
   privacyLink.target = '_blank';
   privacyLink.rel = 'noopener noreferrer';
   privacyLink.className = 'privacy-link';
@@ -401,11 +419,11 @@ function renderStep4(stepContainer: HTMLElement): void {
     'Lire la politique de confidentialité';
   stepContainer.appendChild(privacyLink);
 
-  // Note : M7 reste désactivé si le consentement n'est pas donné
+  // Note : module désactivé sans consentement
   const noteEl = document.createElement('p');
   noteEl.className = 'consent-note';
   noteEl.textContent =
-    "Si vous ne donnez pas votre consentement, le module M7 restera désactivé. Vous pourrez l'activer plus tard dans les paramètres.";
+    "Sans votre consentement, nous ne sommes pas autorisés à évaluer la réutilisation de vos mots de passe. Vous pourrez changer d'avis à tout moment dans les paramètres.";
   stepContainer.appendChild(noteEl);
 }
 

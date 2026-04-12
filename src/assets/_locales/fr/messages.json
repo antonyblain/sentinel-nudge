@@ -588,7 +588,7 @@
     "description": "Titre étape 1"
   },
   "onboarding_step1_intro": {
-    "message": "Sentinel Nudge est une extension de cyber-hygiène comportementale. Elle vous aide à adopter de meilleures habitudes de sécurité grâce à des micro-nudges contextuels basés sur la recherche en sciences comportementales.",
+    "message": "Sentinel Nudge vous aide à adopter de meilleures habitudes de sécurité au quotidien. L'extension vous envoie des rappels discrets et personnalisés au bon moment — par exemple quand vous créez un mot de passe trop simple ou visitez un site suspect.",
     "description": "Introduction étape 1"
   },
   "onboarding_step1_privacy_title": {
@@ -600,7 +600,7 @@
     "description": "Description privacy étape 1"
   },
   "onboarding_step1_opensource": {
-    "message": "Open source — licence GPL v3",
+    "message": "Open source — licence GPL v3 — Voir le code sur GitHub",
     "description": "Mention open source étape 1"
   },
   "onboarding_step2_title": {
@@ -608,23 +608,23 @@
     "description": "Titre étape 2"
   },
   "onboarding_step2_desc": {
-    "message": "Votre profil influence la difficulté des quiz de sensibilisation (module M6). Vous pouvez le modifier à tout moment dans les paramètres.",
+    "message": "Votre profil influence la difficulté des quiz de sensibilisation. Vous pouvez le modifier à tout moment dans les paramètres.",
     "description": "Description étape 2"
   },
   "onboarding_step3_title": {
-    "message": "Activez les modules",
+    "message": "Sélection des modules",
     "description": "Titre étape 3"
   },
   "onboarding_step3_desc": {
-    "message": "Chaque module surveille un aspect de votre cyber-hygiène. Tous sont actifs par défaut. Le module M7 requiert un consentement explicite à l'étape suivante.",
+    "message": "Chaque module surveille un aspect de votre cyber-hygiène. Tous sont actifs par défaut.",
     "description": "Description étape 3"
   },
   "onboarding_step4_title": {
-    "message": "Consentement M7 — Hachage de mots de passe",
+    "message": "Consentement — Détection de réutilisation de mots de passe",
     "description": "Titre étape 4"
   },
   "onboarding_step4_desc": {
-    "message": "Le module M7 détecte la réutilisation de mots de passe. Pour cela, il calcule une empreinte (hash) locale de vos mots de passe. Cette empreinte est chiffrée et ne quitte jamais votre navigateur.",
+    "message": "Ce module détecte quand vous réutilisez le même mot de passe sur plusieurs sites. Pour cela, il calcule une empreinte locale de vos mots de passe. Cette empreinte est chiffrée et ne quitte jamais votre navigateur.",
     "description": "Description étape 4"
   },
   "onboarding_step4_consent_label": {
@@ -640,7 +640,7 @@
     "description": "Erreur profil manquant"
   },
   "module_m2_name": {
-    "message": "Sites suspects (M2)",
+    "message": "Sites suspects",
     "description": "Nom du module M2"
   },
   "module_m2_desc": {
@@ -648,7 +648,7 @@
     "description": "Description du module M2"
   },
   "module_m3_name": {
-    "message": "Score de cyber-hygiène (M3)",
+    "message": "Score de cyber-hygiène",
     "description": "Nom du module M3"
   },
   "module_m3_desc": {
@@ -656,7 +656,7 @@
     "description": "Description du module M3"
   },
   "module_m5_name": {
-    "message": "Mise à jour navigateur (M5)",
+    "message": "Mise à jour navigateur",
     "description": "Nom du module M5"
   },
   "module_m5_desc": {
@@ -664,7 +664,7 @@
     "description": "Description du module M5"
   },
   "module_m6_name": {
-    "message": "Quiz phishing (M6)",
+    "message": "Quiz phishing",
     "description": "Nom du module M6"
   },
   "module_m6_desc": {
@@ -672,7 +672,7 @@
     "description": "Description du module M6"
   },
   "module_m7_name": {
-    "message": "Réutilisation de mots de passe (M7)",
+    "message": "Réutilisation de mots de passe",
     "description": "Nom du module M7"
   },
   "module_m7_desc": {
@@ -680,7 +680,7 @@
     "description": "Description du module M7"
   },
   "module_m9_name": {
-    "message": "Force des mots de passe (M9)",
+    "message": "Force des mots de passe",
     "description": "Nom du module M9"
   },
   "module_m9_desc": {
@@ -688,7 +688,7 @@
     "description": "Description du module M9"
   },
   "module_m17_name": {
-    "message": "Données sensibles presse-papiers (M17)",
+    "message": "Données sensibles presse-papiers",
     "description": "Nom du module M17"
   },
   "module_m17_desc": {
