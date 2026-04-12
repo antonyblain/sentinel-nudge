@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>M9 — Force du mot de passe : recommandations ANSSI — Sentinel Nudge</title>
+    <title>Force du mot de passe : recommandations ANSSI — Sentinel Nudge</title>
     <style>
       :root {
         --sn-color-bg: #ffffff;
@@ -167,9 +167,9 @@
   </head>
   <body>
     <header>
-      <span class="badge" aria-label="Module M9">M9</span>
+      <span class="badge" aria-label="Module M9">Force</span>
       <h1>Force du mot de passe — recommandations ANSSI</h1>
-      <p class="subtitle">Sentinel Nudge — Documentation du module M9</p>
+      <p class="subtitle">Sentinel Nudge — Indicateur de force des mots de passe</p>
     </header>
 
     <main>
@@ -190,9 +190,9 @@
       <section aria-labelledby="section-mechanism">
         <h2 id="section-mechanism">Mécanisme du module</h2>
         <p>
-          M9 affiche un indicateur de force en temps réel sous les champs de création de mot de
-          passe. L'évaluation utilise la bibliothèque <strong>zxcvbn</strong> (Dropbox), qui analyse
-          la structure du mot de passe de façon réaliste en tenant compte des patterns courants,
+          L'indicateur affiche la force en temps réel sous les champs de création de mot de passe.
+          L'évaluation utilise la bibliothèque <strong>zxcvbn</strong> (Dropbox), qui analyse la
+          structure du mot de passe de façon réaliste en tenant compte des patterns courants,
           substitutions et séquences clavier.
         </p>
         <p>Le score (0 à 4) correspond aux niveaux ANSSI suivants :</p>
@@ -271,13 +271,13 @@
           <li>
             Wheeler, D.L. (2016). "zxcvbn: Low-Budget Password Strength Estimation."
             <em>Proc. USENIX Security 2016</em>. Description de l'algorithme d'évaluation réaliste
-            de la force des mots de passe utilisé par M9.
+            de la force des mots de passe utilisé par cet indicateur.
           </li>
           <li>
             ANSSI (2021).
             <em>Recommandations relatives à l'authentification multifacteur et aux mots de passe</em
             >. Guide officiel français sur les politiques de mots de passe, référence pour les
-            marqueurs affichés par M9.
+            marqueurs affichés.
           </li>
           <li>
             Grassi, P. et al. (2020). NIST SP 800-63B. <em>Digital Identity Guidelines</em>. Abandon

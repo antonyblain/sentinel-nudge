@@ -314,6 +314,10 @@ async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
  * Construit le DOM manuellement avec un Shadow DOM pour l'isolation CSS.
  */
 function showToastM17(dataType: SensitiveDataType): void {
+  // Supprimer le toast précédent s'il existe (évite les doublons)
+  const existing = document.getElementById('sn-m17-toast-host');
+  if (existing) existing.remove();
+
   const labels: Record<SensitiveDataType, string> = {
     credit_card: 'Numéro de carte bancaire',
     iban: 'IBAN / RIB',
@@ -322,6 +326,7 @@ function showToastM17(dataType: SensitiveDataType): void {
 
   // Conteneur hôte
   const host = document.createElement('div');
+  host.id = 'sn-m17-toast-host';
   // all:initial reset + display:block explicite (all:initial remet display à inline,
   // ce qui rend l'élément invisible car inline+fixed = taille zéro sans contenu inline)
   host.setAttribute(

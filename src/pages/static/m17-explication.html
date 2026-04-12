@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>M17 — Données sensibles : risques du copier-coller — Sentinel Nudge</title>
+    <title>Données sensibles : risques du copier-coller — Sentinel Nudge</title>
     <style>
       :root {
         --sn-color-bg: #ffffff;
@@ -144,9 +144,9 @@
   </head>
   <body>
     <header>
-      <span class="badge" aria-label="Module M17">M17</span>
+      <span class="badge" aria-label="Module M17">Données sensibles</span>
       <h1>Données sensibles — risques du copier-coller</h1>
-      <p class="subtitle">Sentinel Nudge — Documentation du module M17</p>
+      <p class="subtitle">Sentinel Nudge — Détecteur de données sensibles dans le presse-papiers</p>
     </header>
 
     <main>
@@ -172,8 +172,8 @@
       <section aria-labelledby="section-mechanism">
         <h2 id="section-mechanism">Mécanisme du module</h2>
         <p>
-          M17 surveille les événements <code>paste</code> sur les formulaires web. Lorsqu'une donnée
-          collée correspond à l'un des patterns suivants, une alerte s'affiche :
+          Ce module surveille les événements <code>paste</code> sur les formulaires web. Lorsqu'une
+          donnée collée correspond à l'un des patterns suivants, une alerte s'affiche :
         </p>
         <ul>
           <li>
@@ -190,8 +190,8 @@
         </ul>
         <p>
           La valeur détectée n'est jamais stockée ni transmise — seul le <em>type</em> de donnée est
-          utilisé pour l'affichage de l'alerte. M17 propose de vider immédiatement le presse-papiers
-          via l'API <code>navigator.clipboard.writeText('')</code>.
+          utilisé pour l'affichage de l'alerte. L'extension propose de vider immédiatement le
+          presse-papiers via l'API <code>navigator.clipboard.writeText('')</code>.
         </p>
       </section>
 
