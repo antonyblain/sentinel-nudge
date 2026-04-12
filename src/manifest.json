@@ -18,7 +18,6 @@
     }
   },
   "options_page": "pages/options/options.html",
-  "content_scripts": [],
   "content_security_policy": {
     "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self';"
   },
@@ -36,6 +35,5 @@
       ],
       "matches": ["<all_urls>"]
     }
-  ],
-  "chrome_url_overrides": {}
+  ]
 }
