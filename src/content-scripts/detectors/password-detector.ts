@@ -266,11 +266,12 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
       timestamp: Date.now(),
     })) as typeof swResponse;
   } catch {
-    // SW endormi — silencieux
-    return false;
+    // SW endormi — M2 est critique, afficher l'overlay directement (fail-open)
+    return await showOverlayM2(field, signals, domainHash);
   }
 
-  if (swResponse?.action !== 'show') {
+  // Afficher si le SW autorise ou ne répond pas clairement (fail-open pour M2 critique)
+  if (swResponse?.action === 'skip') {
     return false;
   }
 
