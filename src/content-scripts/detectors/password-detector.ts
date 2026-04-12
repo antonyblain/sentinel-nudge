@@ -277,9 +277,9 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
     return await showOverlayM2(field, signals, domainHash);
   }
 
-  // Ne bloquer que si le SW refuse explicitement pour cause de quota
-  // handler_not_registered, erreur, réponse null → fail-open (M2 critique)
-  if (swResponse?.action === 'skip' && swResponse?.reason === 'quota_exceeded') {
+  // Respecter les décisions de skip du SW (session_duplicate, whitelisted, quota)
+  // Seuls les cas d'erreur/null/handler_not_registered → fail-open (M2 critique)
+  if (swResponse?.success === true && swResponse?.action === 'skip') {
     return false;
   }
 
@@ -457,12 +457,7 @@ function createOverlayM2DOM(
   btnLearn.textContent =
     browser.i18n.getMessage('m2_overlay_btn_learn') || 'En savoir plus sur les risques';
   btnLearn.addEventListener('click', () => {
-    void browser.runtime.sendMessage({
-      module: 'M2',
-      action: 'open_explanation',
-      payload: { signals },
-      timestamp: Date.now(),
-    });
+    window.open(browser.runtime.getURL('pages/static/sites-suspects.html'), '_blank');
   });
   expl.appendChild(btnLearn);
   panel.appendChild(expl);
@@ -955,11 +950,15 @@ async function handleFocusOnPasswordField(field: HTMLInputElement): Promise<void
     initM9ForField(field);
   } else {
     // Formulaire de connexion → M2 (analyse de risque)
+    // Guard anti-réentrance : empêche la boucle focus → overlay → close → refocus → overlay
+    if (fieldsWithM2Active.has(field)) return;
+    fieldsWithM2Active.add(field);
+
     const m2Shown = await handleM2OnFocus(field);
 
-    if (m2Shown) {
-      // Marquer le champ pour différer M7 si nécessaire (SFD §2.1.5)
-      fieldsWithM2Active.add(field);
+    if (!m2Shown) {
+      // M2 n'a pas été affiché (signaux insuffisants, etc.) → libérer le guard
+      fieldsWithM2Active.delete(field);
     }
   }
 }
