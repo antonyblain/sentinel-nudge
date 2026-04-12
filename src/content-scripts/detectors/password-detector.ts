@@ -257,7 +257,17 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
   // un hash placeholder — M2 est critique, il doit s'afficher même sans sel
   const effectiveSalt = salt ?? 'sentinel-nudge-temp-salt';
 
-  const domainHash = await hashDomain(effectiveSalt, location.hostname);
+  let domainHash: string;
+  try {
+    domainHash = await hashDomain(effectiveSalt, location.hostname);
+  } catch (hashErr) {
+    // eslint-disable-next-line no-console
+    console.info('[SN M2] Hash échoué:', hashErr);
+    domainHash = 'hash-fallback-error';
+  }
+
+  // eslint-disable-next-line no-console
+  console.info('[SN M2] Hash OK, envoi au SW...');
 
   let swResponse: { success: boolean; action: string; data?: Record<string, unknown> } | null =
     null;
@@ -272,16 +282,23 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
       },
       timestamp: Date.now(),
     })) as typeof swResponse;
-  } catch {
+    // eslint-disable-next-line no-console
+    console.info('[SN M2] Réponse SW:', swResponse);
+  } catch (swErr) {
+    // eslint-disable-next-line no-console
+    console.info('[SN M2] SW endormi, affichage direct:', swErr);
     // SW endormi — M2 est critique, afficher l'overlay directement (fail-open)
     return await showOverlayM2(field, signals, domainHash);
   }
 
-  // Afficher si le SW autorise ou ne répond pas clairement (fail-open pour M2 critique)
-  if (swResponse?.action === 'skip') {
+  // Ne bloquer que si le SW refuse explicitement pour cause de quota
+  // handler_not_registered, erreur, réponse null → fail-open (M2 critique)
+  if (swResponse?.action === 'skip' && swResponse?.reason === 'quota_exceeded') {
     return false;
   }
 
+  // eslint-disable-next-line no-console
+  console.info('[SN M2] Affichage overlay...');
   // Afficher l'overlay M2
   return await showOverlayM2(field, signals, domainHash);
 }
