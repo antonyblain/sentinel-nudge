@@ -14,7 +14,7 @@
     "lint": "eslint src/ --max-warnings 0",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
-    "check-licenses": "license-checker --production --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;MPL-2.0'"
+    "check-licenses": "license-checker --production --excludePackages sentinel-nudge@1.0.0 --onlyAllow \"MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;MPL-2.0\""
   },
   "dependencies": {
     "@zxcvbn-ts/core": "^3.0.4"
