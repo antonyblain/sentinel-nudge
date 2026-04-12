@@ -13,12 +13,22 @@
 
 import { browser } from '@/shared/browser/browser-adapter';
 import { CryptoService } from './crypto-service';
-import type { EventRecord, EventPayload, WeeklyScore, ChromeStorageSchema } from '@/shared/types/storage';
+import type {
+  EventRecord,
+  EventPayload,
+  WeeklyScore,
+  ChromeStorageSchema,
+  PasswordHashRecord,
+  WhitelistEntry,
+} from '@/shared/types/storage';
 
 /** Nom de la base de données IndexedDB */
 const DB_NAME = 'sentinel-nudge-db';
 /** Version courante du schéma IndexedDB */
 const DB_VERSION = 1;
+
+/** Nombre maximum de hashes de mots de passe stockés (FIFO) */
+const MAX_PASSWORD_HASHES = 100;
 
 /**
  * Tableau de migrations IndexedDB indexé par numéro de version.
@@ -68,8 +78,9 @@ const MIGRATIONS: Record<number, (db: IDBDatabase) => void> = {
     // Store weekly_scores (clé primaire = semaine ISO YYYY-Www)
     db.createObjectStore('weekly_scores', { keyPath: 'week_key' });
 
-    // Store whitelist (clé primaire = domain_hash SHA-256)
-    db.createObjectStore('whitelist', { keyPath: 'domain_hash' });
+    // Store whitelist (clé primaire = domain_hash SHA-256 + module)
+    const wlStore = db.createObjectStore('whitelist', { keyPath: ['domain_hash', 'module'] });
+    wlStore.createIndex('module', 'module');
   },
 };
 
@@ -351,6 +362,214 @@ export class StorageService {
       request.onsuccess = () => resolve();
       request.onerror = () =>
         reject(new Error(`[StorageService] Échec setWeeklyScore: ${request.error?.message ?? ''}`));
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Store password_hashes (IndexedDB) — Module M7
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Ajoute un hash de mot de passe dans le store password_hashes.
+   * Applique la règle FIFO : si le store dépasse MAX_PASSWORD_HASHES,
+   * le plus ancien enregistrement (first_seen minimal) est supprimé.
+   *
+   * La valeur du hash est chiffrée AES-256-GCM avant stockage (D-SEC-001).
+   * Le tag (8 chars hex) reste en clair pour la pré-filtration par index.
+   *
+   * @param hash       - Hash hexadécimal SHA-256 du mot de passe (64 chars)
+   * @param tag        - 8 premiers chars hex du hash (index de pré-filtration)
+   * @param domainHash - SHA-256(salt + domain) du domaine source
+   * @param cryptoKey  - Clé AES-256-GCM pour le chiffrement
+   */
+  async addPasswordHash(
+    hash: string,
+    tag: string,
+    domainHash: string,
+    cryptoKey: CryptoKey,
+  ): Promise<void> {
+    // Chiffrement du hash complet
+    const encoder = new TextEncoder();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      cryptoKey,
+      encoder.encode(hash),
+    );
+
+    const db = this.getDB();
+
+    // Vérification et application FIFO dans une transaction readwrite
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('password_hashes', 'readwrite');
+      const store = tx.objectStore('password_hashes');
+
+      // Compter les enregistrements existants
+      const countReq = store.count();
+
+      countReq.onsuccess = () => {
+        const count = countReq.result;
+
+        const addRecord = (): void => {
+          const record: Omit<PasswordHashRecord, 'id'> = {
+            tag,
+            value: ciphertext,
+            iv,
+            domain_hash: domainHash,
+            first_seen: Date.now(),
+            count: 1,
+          };
+          const addReq = store.add(record);
+          addReq.onsuccess = () => resolve();
+          addReq.onerror = () =>
+            reject(new Error(`[StorageService] Échec addPasswordHash: ${addReq.error?.message ?? ''}`));
+        };
+
+        if (count >= MAX_PASSWORD_HASHES) {
+          // Supprimer le plus ancien (index first_seen, premier enregistrement)
+          const idx = store.index('first_seen');
+          const cursorReq = idx.openCursor();
+          cursorReq.onsuccess = () => {
+            const cursor = cursorReq.result;
+            if (cursor) {
+              cursor.delete();
+              addRecord();
+            } else {
+              addRecord();
+            }
+          };
+          cursorReq.onerror = () => addRecord(); // Si erreur, on ajoute quand même
+        } else {
+          addRecord();
+        }
+      };
+
+      countReq.onerror = () =>
+        reject(new Error(`[StorageService] Échec count password_hashes: ${countReq.error?.message ?? ''}`));
+
+      tx.onerror = () =>
+        reject(new Error(`[StorageService] Échec transaction password_hashes: ${tx.error?.message ?? ''}`));
+    });
+  }
+
+  /**
+   * Récupère les hashes de mots de passe correspondant à un tag donné.
+   * Utilisé pour la pré-filtration avant comparaison exacte (SFD §2.5.3).
+   *
+   * @param tag - 8 premiers chars hex du hash (index de pré-filtration)
+   * @returns Liste des enregistrements password_hashes avec ce tag
+   */
+  async getPasswordHashesByTag(tag: string): Promise<PasswordHashRecord[]> {
+    const db = this.getDB();
+    const tx = db.transaction('password_hashes', 'readonly');
+    const store = tx.objectStore('password_hashes');
+    const index = store.index('tag');
+
+    return new Promise((resolve, reject) => {
+      const results: PasswordHashRecord[] = [];
+      const request = index.openCursor(IDBKeyRange.only(tag));
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(results);
+          return;
+        }
+        results.push(cursor.value as PasswordHashRecord);
+        cursor.continue();
+      };
+
+      request.onerror = () =>
+        reject(new Error(`[StorageService] Échec getPasswordHashesByTag: ${request.error?.message ?? ''}`));
+    });
+  }
+
+  /**
+   * Retourne le nombre total de hashes de mots de passe stockés.
+   *
+   * @returns Nombre d'enregistrements dans password_hashes
+   */
+  async getPasswordHashCount(): Promise<number> {
+    const db = this.getDB();
+    const tx = db.transaction('password_hashes', 'readonly');
+    const store = tx.objectStore('password_hashes');
+
+    return new Promise((resolve, reject) => {
+      const request = store.count();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () =>
+        reject(new Error(`[StorageService] Échec getPasswordHashCount: ${request.error?.message ?? ''}`));
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Store whitelist (IndexedDB) — Modules M2 et M7
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Vérifie si un domaine est dans la whitelist pour un module donné.
+   *
+   * Utilisé par M2 (domaines de confiance) et M7 (suppression_list).
+   *
+   * @param domainHash - SHA-256(salt + domain)
+   * @param module     - Module qui gère cette whitelist ('M2' ou 'M7')
+   * @returns true si le domaine est dans la whitelist pour ce module
+   */
+  async isWhitelisted(domainHash: string, module: string): Promise<boolean> {
+    const db = this.getDB();
+    const tx = db.transaction('whitelist', 'readonly');
+    const store = tx.objectStore('whitelist');
+
+    return new Promise((resolve, reject) => {
+      // Clé composite [domain_hash, module]
+      const request = store.get([domainHash, module]);
+      request.onsuccess = () => resolve(request.result !== undefined);
+      request.onerror = () =>
+        reject(new Error(`[StorageService] Échec isWhitelisted: ${request.error?.message ?? ''}`));
+    });
+  }
+
+  /**
+   * Ajoute un domaine dans la whitelist pour un module donné.
+   *
+   * @param domainHash - SHA-256(salt + domain)
+   * @param module     - Module qui gère cette whitelist ('M2' ou 'M7')
+   */
+  async addToWhitelist(domainHash: string, module: string): Promise<void> {
+    const db = this.getDB();
+    const tx = db.transaction('whitelist', 'readwrite');
+    const store = tx.objectStore('whitelist');
+
+    const entry: WhitelistEntry & { module: string } = {
+      domain_hash: domainHash,
+      module,
+      added_at: Date.now(),
+    };
+
+    return new Promise((resolve, reject) => {
+      const request = store.put(entry);
+      request.onsuccess = () => resolve();
+      request.onerror = () =>
+        reject(new Error(`[StorageService] Échec addToWhitelist: ${request.error?.message ?? ''}`));
+    });
+  }
+
+  /**
+   * Supprime un domaine de la whitelist pour un module donné.
+   *
+   * @param domainHash - SHA-256(salt + domain)
+   * @param module     - Module qui gère cette whitelist ('M2' ou 'M7')
+   */
+  async removeFromWhitelist(domainHash: string, module: string): Promise<void> {
+    const db = this.getDB();
+    const tx = db.transaction('whitelist', 'readwrite');
+    const store = tx.objectStore('whitelist');
+
+    return new Promise((resolve, reject) => {
+      const request = store.delete([domainHash, module]);
+      request.onsuccess = () => resolve();
+      request.onerror = () =>
+        reject(new Error(`[StorageService] Échec removeFromWhitelist: ${request.error?.message ?? ''}`));
     });
   }
 }

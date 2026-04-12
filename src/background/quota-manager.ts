@@ -68,7 +68,10 @@ export class QuotaManager {
 
     const state = await this.getStateWithCache();
     const config = await this.storage.getConfig();
-    const limit = config?.quota_limit ?? QUOTA_DEFAULT;
+    // null = illimité (choix utilisateur "Tous"), undefined = pas de config → défaut
+    const limit = config === null || config === undefined
+      ? QUOTA_DEFAULT
+      : config.quota_limit;
 
     // Quota illimité
     if (limit === null) {

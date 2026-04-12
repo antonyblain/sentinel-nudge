@@ -25,6 +25,8 @@ import { QuotaManager } from './quota-manager';
 import { AlarmManager, ALARM_NAMES } from './alarm-manager';
 import { MessageRouter } from './message-router';
 import { ScoreCalculator } from './score-calculator';
+import { createM7Handler } from './handlers/m7-handler';
+import { createM9Handler } from './handlers/m9-handler';
 import type { AlarmDispatcher } from './alarm-manager';
 import type { ChromeStorageSchema } from '@/shared/types/storage';
 import { MODULE_IDS } from '@/shared/constants/modules';
@@ -116,6 +118,23 @@ async function loadCryptoKey(): Promise<CryptoKey | null> {
 }
 
 /**
+ * Enregistre les handlers des modules M7 et M9 dans le MessageRouter.
+ *
+ * Cette fonction est appelée au démarrage du SW et après chaque réveil,
+ * car les handlers sont perdus quand le SW est tué.
+ * Nécessite la clé de chiffrement pour les opérations cryptographiques.
+ *
+ * @param cryptoKey - Clé AES-256-GCM chargée depuis chrome.storage.local
+ */
+function registerModuleHandlers(cryptoKey: CryptoKey): void {
+  // Handler M7 — détection réutilisation mot de passe
+  messageRouter.registerHandler('M7', createM7Handler(storageService, cryptoKey));
+
+  // Handler M9 — enregistrement du score de force au submit
+  messageRouter.registerHandler('M9', createM9Handler(storageService, cryptoKey));
+}
+
+/**
  * Initialise l'extension au premier lancement (chrome.runtime.onInstalled).
  *
  * Actions :
@@ -124,7 +143,8 @@ async function loadCryptoKey(): Promise<CryptoKey | null> {
  * 3. Créer la configuration par défaut
  * 4. Initialiser la base IndexedDB
  * 5. Configurer les alarmes planifiées
- * 6. Ouvrir la page d'onboarding
+ * 6. Enregistrer les handlers de modules
+ * 7. Ouvrir la page d'onboarding
  */
 async function onFirstInstall(): Promise<void> {
   // Génération du sel d'installation unique (D-SEC-001)
@@ -163,6 +183,9 @@ async function onFirstInstall(): Promise<void> {
   // Initialisation de la base IndexedDB
   await storageService.initDB();
 
+  // Enregistrement des handlers de modules
+  registerModuleHandlers(cryptoKey);
+
   // Configuration des alarmes planifiées
   alarmManager.setupAlarms();
 
@@ -187,16 +210,23 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     // TODO(P4-MIGRATION) : appliquer les migrations IndexedDB si version change
     await storageService.initDB();
     alarmManager.setupAlarms();
+    // Réenregistrement des handlers après mise à jour
+    const cryptoKey = await loadCryptoKey();
+    if (cryptoKey) registerModuleHandlers(cryptoKey);
   }
 });
 
 /**
  * Événement de démarrage du navigateur.
  * Réinitialise les alarmes (elles peuvent avoir expiré pendant l'arrêt Chrome).
+ * Réenregistre les handlers de modules (perdus quand le SW était tué).
  */
-chrome.runtime.onStartup.addListener(() => {
+chrome.runtime.onStartup.addListener(async () => {
   alarmManager.setupAlarms();
   void quotaManager.resetIfNewDay();
+  // Réenregistrement des handlers après réveil du SW
+  const cryptoKey = await loadCryptoKey();
+  if (cryptoKey) registerModuleHandlers(cryptoKey);
 });
 
 /**
@@ -220,3 +250,11 @@ browser.alarms.onAlarm.addListener(async (alarm: chrome.alarms.Alarm) => {
 
 // Activation du routeur de messages
 messageRouter.listen();
+
+// Enregistrement initial des handlers (premier réveil du SW au chargement de la page)
+// Nécessaire car onStartup n'est appelé qu'au démarrage du navigateur, pas au réveil du SW
+void (async () => {
+  await storageService.initDB();
+  const cryptoKey = await loadCryptoKey();
+  if (cryptoKey) registerModuleHandlers(cryptoKey);
+})();

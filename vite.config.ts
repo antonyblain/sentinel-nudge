@@ -35,6 +35,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['../tests/unit/**/*.test.ts', '../tests/integration/**/*.test.ts'],
+    setupFiles: [resolve(__dirname, 'tests/setup.ts')],
     tsconfig: resolve(__dirname, 'tsconfig.test.json'),
   },
 });

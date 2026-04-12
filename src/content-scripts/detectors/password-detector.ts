@@ -1,71 +1,474 @@
 /**
  * @file content-scripts/detectors/password-detector.ts
- * @description Détecteur de champs mot de passe dans les pages web (modules M2, M7, M9).
+ * @description Détecteur de champs mot de passe — modules M7 et M9.
  *
  * Ce content script est injecté dynamiquement via scripting.executeScript()
- * uniquement si M2, M7 ou M9 est activé dans la configuration.
+ * uniquement si M7 ou M9 est activé dans la configuration.
  *
- * Écoute :
- * - `focusin` sur input[type=password] → déclenche RiskAnalyzer + envoie message au SW
- * - `blur` sur input[type=password] → fin d'interaction
+ * Responsabilités :
+ * - M9 : Détecte les champs de création de mot de passe (confirmation présente OU
+ *         autocomplete="new-password"), vérifie l'absence de gestionnaire,
+ *         évalue la force en temps réel via zxcvbn-ts (debounce 150ms),
+ *         affiche l'overlay inline, envoie le score au submit.
+ * - M7 : Au submit, capture le mot de passe, calcule SHA-256(sel + mdp),
+ *         nullifie la variable immédiatement, envoie le hash au SW pour comparaison.
  *
  * Sécurité :
- * - Le mot de passe en clair n'est JAMAIS envoyé au service worker
- * - Seul le hash SHA-256(salt + password) est transmis pour M7
- * - Le sel est lu depuis chrome.storage.local (installation_salt)
+ * - Le mot de passe en clair n'est JAMAIS envoyé au service worker (D-SEC-001)
+ * - Le hash M7 est calculé et la variable nullifiée en < 5ms
+ * - Les overlays M9 sont en Shadow DOM pour isolation CSS (D-SEC-003)
+ * - Aucun innerHTML utilisé (D-SEC-003)
  *
- * Référence : DAT §6.2 (flux M2/M7/M9), §9.4 (D-SEC-001 hash salé)
+ * Référence : SFD §2.5 (M7), §2.6 (M9), DAT §6.2, §9.4 (D-SEC-001)
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
+import { hashPassword, hashDomain } from '@/shared/utils/hash';
+import { OverlayM9 } from '@/content-scripts/ui/overlay-m9';
+import { ToastM7 } from '@/content-scripts/ui/toast-m7';
+import { zxcvbn } from '@zxcvbn-ts/core';
+
+/** Délai de debounce pour l'évaluation zxcvbn (ms) */
+const DEBOUNCE_MS = 150;
+
+/** Délai de détection gestionnaire de mots de passe après focus (ms) */
+const PASSWORD_MANAGER_DETECT_MS = 500;
+
+/**
+ * Contexte d'un champ de création de mot de passe surveillé par M9.
+ */
+interface M9Context {
+  /** Le champ password surveillé */
+  field: HTMLInputElement;
+  /** L'overlay M9 associé */
+  overlay: OverlayM9;
+  /** ID du debounce en cours */
+  debounceId: ReturnType<typeof setTimeout> | null;
+  /** true si un gestionnaire de mots de passe a été détecté */
+  pmDetected: boolean;
+}
+
+/** Map des champs surveillés par M9 (clé = champ) */
+const m9Contexts = new WeakMap<HTMLInputElement, M9Context>();
+
+/** Set des champs déjà soumis (pour éviter le double traitement) */
+const submittedFields = new WeakSet<HTMLInputElement>();
+
+// ---------------------------------------------------------------------------
+// Détection du gestionnaire de mots de passe
+// ---------------------------------------------------------------------------
+
+/**
+ * Détecte la présence d'un gestionnaire de mots de passe sur le champ.
+ *
+ * Stratégie heuristique (SFD §2.6) :
+ * 1. Attribut autocomplete="current-password" → gestionnaire probable
+ * 2. Attribut data-form-type présent → gestionnaire probable
+ * 3. Remplissage automatique dans les 500ms après focus
+ *
+ * @param field - Champ password à analyser
+ * @returns true si un gestionnaire est détecté ou si remplissage automatique observé
+ */
+function hasPasswordManagerHint(field: HTMLInputElement): boolean {
+  const autocomplete = field.getAttribute('autocomplete') ?? '';
+  // "current-password" indique un champ de connexion géré par un PM
+  if (autocomplete === 'current-password') return true;
+  // data-form-type est utilisé par 1Password et LastPass
+  if (field.hasAttribute('data-form-type')) return true;
+  return false;
+}
+
+/**
+ * Vérifie si le champ a été rempli automatiquement dans un délai donné.
+ * Utilisé pour détecter le remplissage après focus (SFD §2.6 cas limite).
+ *
+ * @param field    - Champ password à surveiller
+ * @param valueAtFocus - Valeur du champ au moment du focus
+ * @returns Promise qui résout true si remplissage automatique détecté
+ */
+async function checkAutoFill(
+  field: HTMLInputElement,
+  valueAtFocus: string,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Si la valeur a changé sans input event → remplissage automatique
+      resolve(field.value !== valueAtFocus && field.value.length > 0);
+    }, PASSWORD_MANAGER_DETECT_MS);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Détection du formulaire de création de mot de passe
+// ---------------------------------------------------------------------------
+
+/**
+ * Détermine si le champ password appartient à un formulaire de création.
+ *
+ * Critères (SFD §2.6) :
+ * - Un champ de confirmation de mot de passe est présent dans le même formulaire, OU
+ * - L'attribut autocomplete="new-password" est explicitement défini
+ *
+ * @param field - Champ password à analyser
+ * @returns true si formulaire de création détecté
+ */
+function isCreationForm(field: HTMLInputElement): boolean {
+  // autocomplete="new-password" est un signal direct
+  if (field.getAttribute('autocomplete') === 'new-password') return true;
+
+  // Recherche d'un champ de confirmation dans le même formulaire ou la même page
+  const form = field.form ?? document;
+  const allPasswords = Array.from(
+    form.querySelectorAll<HTMLInputElement>('input[type="password"]'),
+  );
+
+  // Plus d'un champ password dans le formulaire → probablement création + confirmation
+  if (allPasswords.length >= 2) return true;
+
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Détection du type (password vs passphrase) — SFD §2.6.2
+// ---------------------------------------------------------------------------
+
+/**
+ * Détecte le type de saisie : mot de passe classique ou phrase de passe.
+ *
+ * Algorithme (SFD §2.6.2) :
+ *   SI valeur contient >= 3 espaces ET longueur >= 20 → 'passphrase'
+ *   SINON → 'password'
+ *
+ * @param value - Valeur courante du champ
+ * @returns 'passphrase' ou 'password'
+ */
+function detectInputType(value: string): 'password' | 'passphrase' {
+  const spaceCount = (value.match(/ /g) ?? []).length;
+  if (spaceCount >= 3 && value.length >= 20) return 'passphrase';
+  return 'password';
+}
+
+// ---------------------------------------------------------------------------
+// Module M9 — initialisation et gestion de l'overlay
+// ---------------------------------------------------------------------------
+
+/**
+ * Initialise l'overlay M9 pour un champ de création de mot de passe.
+ *
+ * @param field - Champ password détecté comme formulaire de création
+ */
+function initM9ForField(field: HTMLInputElement): void {
+  if (m9Contexts.has(field)) return; // Déjà initialisé
+
+  const overlay = document.createElement('sn-overlay-m9') as OverlayM9;
+  overlay.style.display = 'none';
+
+  // Insertion juste après le champ — même largeur garantie via JS
+  field.insertAdjacentElement('afterend', overlay);
+
+  const context: M9Context = {
+    field,
+    overlay,
+    debounceId: null,
+    pmDetected: false,
+  };
+
+  m9Contexts.set(field, context);
+
+  // Listener input avec debounce 150ms
+  field.addEventListener('input', () => {
+    handlePasswordInput(field);
+  });
+
+  // Synchroniser la largeur de l'overlay avec le champ
+  syncOverlayWidth(field, overlay);
+  window.addEventListener('resize', () => syncOverlayWidth(field, overlay));
+}
+
+/**
+ * Synchronise la largeur de l'overlay avec celle du champ parent.
+ *
+ * @param field   - Champ parent
+ * @param overlay - Overlay à redimensionner
+ */
+function syncOverlayWidth(field: HTMLInputElement, overlay: OverlayM9): void {
+  const rect = field.getBoundingClientRect();
+  overlay.style.width = `${rect.width}px`;
+}
+
+/**
+ * Gère un événement input sur un champ surveillé par M9 (debounce 150ms).
+ *
+ * @param field - Champ password source de l'événement
+ */
+function handlePasswordInput(field: HTMLInputElement): void {
+  const ctx = m9Contexts.get(field);
+  if (!ctx || ctx.pmDetected) return;
+
+  // Annuler le debounce précédent
+  if (ctx.debounceId !== null) {
+    clearTimeout(ctx.debounceId);
+  }
+
+  ctx.debounceId = setTimeout(() => {
+    evaluatePasswordStrength(field);
+    ctx.debounceId = null;
+  }, DEBOUNCE_MS);
+}
+
+/**
+ * Évalue la force du mot de passe via zxcvbn et met à jour l'overlay.
+ *
+ * @param field - Champ password à évaluer
+ */
+function evaluatePasswordStrength(field: HTMLInputElement): void {
+  const ctx = m9Contexts.get(field);
+  if (!ctx) return;
+
+  const value = field.value;
+
+  if (value.length === 0) {
+    ctx.overlay.hide();
+    return;
+  }
+
+  // Évaluation zxcvbn locale — la valeur ne quitte jamais ce contexte
+  const result = zxcvbn(value);
+  const mode = detectInputType(value);
+  const rect = field.getBoundingClientRect();
+
+  ctx.overlay.show();
+  ctx.overlay.update(result.score, value, mode, rect.width);
+}
+
+// ---------------------------------------------------------------------------
+// Module M9 — focus / blur
+// ---------------------------------------------------------------------------
+
+/**
+ * Gère le focus sur un champ password.
+ * Vérifie si c'est un formulaire de création, détecte le gestionnaire et init M9.
+ *
+ * @param field - Champ password qui reçoit le focus
+ */
+async function handleFocusOnPasswordField(field: HTMLInputElement): Promise<void> {
+  // Vérification gestionnaire via attributs
+  if (hasPasswordManagerHint(field)) return;
+
+  // Vérification formulaire de création
+  if (!isCreationForm(field)) return;
+
+  // Vérification remplissage automatique dans les 500ms
+  const valueAtFocus = field.value;
+  const autoFilled = await checkAutoFill(field, valueAtFocus);
+  if (autoFilled) {
+    const ctx = m9Contexts.get(field);
+    if (ctx) ctx.pmDetected = true;
+    return;
+  }
+
+  // Initialiser M9 si pas encore fait
+  initM9ForField(field);
+}
+
+// ---------------------------------------------------------------------------
+// Module M7 — hash et envoi au submit
+// ---------------------------------------------------------------------------
+
+/**
+ * Récupère le sel d'installation depuis chrome.storage.local.
+ *
+ * @returns Le sel en hex (32 caractères) ou null si absent
+ */
+async function getInstallationSalt(): Promise<string | null> {
+  try {
+    const result = await browser.storage.local.get(['installation_salt']);
+    const salt = result['installation_salt'];
+    if (typeof salt !== 'string' || salt.length === 0) return null;
+    return salt;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Traite un submit de formulaire contenant un champ password.
+ *
+ * Module M7 :
+ * 1. Capture la valeur du champ password
+ * 2. Calcule SHA-256(sel + mot_de_passe) [D-SEC-001]
+ * 3. Nullifie immédiatement la variable (< 5ms)
+ * 4. Envoie le hash + domain_hash au service worker
+ *
+ * Module M9 :
+ * 5. Envoie le score final au service worker
+ * 6. Masque l'overlay M9
+ *
+ * @param event    - Événement submit du formulaire
+ * @param pwdField - Champ password soumis
+ */
+async function handleFormSubmit(
+  event: SubmitEvent | Event,
+  pwdField: HTMLInputElement,
+): Promise<void> {
+  // Éviter le double traitement
+  if (submittedFields.has(pwdField)) return;
+  submittedFields.add(pwdField);
+
+  const salt = await getInstallationSalt();
+  if (!salt) {
+    // Sel absent — ne pas traiter (cas premier lancement ou storage effacé)
+    return;
+  }
+
+  // --- M9 : envoyer le score final ---
+  const m9Ctx = m9Contexts.get(pwdField);
+  if (m9Ctx) {
+    const value = pwdField.value;
+    if (value.length > 0) {
+      const result = zxcvbn(value);
+      const mode = detectInputType(value);
+      void browser.runtime.sendMessage({
+        module: 'M9',
+        action: 'password_evaluated',
+        payload: {
+          score: result.score,
+          type: mode,
+        },
+        timestamp: Date.now(),
+      });
+    }
+    m9Ctx.overlay.hide();
+  }
+
+  // --- M7 : hachage et envoi ---
+  const passwordValue = pwdField.value;
+
+  // Ignorer si le champ est vide (SFD §2.5.4)
+  if (passwordValue.length === 0) return;
+
+  let passwordHash: string;
+  let passwordCopy: string = passwordValue; // Variable locale pour nullification
+
+  try {
+    // Calcul du hash (D-SEC-001)
+    passwordHash = await hashPassword(salt, passwordCopy);
+  } finally {
+    // Nullification immédiate de la variable locale (< 5ms)
+    // Note : TypeScript ne permet pas d'écrire null sur une const string,
+    // on réassigne la variable let pour écraser la référence.
+    passwordCopy = '';
+  }
+
+  // Calcul du hash de domaine
+  const domainHash = await hashDomain(salt, location.hostname);
+
+  // Envoi au service worker — jamais le mot de passe en clair
+  try {
+    const response = await browser.runtime.sendMessage({
+      module: 'M7',
+      action: 'password_submitted',
+      payload: {
+        hash: passwordHash,
+        domain_hash: domainHash,
+      },
+      timestamp: Date.now(),
+    }) as { success: boolean; action: string; data?: Record<string, unknown> } | null;
+
+    // Si le SW demande d'afficher le toast M7
+    if (response?.action === 'show') {
+      showToastM7(domainHash);
+    }
+  } catch {
+    // Le SW peut être endormi — l'échec est silencieux (non bloquant pour l'utilisateur)
+  }
+}
+
+/**
+ * Affiche le toast M7 sur la page courante.
+ *
+ * @param domainHash - Hash salé du domaine courant pour la suppression_list
+ */
+function showToastM7(domainHash: string): void {
+  const toast = document.createElement('sn-toast-m7') as ToastM7;
+  document.body.appendChild(toast);
+  toast.open(domainHash, (_action) => {
+    // L'action est déjà envoyée au SW dans closeToast() via browser.runtime.sendMessage
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Initialisation des listeners
+// ---------------------------------------------------------------------------
+
+/**
+ * Attache les listeners submit à tous les formulaires de la page
+ * qui contiennent au moins un champ password.
+ */
+function attachSubmitListeners(): void {
+  const forms = document.querySelectorAll('form');
+  forms.forEach((form) => {
+    // Éviter les doublons
+    if ((form as HTMLFormElement & { _snSubmitAttached?: boolean })._snSubmitAttached) return;
+    (form as HTMLFormElement & { _snSubmitAttached?: boolean })._snSubmitAttached = true;
+
+    form.addEventListener('submit', (event) => {
+      const pwdFields = form.querySelectorAll<HTMLInputElement>('input[type="password"]');
+      pwdFields.forEach((field) => {
+        void handleFormSubmit(event, field);
+      });
+    });
+  });
+}
+
+/**
+ * Observe les mutations DOM pour détecter les formulaires ajoutés dynamiquement
+ * (SPA — SFD §2.6.3 cas limite MutationObserver).
+ */
+function observeDynamicForms(): void {
+  const observer = new MutationObserver((mutations) => {
+    let hasNewForms = false;
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (
+          node.nodeType === Node.ELEMENT_NODE &&
+          ((node as Element).tagName === 'FORM' ||
+            (node as Element).querySelector?.('input[type="password"]'))
+        ) {
+          hasNewForms = true;
+        }
+      });
+    });
+    if (hasNewForms) {
+      attachSubmitListeners();
+    }
+  });
+
+  observer.observe(document.body ?? document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+}
 
 /**
  * Initialise le détecteur de champs mot de passe.
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
-  document.addEventListener('focusin', handleFocusIn);
-}
+  // Listener global focusin pour M9
+  document.addEventListener('focusin', (event: FocusEvent) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (target.type !== 'password') return;
 
-/**
- * Gère le focus entrant sur un élément de la page.
- *
- * @param event - Événement focusin
- */
-function handleFocusIn(event: FocusEvent): void {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) return;
-  if (target.type !== 'password') return;
+    void handleFocusOnPasswordField(target);
+  });
 
-  // TODO(P4-M2) : appeler RiskAnalyzer pour analyser les signaux du domaine courant
-  // TODO(P4-M7) : envoyer le hash du mot de passe au SW après blur
-  // TODO(P4-M9) : attacher un listener input pour zxcvbn en temps réel
+  // Attachement des listeners submit
+  attachSubmitListeners();
 
-  void sendPasswordFocusEvent();
-}
-
-/**
- * Envoie un signal de détection de champ mot de passe au service worker.
- * Le domaine courant est hashé côté content script (D-SEC-001).
- */
-async function sendPasswordFocusEvent(): Promise<void> {
-  // TODO(P4-M2) : récupérer le sel d'installation et hasher le domaine
-  // Pour l'instant : squelette fonctionnel qui prouve la communication CS → SW
-  const message = {
-    module: 'M2' as const,
-    action: 'password_field_focused',
-    payload: {
-      signals: [] as string[],
-      domain_hash: 'placeholder_hash', // TODO(P4-M2) : SHA-256(salt + location.hostname)
-    },
-    timestamp: Date.now(),
-  };
-
-  try {
-    await browser.runtime.sendMessage(message);
-  } catch {
-    // Le SW peut être endormi — l'échec est silencieux (non bloquant pour l'utilisateur)
-  }
+  // Observation des mutations DOM pour les SPA
+  observeDynamicForms();
 }
 
 // Démarrage du détecteur

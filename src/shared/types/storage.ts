@@ -119,14 +119,18 @@ export interface WeeklyScore {
 }
 
 /**
- * Entrée de la whitelist (domaines de confiance marqués par l'utilisateur — M2).
+ * Entrée de la whitelist partagée (M2 = confiance domaine, M7 = suppression_list).
+ * Clé composite : [domain_hash, module] pour permettre à M2 et M7 de gérer
+ * des listes indépendantes sur le même store.
  * Rétention : permanent jusqu'à effacement par l'utilisateur.
  *
- * @property domain_hash - SHA-256(installation_salt + domain) — clé primaire (en clair)
+ * @property domain_hash - SHA-256(installation_salt + domain) — partie de la clé composite
+ * @property module      - Module propriétaire ('M2' ou 'M7') — partie de la clé composite
  * @property added_at    - Date.now() de l'ajout à la whitelist
  */
 export interface WhitelistEntry {
   domain_hash: string;
+  module: string;
   added_at: number;
 }
 
