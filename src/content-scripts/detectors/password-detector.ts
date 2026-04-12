@@ -79,9 +79,16 @@ const submittedFields = new WeakSet<HTMLInputElement>();
 
 /**
  * Set des champs sur lesquels M2 vient d'être affiché.
- * Utilisé pour différer M7 de 5s (SFD §2.1.5).
+ * Utilisé comme guard anti-réentrance et pour différer M7 de 5s (SFD §2.1.5).
  */
 const fieldsWithM2Active = new WeakSet<HTMLInputElement>();
+
+/**
+ * Cache local des domain_hash marqués de confiance dans cette session.
+ * Évite de re-déclencher M2 si le SW est endormi ou redémarré
+ * entre le whitelist et le prochain focus (race condition MV3).
+ */
+const trustedDomainHashes = new Set<string>();
 
 // ---------------------------------------------------------------------------
 // Détection du gestionnaire de mots de passe
@@ -257,6 +264,11 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
     domainHash = await hashDomain(effectiveSalt, location.hostname);
   } catch {
     domainHash = 'hash-fallback-error';
+  }
+
+  // Cache local : domaine déjà marqué de confiance dans cette session
+  if (trustedDomainHashes.has(domainHash)) {
+    return false;
   }
 
   let swResponse: { success: boolean; action: string; data?: Record<string, unknown> } | null =
@@ -557,7 +569,11 @@ function createOverlayM2DOM(
       if (action === 'abandoned') {
         field.value = '';
         field.blur();
-      } else if (action === 'dismissed' || action === 'trusted') {
+      } else if (action === 'trusted') {
+        // Cache local — empêche le réaffichage même si le SW redémarre
+        trustedDomainHashes.add(domainHash);
+        field.focus();
+      } else if (action === 'dismissed') {
         field.focus();
       }
 
