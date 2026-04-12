@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement (fin de sprint)
-- **Dernière action** : Tests Commanditaire — M17 ✅, M9 ✅, popup ✅, options ✅, onboarding ✅, dashboard ✅. M2 en cours. Custom Elements → DOM direct. Fail-open M2/M17. PDCA LL-008/P-014 — 2026-04-12
-- **Prochaine action attendue** : Valider M2 sur site HTTP. Méga-PDCA P4. Puis P5 tests (couverture 80%).
+- **Dernière action** : Tests Commanditaire P4 complets — M17 ✅, M9 ✅, M2 ✅, popup ✅, options ✅, onboarding ✅, dashboard ✅. M7/M5/M3/M6 non testés (conditions spéciales). Bugs mineurs restants : liens "En savoir plus", focus bouton "Continuer", logs diagnostic à retirer, dialogue suppression — 2026-04-12
+- **Prochaine action attendue** : Corriger bugs mineurs restants, retirer logs diagnostic, analyse code mort, puis P5 tests (couverture 80%).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
