@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement (fin de sprint)
-- **Dernière action** : Nettoyage P4 + bugs M2 corrigés (boucle overlay, whitelist persistée triple couche, liens "En savoir plus", comportements boutons). Revues techniques complètes (archi sécu, DPO, archi logiciel). Addendum DAT whitelist M2 produit. PDCA P-015 CI Prettier. 200 tests OK, CI verte — 2026-04-13
-- **Prochaine action attendue** : P4' — Intégration design system Brand Book (palette Aegis Blue, 10 tâches TACHE-030 à TACHE-039 dont dark mode v1). Puis comité revue de code P4 et transition P5.
+- **Dernière action** : Nettoyage P4 complet + bugs M2 corrigés (boucle overlay, whitelist persistée triple couche chrome.storage.local, liens "En savoir plus", comportements boutons abandonner/continuer/confiance). Revues techniques (archi sécu acceptable avec réserves, DPO conforme, archi logiciel écart justifié). DAT v1.2 fusionné (ADR-006, D-SEC-006, schéma triple couche). PDCA P-015 CI Prettier. TACHE-011/013 terminées. R-019/R-020/R-021 consignés. 200 tests OK, CI verte — 2026-04-13
+- **Prochaine action attendue** : P4' — Intégration design system Brand Book (palette Aegis Blue, 10 tâches TACHE-030 à TACHE-039 dont dark mode v1). Puis comité revue de code P4 et transition P5 (couverture 80%).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
