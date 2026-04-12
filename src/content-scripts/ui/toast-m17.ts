@@ -444,7 +444,11 @@ export class ToastM17 extends BaseNudge {
  * avant de créer une instance via document.createElement('sn-toast-m17').
  */
 export function registerToastM17(): void {
-  if (!customElements.get('sn-toast-m17')) {
-    customElements.define('sn-toast-m17', ToastM17);
+  try {
+    if (typeof window !== 'undefined' && window.customElements && !window.customElements.get('sn-toast-m17')) {
+      window.customElements.define('sn-toast-m17', ToastM17);
+    }
+  } catch {
+    // Contexte sans DOM (tests, workers) — silencieux
   }
 }

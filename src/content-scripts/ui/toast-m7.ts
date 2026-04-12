@@ -387,7 +387,7 @@ export class ToastM7 extends BaseNudge {
  * Appelé par le détecteur associé pour garantir l'inclusion dans le bundle Vite.
  */
 export function registerToastM7(): void {
-  if (!customElements.get('sn-toast-m7')) {
-    customElements.define('sn-toast-m7', ToastM7);
-  }
+    if (typeof window !== "undefined" && window.customElements && !window.customElements.get('sn-toast-m7')) {
+      window.customElements.define('sn-toast-m7', ToastM7);
+    }
 }
