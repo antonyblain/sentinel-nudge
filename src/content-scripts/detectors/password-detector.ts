@@ -139,17 +139,47 @@ async function checkAutoFill(field: HTMLInputElement, valueAtFocus: string): Pro
  * @returns true si formulaire de création détecté
  */
 function isCreationForm(field: HTMLInputElement): boolean {
-  // autocomplete="new-password" est un signal direct
+  // Signal 1 : autocomplete="new-password" est un signal direct
   if (field.getAttribute('autocomplete') === 'new-password') return true;
 
-  // Recherche d'un champ de confirmation dans le même formulaire ou la même page
+  // Signal 2 : 2+ champs password dans le formulaire → création + confirmation
   const form = field.form ?? document;
   const allPasswords = Array.from(
     form.querySelectorAll<HTMLInputElement>('input[type="password"]'),
   );
-
-  // Plus d'un champ password dans le formulaire → probablement création + confirmation
   if (allPasswords.length >= 2) return true;
+
+  // Signal 3 : heuristiques URL — mots-clés d'inscription dans l'URL
+  const url = window.location.href.toLowerCase();
+  const urlKeywords = [
+    'register', 'signup', 'sign-up', 'sign_up', 'create-account',
+    'create_account', 'inscription', 'registry', 'enregistr',
+    'new-account', 'join', 'onboarding',
+  ];
+  if (urlKeywords.some((kw) => url.includes(kw))) return true;
+
+  // Signal 4 : heuristiques DOM — bouton submit contenant des mots-clés d'inscription
+  const buttons = Array.from(
+    form.querySelectorAll<HTMLButtonElement | HTMLInputElement>(
+      'button[type="submit"], input[type="submit"], button:not([type])',
+    ),
+  );
+  const buttonKeywords = [
+    'create', 'register', 'sign up', 'signup', 'inscription',
+    'créer', 'creer', "s'inscrire", 'rejoindre',
+  ];
+  for (const btn of buttons) {
+    const text = (btn.textContent ?? btn.value ?? '').toLowerCase();
+    if (buttonKeywords.some((kw) => text.includes(kw))) return true;
+  }
+
+  // Signal 5 : présence d'un champ email/name sans champ "username" → inscription probable
+  const hasEmailOrName = form.querySelector(
+    'input[type="email"], input[name*="email"], input[name*="name"]:not([name*="user"])',
+  );
+  const hasNoLoginHint =
+    !form.querySelector('a[href*="forgot"], a[href*="reset"], a[href*="oubli"]');
+  if (hasEmailOrName && hasNoLoginHint) return true;
 
   return false;
 }
@@ -860,7 +890,13 @@ function evaluatePasswordStrength(field: HTMLInputElement): void {
  */
 async function handleFocusOnPasswordField(field: HTMLInputElement): Promise<void> {
   // Vérification gestionnaire via attributs
-  if (hasPasswordManagerHint(field)) return;
+  const pmHint = hasPasswordManagerHint(field);
+  // eslint-disable-next-line no-console
+  console.info('[SN password-detector] handleFocus', {
+    pmHint,
+    isCreation: isCreationForm(field),
+  });
+  if (pmHint) return;
 
   // Déterminer le type de formulaire
   const isCreation = isCreationForm(field);
@@ -1232,14 +1268,29 @@ function observeDynamicForms(): void {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
-  // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
-  document.addEventListener('focusin', (event: FocusEvent) => {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement)) return;
-    if (target.type !== 'password') return;
+  // eslint-disable-next-line no-console
+  console.info('[SN password-detector] Initialisé');
 
-    void handleFocusOnPasswordField(target);
-  });
+  // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
+  document.addEventListener(
+    'focusin',
+    (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.type !== 'password') return;
+
+      // eslint-disable-next-line no-console
+      console.info('[SN password-detector] Focus sur champ password', {
+        autocomplete: target.getAttribute('autocomplete'),
+        formFields: target.form
+          ? target.form.querySelectorAll('input[type="password"]').length
+          : 'no form',
+      });
+
+      void handleFocusOnPasswordField(target);
+    },
+    { capture: true },
+  );
 
   // Attachement des listeners submit
   attachSubmitListeners();
