@@ -152,9 +152,18 @@ function isCreationForm(field: HTMLInputElement): boolean {
   // Signal 3 : heuristiques URL — mots-clés d'inscription dans l'URL
   const url = window.location.href.toLowerCase();
   const urlKeywords = [
-    'register', 'signup', 'sign-up', 'sign_up', 'create-account',
-    'create_account', 'inscription', 'registry', 'enregistr',
-    'new-account', 'join', 'onboarding',
+    'register',
+    'signup',
+    'sign-up',
+    'sign_up',
+    'create-account',
+    'create_account',
+    'inscription',
+    'registry',
+    'enregistr',
+    'new-account',
+    'join',
+    'onboarding',
   ];
   if (urlKeywords.some((kw) => url.includes(kw))) return true;
 
@@ -165,8 +174,15 @@ function isCreationForm(field: HTMLInputElement): boolean {
     ),
   );
   const buttonKeywords = [
-    'create', 'register', 'sign up', 'signup', 'inscription',
-    'créer', 'creer', "s'inscrire", 'rejoindre',
+    'create',
+    'register',
+    'sign up',
+    'signup',
+    'inscription',
+    'créer',
+    'creer',
+    "s'inscrire",
+    'rejoindre',
   ];
   for (const btn of buttons) {
     const text = (btn.textContent ?? btn.value ?? '').toLowerCase();
@@ -177,8 +193,9 @@ function isCreationForm(field: HTMLInputElement): boolean {
   const hasEmailOrName = form.querySelector(
     'input[type="email"], input[name*="email"], input[name*="name"]:not([name*="user"])',
   );
-  const hasNoLoginHint =
-    !form.querySelector('a[href*="forgot"], a[href*="reset"], a[href*="oubli"]');
+  const hasNoLoginHint = !form.querySelector(
+    'a[href*="forgot"], a[href*="reset"], a[href*="oubli"]',
+  );
   if (hasEmailOrName && hasNoLoginHint) return true;
 
   return false;
@@ -617,7 +634,7 @@ function createStrengthIndicator(
 
   // Conteneur hôte — display:block pour rester dans le flux
   const host = document.createElement('div');
-  host.style.cssText = 'display:none; width:100%; box-sizing:border-box;';
+  host.style.cssText = 'display:none; width:100%; box-sizing:border-box; margin-top:4px;';
   field.insertAdjacentElement('afterend', host);
 
   // Shadow DOM pour isolation CSS
@@ -640,6 +657,8 @@ function createStrengthIndicator(
 
   const containerEl = document.createElement('div');
   containerEl.className = 'sn-m9';
+  containerEl.style.cssText =
+    'background:#F9FAFB; border:1px solid #E5E7EB; border-radius:6px; padding:6px 8px; box-sizing:border-box;';
 
   const barRow = document.createElement('div');
   barRow.className = 'sn-m9-bar-row';
@@ -891,11 +910,6 @@ function evaluatePasswordStrength(field: HTMLInputElement): void {
 async function handleFocusOnPasswordField(field: HTMLInputElement): Promise<void> {
   // Vérification gestionnaire via attributs
   const pmHint = hasPasswordManagerHint(field);
-  // eslint-disable-next-line no-console
-  console.info('[SN password-detector] handleFocus', {
-    pmHint,
-    isCreation: isCreationForm(field),
-  });
   if (pmHint) return;
 
   // Déterminer le type de formulaire
@@ -1268,9 +1282,6 @@ function observeDynamicForms(): void {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
-  // eslint-disable-next-line no-console
-  console.info('[SN password-detector] Initialisé');
-
   // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
   document.addEventListener(
     'focusin',
@@ -1278,14 +1289,6 @@ function initPasswordDetector(): void {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
       if (target.type !== 'password') return;
-
-      // eslint-disable-next-line no-console
-      console.info('[SN password-detector] Focus sur champ password', {
-        autocomplete: target.getAttribute('autocomplete'),
-        formFields: target.form
-          ? target.form.querySelectorAll('input[type="password"]').length
-          : 'no form',
-      });
 
       void handleFocusOnPasswordField(target);
     },
