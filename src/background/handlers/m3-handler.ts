@@ -136,7 +136,6 @@ async function handleCalculateScore(
 
     if (allDisabled) {
       await clearBadge();
-      console.info('[M3Handler] Tous les modules sources sont désactivés — score non calculé');
       return {
         success: true,
         action: 'skip',
@@ -146,9 +145,6 @@ async function handleCalculateScore(
 
     // Mettre à jour le badge avec notification (bleu + chiffre)
     await updateBadgeWithNotification(score);
-
-    // Logs structurés pour le suivi (pas de données personnelles — DPO)
-    console.info(`[M3Handler] Score calculé: ${score}/100 (semaine ${weeklyScore.week_key})`);
 
     return {
       success: true,

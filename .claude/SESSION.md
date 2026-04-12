@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement (fin de sprint)
-- **Dernière action** : Tests Commanditaire P4 complets — M17 ✅, M9 ✅, M2 ✅, popup ✅, options ✅, onboarding ✅, dashboard ✅. M7/M5/M3/M6 non testés (conditions spéciales). Bugs mineurs restants : liens "En savoir plus", focus bouton "Continuer", logs diagnostic à retirer, dialogue suppression — 2026-04-12
-- **Prochaine action attendue** : Corriger bugs mineurs restants, retirer logs diagnostic, analyse code mort, puis P5 tests (couverture 80%).
+- **Dernière action** : Nettoyage P4 complet — code mort supprimé (8 fichiers UI + sanitize.ts + 4 type guards + 4 clés i18n), 11 logs diagnostic retirés, 5 liens "En savoir plus" corrigés, focus trap M2 corrigé, comportements M2 (abandonner/continuer/confiance) corrigés, pages statiques renommées avec noms parlants, typosquatting enrichi 219→496 domaines (TACHE-011), export RGPD handlers implémentés (TACHE-013). Build OK, 200 tests OK — 2026-04-12
+- **Prochaine action attendue** : Comité revue de code P4 puis transition P5 — tests unitaires (couverture 80%).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
@@ -82,4 +82,4 @@
 - M6 spaced repetition : intervalles [0, 7, 21, 42, 70] jours puis 30j/mois. Score <50% → ×0.7, score 100% → ×1.2
 - Pages UI : dashboard et onboarding ajoutés en additionalInputs dans vite.config.ts (non référençables via propriétés MV3 standard)
 - TACHE-013 (handleExport) : les handlers SW pour EXPORT (get_all_events, get_all_quiz_sessions, get_whitelist, get_password_hash_meta) restent à implémenter côté service-worker.ts — gap fonctionnel connu, non bloquant pour le build
-- Pages statiques d'explication : nommées m{n}-explication.html (conforme à TACHE-012), MODULE_INFOS dans options.ts aligné en conséquence
+- Pages statiques d'explication : renommées avec noms parlants (sites-suspects.html, score-cyber-hygiene.html, mise-a-jour-navigateur.html, quiz-phishing.html, reutilisation-mots-de-passe.html, force-mots-de-passe.html, donnees-sensibles-presse-papiers.html). MODULE_INFOS dans options.ts et tous les handlers SW alignés.

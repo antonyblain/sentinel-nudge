@@ -552,10 +552,6 @@ async function handleQuizCompleted(
       const nextDate = calculateNextQuizDate(sessionCount, scorePct, installDate, now);
 
       await browser.storage.local.set({ [M6_NEXT_QUIZ_DATE_KEY]: nextDate });
-
-      console.info(
-        `[M6Handler] Quiz complété: ${scorePct}% — Prochaine session: ${new Date(nextDate).toLocaleDateString()}`,
-      );
     }
 
     return { success: true, action: 'skip' };

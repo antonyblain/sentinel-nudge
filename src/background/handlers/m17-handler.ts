@@ -131,7 +131,7 @@ async function handleToastAction(
     // Ouverture de la page d'explication si "learn_more"
     if (user_action === 'learn_more') {
       await browser.tabs.create({
-        url: browser.runtime.getURL('pages/explanations/sensitive-data.html'),
+        url: browser.runtime.getURL('pages/static/donnees-sensibles-presse-papiers.html'),
       });
     }
 

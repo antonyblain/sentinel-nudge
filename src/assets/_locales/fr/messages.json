@@ -327,13 +327,6 @@
     "message": "clé API",
     "description": "Label type donnée clé API M17"
   },
-  "quota_remaining": {
-    "message": "$1 nudge(s) restant(s) aujourd'hui",
-    "description": "Indicateur quota restant",
-    "placeholders": {
-      "1": { "content": "$1", "example": "2" }
-    }
-  },
   "popup_title": {
     "message": "Sentinel Nudge",
     "description": "Titre de la popup"
@@ -386,13 +379,6 @@
   "popup_btn_settings": {
     "message": "Paramètres",
     "description": "Bouton d'accès aux paramètres depuis la popup"
-  },
-  "popup_score_week": {
-    "message": "Semaine $1",
-    "description": "Semaine du score",
-    "placeholders": {
-      "1": { "content": "$1", "example": "15" }
-    }
   },
   "popup_loading": {
     "message": "Chargement…",
@@ -470,13 +456,6 @@
     "message": "English",
     "description": "Langue anglaise"
   },
-  "options_data_storage_size": {
-    "message": "Volume de données stockées : $1",
-    "description": "Volume de données",
-    "placeholders": {
-      "1": { "content": "$1", "example": "~12 Ko" }
-    }
-  },
   "options_btn_export": {
     "message": "Exporter mes données (RGPD Art. 20)",
     "description": "Bouton export RGPD"
@@ -488,10 +467,6 @@
   "options_btn_reset_whitelist": {
     "message": "Réinitialiser la liste de confiance",
     "description": "Bouton reset whitelist"
-  },
-  "options_delete_confirm": {
-    "message": "Êtes-vous sûr de vouloir supprimer toutes vos données ? Cette action est irréversible.",
-    "description": "Confirmation suppression données"
   },
   "options_delete_confirm_title": {
     "message": "Supprimer toutes vos données ?",

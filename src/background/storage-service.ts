@@ -635,10 +635,76 @@ export class StorageService {
   }
 
   /**
-   * Récupère tous les scores hebdomadaires (export RGPD Art. 20).
+   * Retourne les métadonnées agrégées du store password_hashes pour l'export RGPD Art. 20.
+   *
+   * Seules les métadonnées sont retournées — jamais les hashes ni les valeurs chiffrées
+   * (exigence NC-DPO-01 : les hashes de mots de passe ne sont pas exportables en clair).
+   *
+   * Les timestamps `oldest` et `newest` sont lus depuis l'index `first_seen`
+   * (valeur en clair, non réversible en mot de passe).
+   *
+   * @returns Objet { count, oldest, newest } où oldest/newest sont des ISO 8601 ou '' si vide
+   */
+  async getPasswordHashMeta(): Promise<{ count: number; oldest: string; newest: string }> {
+    const db = this.getDB();
+    const tx = db.transaction('password_hashes', 'readonly');
+    const store = tx.objectStore('password_hashes');
+    const index = store.index('first_seen');
+
+    return new Promise((resolve, reject) => {
+      const countReq = store.count();
+      let count = 0;
+
+      countReq.onsuccess = () => {
+        count = countReq.result;
+        if (count === 0) {
+          resolve({ count: 0, oldest: '', newest: '' });
+          return;
+        }
+
+        // Curseur ascendant pour trouver le plus ancien (first_seen minimal)
+        const oldestReq = index.openCursor(null, 'next');
+        oldestReq.onsuccess = () => {
+          const oldestCursor = oldestReq.result;
+          const oldestTs =
+            oldestCursor != null
+              ? new Date((oldestCursor.value as PasswordHashRecord).first_seen).toISOString()
+              : '';
+
+          // Curseur descendant pour trouver le plus récent (first_seen maximal)
+          const newestReq = index.openCursor(null, 'prev');
+          newestReq.onsuccess = () => {
+            const newestCursor = newestReq.result;
+            const newestTs =
+              newestCursor != null
+                ? new Date((newestCursor.value as PasswordHashRecord).first_seen).toISOString()
+                : '';
+
+            resolve({ count, oldest: oldestTs, newest: newestTs });
+          };
+          newestReq.onerror = () => resolve({ count, oldest: oldestTs, newest: '' });
+        };
+        oldestReq.onerror = () => resolve({ count, oldest: '', newest: '' });
+      };
+
+      countReq.onerror = () =>
+        reject(
+          new Error(`[StorageService] Échec getPasswordHashMeta: ${countReq.error?.message ?? ''}`),
+        );
+    });
+  }
+
+  /**
+   * Récupère tous les scores hebdomadaires pour l'export RGPD Art. 20.
+   *
+   * Retourne les enregistrements bruts (chiffrés) — la valeur chiffrée `value`
+   * sera sérialisée en JSON via le mécanisme natif de structuredClone.
+   * Les champs en clair (week_key, total_score, components) sont lisibles directement.
+   *
+   * @returns Liste des WeeklyScore (champs en clair + value/iv chiffrés)
    */
   async getAllWeeklyScores(): Promise<object[]> {
-    const db = await this.getDB();
+    const db = this.getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('weekly_scores', 'readonly');
       const store = tx.objectStore('weekly_scores');
@@ -649,10 +715,15 @@ export class StorageService {
   }
 
   /**
-   * Récupère toutes les sessions quiz (export RGPD Art. 20).
+   * Récupère toutes les sessions quiz pour l'export RGPD Art. 20.
+   *
+   * Retourne les enregistrements bruts du store quiz_sessions.
+   * Les champs en clair (id, module, quiz_date) sont lisibles directement.
+   *
+   * @returns Liste des enregistrements quiz_sessions
    */
   async getAllQuizSessions(): Promise<object[]> {
-    const db = await this.getDB();
+    const db = this.getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('quiz_sessions', 'readonly');
       const store = tx.objectStore('quiz_sessions');
@@ -663,10 +734,15 @@ export class StorageService {
   }
 
   /**
-   * Récupère toutes les entrées de la whitelist (export RGPD Art. 20).
+   * Récupère toutes les entrées de la whitelist pour l'export RGPD Art. 20.
+   *
+   * Les entrées contiennent uniquement des hashes de domaines (domain_hash),
+   * non réversibles en domaine en clair (privacy by design).
+   *
+   * @returns Liste des WhitelistEntry
    */
   async getAllWhitelist(): Promise<object[]> {
-    const db = await this.getDB();
+    const db = this.getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('whitelist', 'readonly');
       const store = tx.objectStore('whitelist');

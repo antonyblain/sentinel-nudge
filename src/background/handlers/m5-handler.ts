@@ -189,7 +189,6 @@ async function handleCheckUpdate(
     if (updateStatus === 'throttled') {
       // Trop de requêtes — réessayer dans 1h (SFD §2.3.4 CA-M5-05)
       await browser.alarms.create(M5_RETRY_ALARM, { delayInMinutes: THROTTLE_RETRY_MINUTES });
-      console.info('[M5Handler] requestUpdateCheck() throttled — réessai dans 1h');
       return { success: true, action: 'skip', reason: 'throttled' };
     }
 
@@ -281,7 +280,7 @@ async function handleToastAction(
     } else if (userAction === 'why') {
       // Ouvrir la page d'explication M5
       await browser.tabs.create({
-        url: browser.runtime.getURL('pages/explanations/browser-update.html'),
+        url: browser.runtime.getURL('pages/static/mise-a-jour-navigateur.html'),
       });
       // Pas de reset snoozeCount (l'utilisateur revient probablement)
     } else if (userAction === 'closed') {

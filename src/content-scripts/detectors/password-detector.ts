@@ -242,13 +242,8 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
   const url = window.location.href;
   const { signals, riskLevel } = analyzeRisks(url);
 
-  // eslint-disable-next-line no-console
-  console.info('[SN M2] Signaux:', signals, 'riskLevel:', riskLevel);
-
   // Moins de 2 signaux → pas de nudge M2
   if (riskLevel < 2 || signals.length < 2) {
-    // eslint-disable-next-line no-console
-    console.info('[SN M2] Pas assez de signaux, M2 non déclenché');
     return false;
   }
 
@@ -260,14 +255,9 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
   let domainHash: string;
   try {
     domainHash = await hashDomain(effectiveSalt, location.hostname);
-  } catch (hashErr) {
-    // eslint-disable-next-line no-console
-    console.info('[SN M2] Hash échoué:', hashErr);
+  } catch {
     domainHash = 'hash-fallback-error';
   }
-
-  // eslint-disable-next-line no-console
-  console.info('[SN M2] Hash OK, envoi au SW...');
 
   let swResponse: { success: boolean; action: string; data?: Record<string, unknown> } | null =
     null;
@@ -282,11 +272,7 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
       },
       timestamp: Date.now(),
     })) as typeof swResponse;
-    // eslint-disable-next-line no-console
-    console.info('[SN M2] Réponse SW:', swResponse);
-  } catch (swErr) {
-    // eslint-disable-next-line no-console
-    console.info('[SN M2] SW endormi, affichage direct:', swErr);
+  } catch {
     // SW endormi — M2 est critique, afficher l'overlay directement (fail-open)
     return await showOverlayM2(field, signals, domainHash);
   }
@@ -297,8 +283,6 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
     return false;
   }
 
-  // eslint-disable-next-line no-console
-  console.info('[SN M2] Affichage overlay...');
   // Afficher l'overlay M2
   return await showOverlayM2(field, signals, domainHash);
 }
@@ -317,7 +301,7 @@ async function showOverlayM2(
   domainHash: string,
 ): Promise<boolean> {
   return new Promise((resolve) => {
-    createOverlayM2DOM(signals, domainHash, (action) => {
+    createOverlayM2DOM(field, signals, domainHash, (action) => {
       // M2 fermé — M7 peut être différé si applicable (SFD §2.1.5)
       if (action !== 'abandoned') {
         fieldsWithM2Active.delete(field);
@@ -345,6 +329,7 @@ async function showOverlayM2(
  * @param onAction   - Callback avec l'action choisie
  */
 function createOverlayM2DOM(
+  field: HTMLInputElement,
   signals: string[],
   domainHash: string,
   onAction: (action: 'dismissed' | 'trusted' | 'abandoned' | 'why') => void,
@@ -534,7 +519,9 @@ function createOverlayM2DOM(
       return;
     }
     if (e.key === 'Tab') {
-      const focusable = [btnAbandon, btnContinue, btnTrust, btnWhy];
+      const focusable = expl.hidden
+        ? [btnAbandon, btnContinue, btnTrust, btnWhy]
+        : [btnAbandon, btnContinue, btnTrust, btnWhy, btnLearn];
       const active = shadow.activeElement;
       const idx = focusable.indexOf(active as HTMLButtonElement);
       if (e.shiftKey) {
@@ -554,20 +541,33 @@ function createOverlayM2DOM(
 
   function closeM2(action: 'dismissed' | 'trusted' | 'abandoned' | 'why'): void {
     document.removeEventListener('keydown', handleKeydown);
+    host.remove();
 
-    void browser.runtime.sendMessage({
-      module: 'M2',
-      action: 'overlay_action',
-      payload: { user_action: action, domain_hash: domainHash, signals },
-      timestamp: Date.now(),
-    });
+    // Envoyer l'action au SW (await pour fiabiliser whitelist/trusted)
+    const sendAction = async (): Promise<void> => {
+      try {
+        await browser.runtime.sendMessage({
+          module: 'M2',
+          action: 'overlay_action',
+          payload: { user_action: action, domain_hash: domainHash, signals },
+          timestamp: Date.now(),
+        });
+      } catch {
+        // SW endormi — non bloquant, l'action locale reste effective
+      }
+    };
+    void sendAction();
 
+    // Comportements spécifiques par action
     if (action === 'abandoned') {
-      const active = document.activeElement;
-      if (active instanceof HTMLElement) active.blur();
+      // Abandonner : blur le champ password original et vider la saisie
+      field.value = '';
+      field.blur();
+    } else if (action === 'dismissed') {
+      // Continuer : refocus le champ pour que l'utilisateur puisse reprendre la saisie
+      field.focus();
     }
 
-    host.remove();
     onAction(action);
   }
 
@@ -1307,9 +1307,6 @@ function observeDynamicForms(): void {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
-  // eslint-disable-next-line no-console
-  console.info('[SN pwd] INIT OK — protocol:', location.protocol, 'host:', location.hostname);
-
   // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
   document.addEventListener(
     'focusin',
@@ -1318,8 +1315,6 @@ function initPasswordDetector(): void {
       if (!(target instanceof HTMLInputElement)) return;
       if (target.type !== 'password') return;
 
-      // eslint-disable-next-line no-console
-      console.info('[SN pwd] FOCUS password — isCreation:', isCreationForm(target));
       void handleFocusOnPasswordField(target);
     },
     { capture: true },

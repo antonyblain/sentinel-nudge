@@ -327,13 +327,6 @@
     "message": "API key",
     "description": "M17 API key data type label"
   },
-  "quota_remaining": {
-    "message": "$1 nudge(s) remaining today",
-    "description": "Remaining quota indicator",
-    "placeholders": {
-      "1": { "content": "$1", "example": "2" }
-    }
-  },
   "popup_title": {
     "message": "Sentinel Nudge",
     "description": "Popup title"
@@ -386,13 +379,6 @@
   "popup_btn_settings": {
     "message": "Settings",
     "description": "Settings button in popup"
-  },
-  "popup_score_week": {
-    "message": "Week $1",
-    "description": "Score week",
-    "placeholders": {
-      "1": { "content": "$1", "example": "15" }
-    }
   },
   "popup_loading": {
     "message": "Loading…",
@@ -470,13 +456,6 @@
     "message": "English",
     "description": "English language"
   },
-  "options_data_storage_size": {
-    "message": "Stored data volume: $1",
-    "description": "Data volume",
-    "placeholders": {
-      "1": { "content": "$1", "example": "~12 KB" }
-    }
-  },
   "options_btn_export": {
     "message": "Export my data (GDPR Art. 20)",
     "description": "GDPR export button"
@@ -488,10 +467,6 @@
   "options_btn_reset_whitelist": {
     "message": "Reset trusted sites list",
     "description": "Reset whitelist button"
-  },
-  "options_delete_confirm": {
-    "message": "Are you sure you want to delete all your data? This action is irreversible.",
-    "description": "Delete confirmation"
   },
   "options_delete_confirm_title": {
     "message": "Delete all your data?",

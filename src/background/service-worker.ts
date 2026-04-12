@@ -167,9 +167,8 @@ function registerModuleHandlers(cryptoKey: CryptoKey): void {
   // Handler M17 — données sensibles presse-papiers (critique — bypass quota automatique)
   messageRouter.registerHandler('M17', createM17Handler(storageService, cryptoKey));
 
-  // Handler EXPORT — export données RGPD Art. 20
-  const exportHandler = createExportHandler(storageService);
-  messageRouter.registerHandler('EXPORT', exportHandler);
+  // Handler EXPORT — export données RGPD Art. 20 (cryptoKey requis pour déchiffrer les events)
+  messageRouter.registerHandler('EXPORT', createExportHandler(storageService, cryptoKey));
 }
 
 /**

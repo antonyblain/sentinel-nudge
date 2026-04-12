@@ -419,7 +419,7 @@ describe('createM17Handler — toast_action', () => {
     await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(chrome.tabs.create).toHaveBeenCalledWith(
-      expect.objectContaining({ url: expect.stringContaining('sensitive-data.html') }),
+      expect.objectContaining({ url: expect.stringContaining('donnees-sensibles-presse-papiers.html') }),
     );
   });
 

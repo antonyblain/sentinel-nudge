@@ -7,16 +7,16 @@
 | TACHE-003 | TÂCHE | Spécifications fonctionnelles détaillées (P2) | Must | Terminé | P2 | Analyste métier | Orchestrateur |
 | TACHE-004 | TÂCHE | Analyse comparative des licences open source | Must | Terminé | P1 | Analyste métier | Commanditaire |
 | TACHE-005 | TÂCHE | Définir la structure du corpus quiz M6 | Must | Terminé | P3 | Analyste métier | Orchestrateur |
-| TACHE-006 | TÂCHE | Compléter le corpus quiz M6 de 20 à 50+ questions bilingues FR/EN | Must | À faire | P4 | Analyste métier | Orchestrateur |
-| TACHE-007 | TÂCHE | Rédiger les 7 pages d'explication statiques HTML (CdC §2.9.7) | Must | À faire | P4 | Analyste métier | Orchestrateur |
+| TACHE-006 | TÂCHE | Compléter le corpus quiz M6 de 20 à 50+ questions bilingues FR/EN | Must | Terminé | P4 | Analyste métier | Orchestrateur |
+| TACHE-007 | TÂCHE | Rédiger les 7 pages d'explication statiques HTML (CdC §2.9.7) | Must | Terminé | P4 | Analyste métier | Orchestrateur |
 | TACHE-008 | TÂCHE | AIPD M7 (Analyse d'Impact Protection Données) | Must | Terminé | P3 | DPO | D-SEC-005 |
 | TACHE-009 | TÂCHE | Documenter le statut de responsable de traitement dans la politique de confidentialité | Should | À faire | P4 | DPO | Revue qualité P3 |
 | TACHE-010 | TÂCHE | Checklist accessibilité des pages statiques (LA-06) | Should | À faire | P5 | Expert accessibilité | Revue qualité P3 |
-| TACHE-011 | TÂCHE | Constituer la liste ~500 domaines typosquatting-targets.json | Must | À faire | P4 | Développeur | risk-analyzer.ts |
-| TACHE-012 | TÂCHE | Créer les 7 pages HTML statiques d'explication (m2 à m17) | Must | À faire | P4 | Développeur | DAT §5 |
-| TACHE-013 | TÂCHE | Compléter export RGPD Art. 20 (options.ts) — déchiffrer les données réelles | Must | À faire | P4 | Développeur | RSV-DPO-01 |
-| TACHE-014 | TÂCHE | Intégrer i18n (browser.i18n.getMessage) dans les composants content-scripts | Must | À faire | P4 | Développeur | UX-015 |
-| TACHE-015 | TÂCHE | Remplacer window.confirm() par un dialogue HTML accessible dans options.ts | Should | À faire | P4 | Développeur | ACC-07 |
+| TACHE-011 | TÂCHE | Constituer la liste ~500 domaines typosquatting-targets.json | Must | Terminé | P4 | Développeur | risk-analyzer.ts |
+| TACHE-012 | TÂCHE | Créer les 7 pages HTML statiques d'explication | Must | Terminé | P4 | Développeur | DAT §5 |
+| TACHE-013 | TÂCHE | Compléter export RGPD Art. 20 (options.ts) — déchiffrer les données réelles | Must | Terminé | P4 | Développeur | RSV-DPO-01 |
+| TACHE-014 | TÂCHE | Intégrer i18n (browser.i18n.getMessage) dans les composants content-scripts | Must | Terminé | P4 | Développeur | UX-015 |
+| TACHE-015 | TÂCHE | Remplacer window.confirm() par un dialogue HTML accessible dans options.ts | Should | Terminé | P4 | Développeur | ACC-07 |
 | TACHE-016 | TÂCHE | Ajouter aria-describedby dynamique sur overlay-m6 (question courante) | Should | Terminé | P4 | Développeur | ACC-06 |
 | TACHE-017 | TÂCHE | Tests unitaires m3-handler (0% couverture) | Must | À faire | P5 | Testeur QA | TM-001 |
 | TACHE-018 | TÂCHE | Tests unitaires storage-service avec fake-indexeddb (0% couverture, 666 lignes) | Must | À faire | P5 | Testeur QA | TM-004 |
@@ -34,15 +34,15 @@
 
 ## Actions résiduelles par phase
 
-### P4 — Développement (en cours)
-- TACHE-006 : corpus quiz 50+ questions
-- TACHE-007 + TACHE-012 : 7 pages statiques HTML
-- TACHE-011 : liste 500 domaines typosquatting
-- TACHE-013 : export RGPD complet (pas squelette)
-- TACHE-014 : i18n dans les composants content-scripts
-- TACHE-015 : dialogue accessible pour suppression données
-- TACHE-009 : politique de confidentialité
-- TACHE-029 : migrations IndexedDB v2
+### P4 — Développement (terminé)
+- ~~TACHE-006~~ : corpus quiz 50 questions ✅
+- ~~TACHE-007 + TACHE-012~~ : 7 pages statiques HTML ✅ (renommées avec noms parlants)
+- ~~TACHE-011~~ : 496 domaines typosquatting ✅
+- ~~TACHE-013~~ : export RGPD fonctionnel ✅
+- ~~TACHE-014~~ : i18n content-scripts ✅
+- ~~TACHE-015~~ : dialogue accessible suppression ✅
+- TACHE-009 : politique de confidentialité (reporté P5)
+- TACHE-029 : migrations IndexedDB v2 (reporté P5)
 
 ### P5 — Tests unitaires
 - TACHE-017 à TACHE-024 : tests manquants (handlers, storage, router, alarms)

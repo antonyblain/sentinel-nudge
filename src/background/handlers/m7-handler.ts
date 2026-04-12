@@ -204,7 +204,7 @@ async function handleToastAction(
     // Ouvrir la page d'explication si "learn_more"
     if (user_action === 'learn_more') {
       await browser.tabs.create({
-        url: browser.runtime.getURL('pages/explanations/password-manager.html'),
+        url: browser.runtime.getURL('pages/static/reutilisation-mots-de-passe.html'),
       });
     }
 
