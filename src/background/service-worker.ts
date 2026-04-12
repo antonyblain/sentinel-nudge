@@ -222,8 +222,8 @@ async function onFirstInstall(): Promise<void> {
   // Configuration des alarmes planifiées
   alarmManager.setupAlarms();
 
-  // Ouverture de la page d'onboarding dans un nouvel onglet
-  await chrome.tabs.create({ url: chrome.runtime.getURL('pages/onboarding/onboarding.html') });
+  // Ouverture de la page d'onboarding dans un nouvel onglet (ADR-008 — via browser adapter)
+  await browser.tabs.create({ url: browser.runtime.getURL('pages/onboarding/onboarding.html') });
 }
 
 // ---------------------------------------------------------------------------
@@ -276,19 +276,19 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 /**
- * Listener des alarmes planifiées.
+ * Listener unique des alarmes planifiées (B-002 — fusion des deux listeners).
+ *
+ * Gère dans un seul listener :
+ * 1. L'initialisation de la base IndexedDB
+ * 2. Le dispatch vers alarmManager.handleAlarm()
+ * 3. La réinitialisation du quota journalier pour PURGE_DAILY
  */
 browser.alarms.onAlarm.addListener(async (alarm: chrome.alarms.Alarm) => {
   // S'assurer que la base est initialisée avant de traiter les alarmes
   await storageService.initDB();
   await alarmManager.handleAlarm(alarm);
-});
 
-/**
- * Listener des alarmes de purge — cas spécial pour ALARM_NAMES.PURGE_DAILY.
- * La purge nécessite aussi la réinitialisation du quota journalier.
- */
-browser.alarms.onAlarm.addListener(async (alarm: chrome.alarms.Alarm) => {
+  // Réinitialisation du quota journalier lors de la purge quotidienne
   if (alarm.name === ALARM_NAMES.PURGE_DAILY) {
     await quotaManager.resetIfNewDay();
   }

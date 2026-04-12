@@ -33,13 +33,13 @@ import type { ExportPayload } from '@/shared/types/storage';
 import type { ModuleId } from '@/shared/types/modules';
 
 /** Version de l'extension (lue depuis le manifest) */
-const EXTENSION_VERSION = chrome.runtime.getManifest().version;
+const EXTENSION_VERSION = (browser.runtime.getManifest() as { version: string }).version;
 
 /** URL GitHub du projet */
 const GITHUB_URL = 'https://github.com/antonyblain/sentinel-nudge';
 
 /** URL de la politique de confidentialité */
-const PRIVACY_URL = chrome.runtime.getURL('pages/static/privacy.html');
+const PRIVACY_URL = browser.runtime.getURL('pages/static/privacy.html');
 
 /** Clés i18n et identifiants des 7 modules v1 */
 const MODULE_INFOS: Array<{
@@ -587,10 +587,8 @@ async function handleDeleteAllData(statusEl: HTMLElement): Promise<void> {
       req.onblocked = () => resolve(); // Résoudre même si bloqué (rechargement nécessaire)
     });
 
-    // Vider chrome.storage.local
-    await new Promise<void>((resolve) => {
-      chrome.storage.local.clear(resolve);
-    });
+    // Vider chrome.storage.local (ADR-008 — via browser adapter)
+    await browser.storage.local.clear();
 
     statusEl.textContent =
       browser.i18n.getMessage('options_delete_success') || 'Toutes vos données ont été supprimées.';
@@ -731,7 +729,7 @@ function renderTransparencySection(root: HTMLElement): void {
   for (const mod of MODULE_INFOS) {
     const li = document.createElement('li');
     const a = document.createElement('a');
-    a.href = chrome.runtime.getURL(`pages/static/${mod.explainPage}`);
+    a.href = browser.runtime.getURL(`pages/static/${mod.explainPage}`);
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.className = 'transparency-link';

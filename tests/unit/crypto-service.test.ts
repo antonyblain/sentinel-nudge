@@ -46,7 +46,7 @@ describe('CryptoService', () => {
     expect(iv).toBeDefined();
     expect(iv.byteLength).toBe(12); // 96 bits
 
-    const decrypted = await service.decrypt(key, ciphertext, iv) as typeof original;
+    const decrypted = (await service.decrypt(key, ciphertext, iv)) as typeof original;
     expect(decrypted).toEqual(original);
   });
 

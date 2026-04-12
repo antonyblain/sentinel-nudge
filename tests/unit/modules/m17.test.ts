@@ -321,7 +321,7 @@ describe('createM17Handler — sensitive_data_detected', () => {
     expect(response.action).toBe('show');
   });
 
-  it('enregistre l\'événement avec le type détecté (pas la valeur)', async () => {
+  it("enregistre l'événement avec le type détecté (pas la valeur)", async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'iban', all_types: ['iban'] });
@@ -337,7 +337,7 @@ describe('createM17Handler — sensitive_data_detected', () => {
     );
   });
 
-  it('N\'expose jamais de valeur sensible dans le payload logué', async () => {
+  it("N'expose jamais de valeur sensible dans le payload logué", async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
@@ -361,7 +361,7 @@ describe('createM17Handler — toast_action', () => {
     vi.clearAllMocks();
   });
 
-  it('enregistre l\'action clipboard_cleared', async () => {
+  it("enregistre l'action clipboard_cleared", async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
     const msg = buildM17Message(
@@ -378,13 +378,10 @@ describe('createM17Handler — toast_action', () => {
     );
   });
 
-  it('enregistre l\'action acknowledged', async () => {
+  it("enregistre l'action acknowledged", async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
-    const msg = buildM17Message(
-      { user_action: 'acknowledged', data_type: 'iban' },
-      'toast_action',
-    );
+    const msg = buildM17Message({ user_action: 'acknowledged', data_type: 'iban' }, 'toast_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
@@ -395,7 +392,7 @@ describe('createM17Handler — toast_action', () => {
     );
   });
 
-  it('enregistre l\'échec du vidage (clipboard_clear_failed)', async () => {
+  it("enregistre l'échec du vidage (clipboard_clear_failed)", async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
     const msg = buildM17Message(
@@ -412,7 +409,7 @@ describe('createM17Handler — toast_action', () => {
     );
   });
 
-  it('ouvre la page d\'explication pour learn_more', async () => {
+  it("ouvre la page d'explication pour learn_more", async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
     const msg = buildM17Message(

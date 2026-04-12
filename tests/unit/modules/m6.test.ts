@@ -300,11 +300,7 @@ describe('getDifficultiesForProfile', () => {
   });
 
   it('intermediate : basic + intermediate + expert', () => {
-    expect(getDifficultiesForProfile('intermediate')).toEqual([
-      'basic',
-      'intermediate',
-      'expert',
-    ]);
+    expect(getDifficultiesForProfile('intermediate')).toEqual(['basic', 'intermediate', 'expert']);
   });
 
   it('advanced : intermediate + expert', () => {
@@ -371,17 +367,14 @@ describe('M6Handler — toast_action : later', () => {
     const cryptoKey = {} as CryptoKey;
     const handler = createM6Handler(storage, cryptoKey);
 
-    await handler(
-      buildM6Message('toast_action', { user_action: 'later' }),
-      mockSender,
-    );
+    await handler(buildM6Message('toast_action', { user_action: 'later' }), mockSender);
 
     expect(mockLocalStorage['m6_quiz_deferred']).toBeGreaterThan(Date.now());
   });
 });
 
 describe('M6Handler — quiz_completed', () => {
-  it('enregistre l\'événement et calcule la prochaine date', async () => {
+  it("enregistre l'événement et calcule la prochaine date", async () => {
     const storage = createMockStorageService({
       getQuizSessionCount: vi.fn().mockResolvedValue(3),
     });

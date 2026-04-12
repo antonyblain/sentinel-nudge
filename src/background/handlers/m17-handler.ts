@@ -24,6 +24,7 @@
  * Référence : SFD §2.7 (M17), DAT §9.4 (D-SEC-002), §6.2 (flux M17)
  */
 
+import { browser } from '@/shared/browser/browser-adapter';
 import { StorageService } from '@/background/storage-service';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
@@ -129,8 +130,8 @@ async function handleToastAction(
 
     // Ouverture de la page d'explication si "learn_more"
     if (user_action === 'learn_more') {
-      await chrome.tabs.create({
-        url: chrome.runtime.getURL('pages/explanations/sensitive-data.html'),
+      await browser.tabs.create({
+        url: browser.runtime.getURL('pages/explanations/sensitive-data.html'),
       });
     }
 

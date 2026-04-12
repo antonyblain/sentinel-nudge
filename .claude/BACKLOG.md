@@ -1,32 +1,58 @@
 # BACKLOG — Tâches et demandes de changement
 
-| ID | Type | Titre | Priorité | Statut | Phase | Phase impactée | Responsable | Origine |
-|----|------|-------|----------|--------|-------|----------------|-------------|---------|
-| TACHE-001 | TÂCHE | Exploration littérature nudging cyber-hygiène | Must | Terminé | P1 | — | Analyste métier | Commanditaire |
-| TACHE-002 | TÂCHE | Rédaction du cahier des charges (7 modules v1) | Must | Terminé | P1 | — | Analyste métier | Commanditaire |
-| TACHE-003 | TÂCHE | Spécifications fonctionnelles détaillées (P2) | Must | Terminé | P2 | — | Analyste métier | Orchestrateur |
-| TACHE-004 | TÂCHE | Analyse comparative des licences open source | Must | Terminé | P1 | — | Analyste métier | Commanditaire |
-| TACHE-005 | TÂCHE | Définir la structure du corpus quiz M6 (format JSON, champs, niveaux) | Must | Terminé | P3 | — | Analyste métier | Orchestrateur |
-| TACHE-006 | TÂCHE | Produire les 50 exemples du corpus quiz M6 (FR + EN) | Must | En cours | P4 | — | Analyste métier | Orchestrateur |
-| TACHE-007 | TÂCHE | Rédiger les 7 pages d'explication statiques (cf. CdC 2.9.7) | Should | À faire | P4 | — | Analyste métier | Orchestrateur |
-| TACHE-008 | TÂCHE | AIPD (Analyse d'Impact) pour le traitement M7 (hash mots de passe) | Must | À faire | P3 | — | DPO | Comité sécurité (D-SEC-005) |
-| TACHE-009 | TÂCHE | Documenter le statut de responsable de traitement dans la politique de confidentialité | Should | À faire | P3 | — | DPO | Revue qualité P3 |
-| TACHE-010 | TÂCHE | Checklist accessibilité des pages statiques (LA-06) | Should | À faire | P4 | — | Expert accessibilité | Revue qualité P3 |
-| BACKLOG-M3-SCORING | TÂCHE | Implémenter les 5 composantes de scoring M3 avec pondération exacte | Must | Terminé | P4 | — | Développeur | score-calculator.ts TODO |
-| BACKLOG-M2-HSTS | TÂCHE | Charger hsts-preload.json dans RiskAnalyzer et implémenter la vérification O(1) | Must | Terminé | P4 | — | Développeur | risk-analyzer.ts TODO |
-| BACKLOG-M2-TARGETS | TÂCHE | Constituer la liste ~500 domaines typosquatting-targets.json | Must | À faire | P4 | — | Développeur | risk-analyzer.ts TODO |
-| BACKLOG-M2-LEVENSHTEIN | TÂCHE | Intégrer typosquatting-targets.json dans checkLevenshtein() | Must | Terminé | P4 | — | Développeur | risk-analyzer.ts TODO |
-| BACKLOG-M2-DOMAIN-HASH | TÂCHE | Implémenter SHA-256(salt + domain) dans password-detector.ts | Must | Terminé | P4 | — | Développeur | password-detector.ts TODO |
-| BACKLOG-M6-QUIZ | TÂCHE | Implémenter overlay M6 avec spaced repetition et conditions de déclenchement | Must | Terminé | P4 | — | Développeur | alarm-manager.ts TODO |
-| BACKLOG-M7-HASH | TÂCHE | Implémenter hash blur password + comparaison M7 dans password-detector.ts | Must | À faire | P4 | — | Développeur | password-detector.ts TODO |
-| BACKLOG-M9-ZXCVBN | TÂCHE | Attacher listener input zxcvbn temps réel dans password-detector.ts | Must | À faire | P4 | — | Développeur | password-detector.ts TODO |
-| BACKLOG-POPUP | TÂCHE | Implémenter popup.ts : demande état SW et affichage score M3 | Must | À faire | P4 | — | Développeur | popup.ts TODO |
-| BACKLOG-OPTIONS | TÂCHE | Implémenter options.ts : formulaires config, droits RGPD, export/delete | Must | À faire | P4 | — | Développeur | options.ts TODO |
-| BACKLOG-DASHBOARD | TÂCHE | Implémenter dashboard.ts : graphique SVG 52 semaines + table sr-only | Must | À faire | P4 | — | Développeur | dashboard.ts TODO |
-| BACKLOG-ONBOARDING | TÂCHE | Implémenter onboarding.ts : 4 étapes + consentement M7 RGPD | Must | À faire | P4 | — | Développeur | onboarding.ts TODO |
-| BACKLOG-STORAGE-INT | TÂCHE | Implémenter tests intégration StorageService avec fake-indexeddb | Must | À faire | P4 | — | Testeur QA | storage-service.test.ts TODO |
-| BACKLOG-MIGRATION-V2 | TÂCHE | Prévoir migrations IndexedDB v2 dans MIGRATIONS tableau | Should | À faire | P4 | — | Développeur | service-worker.ts TODO |
-| BACKLOG-PAGES-STATIC | TÂCHE | Créer les 7 pages HTML statiques d'explication (m2 à m17) | Must | À faire | P4 | — | Développeur | DAT §5 arborescence |
+| ID | Type | Titre | Priorité | Statut | Phase | Responsable | Origine |
+|----|------|-------|----------|--------|-------|-------------|---------|
+| TACHE-001 | TÂCHE | Exploration littérature nudging cyber-hygiène | Must | Terminé | P1 | Analyste métier | Commanditaire |
+| TACHE-002 | TÂCHE | Rédaction du cahier des charges (7 modules v1) | Must | Terminé | P1 | Analyste métier | Commanditaire |
+| TACHE-003 | TÂCHE | Spécifications fonctionnelles détaillées (P2) | Must | Terminé | P2 | Analyste métier | Orchestrateur |
+| TACHE-004 | TÂCHE | Analyse comparative des licences open source | Must | Terminé | P1 | Analyste métier | Commanditaire |
+| TACHE-005 | TÂCHE | Définir la structure du corpus quiz M6 | Must | Terminé | P3 | Analyste métier | Orchestrateur |
+| TACHE-006 | TÂCHE | Compléter le corpus quiz M6 de 20 à 50+ questions bilingues FR/EN | Must | À faire | P4 | Analyste métier | Orchestrateur |
+| TACHE-007 | TÂCHE | Rédiger les 7 pages d'explication statiques HTML (CdC §2.9.7) | Must | À faire | P4 | Analyste métier | Orchestrateur |
+| TACHE-008 | TÂCHE | AIPD M7 (Analyse d'Impact Protection Données) | Must | Terminé | P3 | DPO | D-SEC-005 |
+| TACHE-009 | TÂCHE | Documenter le statut de responsable de traitement dans la politique de confidentialité | Should | À faire | P4 | DPO | Revue qualité P3 |
+| TACHE-010 | TÂCHE | Checklist accessibilité des pages statiques (LA-06) | Should | À faire | P5 | Expert accessibilité | Revue qualité P3 |
+| TACHE-011 | TÂCHE | Constituer la liste ~500 domaines typosquatting-targets.json | Must | À faire | P4 | Développeur | risk-analyzer.ts |
+| TACHE-012 | TÂCHE | Créer les 7 pages HTML statiques d'explication (m2 à m17) | Must | À faire | P4 | Développeur | DAT §5 |
+| TACHE-013 | TÂCHE | Compléter export RGPD Art. 20 (options.ts) — déchiffrer les données réelles | Must | À faire | P4 | Développeur | RSV-DPO-01 |
+| TACHE-014 | TÂCHE | Intégrer i18n (browser.i18n.getMessage) dans les composants content-scripts | Must | À faire | P4 | Développeur | UX-015 |
+| TACHE-015 | TÂCHE | Remplacer window.confirm() par un dialogue HTML accessible dans options.ts | Should | À faire | P4 | Développeur | ACC-07 |
+| TACHE-016 | TÂCHE | Ajouter aria-describedby dynamique sur overlay-m6 (question courante) | Should | Terminé | P4 | Développeur | ACC-06 |
+| TACHE-017 | TÂCHE | Tests unitaires m3-handler (0% couverture) | Must | À faire | P5 | Testeur QA | TM-001 |
+| TACHE-018 | TÂCHE | Tests unitaires storage-service avec fake-indexeddb (0% couverture, 666 lignes) | Must | À faire | P5 | Testeur QA | TM-004 |
+| TACHE-019 | TÂCHE | Tests unitaires message-router (0% couverture) | Must | À faire | P5 | Testeur QA | TM-005 |
+| TACHE-020 | TÂCHE | Tests unitaires alarm-manager (0% couverture) | Must | À faire | P5 | Testeur QA | TM-008 |
+| TACHE-021 | TÂCHE | Test handleCheckQuiz M6 (date dépassée, quiz disponible) | Must | À faire | P5 | Testeur QA | TM-002 |
+| TACHE-022 | TÂCHE | Test cooldown 30j M7 fonctionnel (pas factice) | Must | À faire | P5 | Testeur QA | TM-003 |
+| TACHE-023 | TÂCHE | Test exclusion champ password dans paste-detector M17 | Must | À faire | P5 | Testeur QA | TM-006 |
+| TACHE-024 | TÂCHE | Test comparaison crypto M7 avec environnement Node.js natif | Must | À faire | P5 | Testeur QA | TM-007 |
+| TACHE-025 | TÂCHE | Ajouter @vitest/coverage-v8 dans devDependencies + script test:coverage | Must | À faire | P5 | Développeur | TM-020 |
+| TACHE-026 | TÂCHE | Atteindre 80% couverture de tests (niveau Exposé) | Must | À faire | P5 | Testeur QA | Comité revue code |
+| TACHE-027 | TÂCHE | Tests E2E Playwright avec extension réelle (service-worker, onboarding) | Should | À faire | P6 | Testeur QA | TM-017 |
+| TACHE-028 | TÂCHE | Resserrer web_accessible_resources (remplacer <all_urls>) | Should | À faire | P5 | Architecte sécurité | MIN-002 |
+| TACHE-029 | TÂCHE | Prévoir migrations IndexedDB v2 dans MIGRATIONS | Should | À faire | P4 | Développeur | BACKLOG-MIGRATION-V2 |
+
+## Actions résiduelles par phase
+
+### P4 — Développement (en cours)
+- TACHE-006 : corpus quiz 50+ questions
+- TACHE-007 + TACHE-012 : 7 pages statiques HTML
+- TACHE-011 : liste 500 domaines typosquatting
+- TACHE-013 : export RGPD complet (pas squelette)
+- TACHE-014 : i18n dans les composants content-scripts
+- TACHE-015 : dialogue accessible pour suppression données
+- TACHE-009 : politique de confidentialité
+- TACHE-029 : migrations IndexedDB v2
+
+### P5 — Tests unitaires
+- TACHE-017 à TACHE-024 : tests manquants (handlers, storage, router, alarms)
+- TACHE-025 : coverage-v8 + script
+- TACHE-026 : objectif 80% couverture
+- TACHE-010 : checklist accessibilité pages statiques
+- TACHE-028 : resserrer web_accessible_resources
+
+### P6 — Tests d'intégration
+- TACHE-027 : tests E2E Playwright avec extension réelle
 
 ## Légende
 - **Type TÂCHE** : tâche de production normale

@@ -38,6 +38,11 @@ export interface BrowserAdapter {
        * @param keys - Clés à supprimer
        */
       remove(keys: string[]): Promise<void>;
+      /**
+       * Efface toutes les données de chrome.storage.local.
+       * Utilisé par la fonctionnalité de réinitialisation complète (options.ts).
+       */
+      clear(): Promise<void>;
     };
   };
 
@@ -64,6 +69,17 @@ export interface BrowserAdapter {
     requestUpdateCheck(): Promise<{ status: string }>;
     /** Identifiant unique de l'extension */
     id: string;
+    /**
+     * Retourne l'URL complète d'une ressource packagée dans l'extension.
+     * @param path - Chemin relatif depuis la racine de l'extension
+     * @returns URL chrome-extension://... de la ressource
+     */
+    getURL(path: string): string;
+    /**
+     * Retourne le manifest.json de l'extension sous forme d'objet.
+     * @returns Objet manifest (version, name, permissions, etc.)
+     */
+    getManifest(): object;
   };
 
   tabs: {
@@ -79,6 +95,11 @@ export interface BrowserAdapter {
      * @returns Liste des onglets correspondants
      */
     query(queryInfo: object): Promise<chrome.tabs.Tab[]>;
+    /**
+     * Ouvre un nouvel onglet avec les propriétés données.
+     * @param createProperties - Paramètres du nouvel onglet (url, active, etc.)
+     */
+    create(createProperties: chrome.tabs.CreateProperties): Promise<void>;
   };
 
   scripting: {
@@ -139,6 +160,7 @@ export const browser: BrowserAdapter = {
         new Promise((resolve) => chrome.storage.local.set(items, resolve)),
       remove: (keys: string[]): Promise<void> =>
         new Promise((resolve) => chrome.storage.local.remove(keys, resolve)),
+      clear: (): Promise<void> => new Promise((resolve) => chrome.storage.local.clear(resolve)),
     },
   },
 
@@ -169,6 +191,8 @@ export const browser: BrowserAdapter = {
     get id(): string {
       return chrome.runtime.id;
     },
+    getURL: (path: string): string => chrome.runtime.getURL(path),
+    getManifest: (): object => chrome.runtime.getManifest(),
   },
 
   tabs: {
@@ -184,6 +208,8 @@ export const browser: BrowserAdapter = {
       }),
     query: (queryInfo: object): Promise<chrome.tabs.Tab[]> =>
       new Promise((resolve) => chrome.tabs.query(queryInfo, resolve)),
+    create: (createProperties: chrome.tabs.CreateProperties): Promise<void> =>
+      chrome.tabs.create(createProperties).then(() => undefined),
   },
 
   scripting: {

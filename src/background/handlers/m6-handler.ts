@@ -202,7 +202,7 @@ function applyScoreAdjustment(
  */
 async function loadCorpus(): Promise<CorpusQuestion[]> {
   try {
-    const url = chrome.runtime.getURL('assets/data/quiz-corpus.json');
+    const url = browser.runtime.getURL('assets/data/quiz-corpus.json');
     const response = await fetch(url);
     if (!response.ok) {
       console.error(`[M6Handler] Corpus inaccessible: HTTP ${response.status}`);

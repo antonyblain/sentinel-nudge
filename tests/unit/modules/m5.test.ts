@@ -61,27 +61,24 @@ global.chrome = {
     // chrome.tabs.create retourne une Promise nativement en MV3
     create: vi.fn().mockResolvedValue({}),
     // chrome.tabs.query est callback-style dans le browser-adapter
-    query: vi.fn((
-      _queryInfo: object,
-      callback: (tabs: chrome.tabs.Tab[]) => void,
-    ) => {
+    query: vi.fn((_queryInfo: object, callback: (tabs: chrome.tabs.Tab[]) => void) => {
       callback([{ id: 42, active: true, index: 0 } as chrome.tabs.Tab]);
     }),
     // chrome.tabs.sendMessage est callback-style dans le browser-adapter
-    sendMessage: vi.fn((
-      _tabId: number,
-      _message: unknown,
-      callback: (response: unknown) => void,
-    ) => {
-      callback(mockTabContext);
-    }),
+    sendMessage: vi.fn(
+      (_tabId: number, _message: unknown, callback: (response: unknown) => void) => {
+        callback(mockTabContext);
+      },
+    ),
   },
   runtime: {
     getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`),
     // chrome.runtime.requestUpdateCheck est callback-style dans le browser-adapter
-    requestUpdateCheck: vi.fn((callback: (status: chrome.runtime.RequestUpdateCheckStatus) => void) => {
-      callback(currentUpdateStatus as chrome.runtime.RequestUpdateCheckStatus);
-    }),
+    requestUpdateCheck: vi.fn(
+      (callback: (status: chrome.runtime.RequestUpdateCheckStatus) => void) => {
+        callback(currentUpdateStatus as chrome.runtime.RequestUpdateCheckStatus);
+      },
+    ),
     lastError: undefined,
   },
   alarms: {
@@ -286,7 +283,7 @@ describe('M5Handler — check_update : délai de grâce 48h', () => {
 });
 
 describe('M5Handler — toast_action : update_now', () => {
-  it("ouvre chrome://settings/help et remet snoozeCount à 0", async () => {
+  it('ouvre chrome://settings/help et remet snoozeCount à 0', async () => {
     mockLocalStorage[M5_SNOOZE_COUNT_KEY] = 2;
 
     const storage = createMockStorageService();
@@ -335,7 +332,7 @@ describe('M5Handler — toast_action : remind_4h', () => {
   });
 });
 
-describe("M5Handler — toast_action : closed", () => {
+describe('M5Handler — toast_action : closed', () => {
   it("remet snoozeCount à 0 et enregistre l'événement", async () => {
     mockLocalStorage[M5_SNOOZE_COUNT_KEY] = 2;
 

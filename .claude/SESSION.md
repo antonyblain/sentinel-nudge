@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement
-- **Dernière action** : Pages UI (popup, options, onboarding, dashboard) implémentées — lint OK, build OK, 200 tests OK — 2026-04-12
-- **Prochaine action attendue** : Implémenter M7 (hash password + comparaison blur), M9 (zxcvbn temps réel), pages statiques HTML (BACKLOG-PAGES-STATIC).
+- **Dernière action** : Comité revue code (3.7/5) — 6 bloquants + 5 majeurs corrigés. 200 tests, CI verte — 2026-04-12
+- **Prochaine action attendue** : P4 suite (TACHE-006/007/011/012/013/014) puis P5 tests (couverture 80%).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits

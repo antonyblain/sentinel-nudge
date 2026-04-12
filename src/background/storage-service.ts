@@ -280,23 +280,30 @@ export class StorageService {
   }
 
   /**
-   * Supprime les événements dont le timestamp est antérieur à `before`.
+   * Supprime les enregistrements expirés dans tous les stores concernés.
    * Déclenché par l'alarme de purge quotidienne (02h00).
    *
-   * @param before - Timestamp limite (supprimer les records dont timestamp < before)
-   * @returns Nombre d'enregistrements supprimés
+   * Politique de rétention (DAT §8.3, Mi-005) :
+   * - events          : timestamp < before (90 jours passés en paramètre)
+   * - password_hashes : first_seen < before (90 jours) — la règle FIFO max 100 est gérée à l'insertion
+   * - quiz_sessions   : quiz_date < now - 52 semaines (364 jours)
+   * - weekly_scores   : week_key < semaine courante - 52
+   *
+   * @param before - Timestamp limite pour events et password_hashes (Date.now() - 90j)
+   * @returns Nombre total d'enregistrements supprimés toutes stores confondues
    */
   async purgeExpired(before: number): Promise<number> {
     const db = this.getDB();
-    const tx = db.transaction('events', 'readwrite');
-    const store = tx.objectStore('events');
-    const index = store.index('timestamp');
-    const range = IDBKeyRange.upperBound(before, true);
+    let totalCount = 0;
 
-    return new Promise((resolve, reject) => {
+    // --- 1. Purge events (timestamp < before) ---
+    totalCount += await new Promise<number>((resolve, reject) => {
+      const tx = db.transaction('events', 'readwrite');
+      const store = tx.objectStore('events');
+      const index = store.index('timestamp');
+      const range = IDBKeyRange.upperBound(before, true);
       let count = 0;
       const request = index.openCursor(range);
-
       request.onsuccess = () => {
         const cursor = request.result;
         if (!cursor) {
@@ -307,10 +314,109 @@ export class StorageService {
         count++;
         cursor.continue();
       };
-
       request.onerror = () =>
-        reject(new Error(`[StorageService] Échec purgeExpired: ${request.error?.message ?? ''}`));
+        reject(
+          new Error(`[StorageService] Échec purgeExpired events: ${request.error?.message ?? ''}`),
+        );
     });
+
+    // --- 2. Purge password_hashes (first_seen < before — 90 jours) ---
+    totalCount += await new Promise<number>((resolve, reject) => {
+      const tx = db.transaction('password_hashes', 'readwrite');
+      const store = tx.objectStore('password_hashes');
+      const index = store.index('first_seen');
+      const range = IDBKeyRange.upperBound(before, true);
+      let count = 0;
+      const request = index.openCursor(range);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(count);
+          return;
+        }
+        cursor.delete();
+        count++;
+        cursor.continue();
+      };
+      request.onerror = () =>
+        reject(
+          new Error(
+            `[StorageService] Échec purgeExpired password_hashes: ${request.error?.message ?? ''}`,
+          ),
+        );
+    });
+
+    // --- 3. Purge quiz_sessions (quiz_date < now - 52 semaines = 364 jours) ---
+    const quizCutoff = new Date(Date.now() - 364 * 24 * 60 * 60 * 1000).toISOString();
+    totalCount += await new Promise<number>((resolve, reject) => {
+      const tx = db.transaction('quiz_sessions', 'readwrite');
+      const store = tx.objectStore('quiz_sessions');
+      const index = store.index('quiz_date');
+      // Les dates ISO 8601 sont comparables lexicographiquement
+      const range = IDBKeyRange.upperBound(quizCutoff, true);
+      let count = 0;
+      const request = index.openCursor(range);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(count);
+          return;
+        }
+        cursor.delete();
+        count++;
+        cursor.continue();
+      };
+      request.onerror = () =>
+        reject(
+          new Error(
+            `[StorageService] Échec purgeExpired quiz_sessions: ${request.error?.message ?? ''}`,
+          ),
+        );
+    });
+
+    // --- 4. Purge weekly_scores (week_key < semaine courante - 52) ---
+    const scoreCutoffKey = this.getWeekKeyOffset(-52);
+    totalCount += await new Promise<number>((resolve, reject) => {
+      const tx = db.transaction('weekly_scores', 'readwrite');
+      const store = tx.objectStore('weekly_scores');
+      // week_key est la clé primaire (string YYYY-Www), comparable lexicographiquement
+      const range = IDBKeyRange.upperBound(scoreCutoffKey, true);
+      let count = 0;
+      const request = store.openCursor(range);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(count);
+          return;
+        }
+        cursor.delete();
+        count++;
+        cursor.continue();
+      };
+      request.onerror = () =>
+        reject(
+          new Error(
+            `[StorageService] Échec purgeExpired weekly_scores: ${request.error?.message ?? ''}`,
+          ),
+        );
+    });
+
+    return totalCount;
+  }
+
+  /**
+   * Calcule la clé de semaine ISO (YYYY-Www) pour la semaine courante décalée de `offset` semaines.
+   *
+   * @param offset - Nombre de semaines de décalage (négatif = dans le passé)
+   * @returns Clé de semaine au format YYYY-Www
+   */
+  private getWeekKeyOffset(offset: number): string {
+    const date = new Date(Date.now() + offset * 7 * 24 * 60 * 60 * 1000);
+    // Calcul du numéro de semaine ISO 8601
+    const jan1 = new Date(date.getFullYear(), 0, 1);
+    const dayOfYear = Math.floor((date.getTime() - jan1.getTime()) / (24 * 60 * 60 * 1000));
+    const weekNum = Math.ceil((dayOfYear + jan1.getDay() + 1) / 7);
+    return `${date.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
   }
 
   /**

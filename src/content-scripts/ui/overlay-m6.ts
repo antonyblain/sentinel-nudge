@@ -103,6 +103,7 @@ export class OverlayM6 extends BaseNudge {
     this.dialogPanel.setAttribute('role', 'dialog');
     this.dialogPanel.setAttribute('aria-modal', 'true');
     this.dialogPanel.setAttribute('aria-labelledby', 'sn-m6-dialog-title');
+    this.dialogPanel.setAttribute('aria-describedby', 'sn-m6-question-text');
     this.dialogPanel.setAttribute('tabindex', '-1');
 
     this.overlayContainer.appendChild(this.dialogPanel);

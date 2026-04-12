@@ -187,8 +187,8 @@ async function handleOverlayAction(
 
     // Ouverture de la page d'explication si "why"
     if (user_action === 'why') {
-      await chrome.tabs.create({
-        url: chrome.runtime.getURL('pages/explanations/risky-context.html'),
+      await browser.tabs.create({
+        url: browser.runtime.getURL('pages/explanations/risky-context.html'),
       });
     }
 
@@ -208,8 +208,8 @@ async function handleOverlayAction(
  */
 async function handleOpenExplanation(): Promise<NudgeResponse> {
   try {
-    await chrome.tabs.create({
-      url: chrome.runtime.getURL('pages/explanations/risky-context.html'),
+    await browser.tabs.create({
+      url: browser.runtime.getURL('pages/explanations/risky-context.html'),
     });
     return { success: true, action: 'skip' };
   } catch (err: unknown) {

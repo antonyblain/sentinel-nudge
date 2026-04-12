@@ -55,10 +55,7 @@ const DOMAIN_HASH_VALID = 'a'.repeat(64);
 const DOMAIN_HASH_OTHER = 'b'.repeat(64);
 
 /** Construit un NudgeMessage M2 */
-function buildM2Message(
-  payload: Record<string, unknown>,
-  action = 'risk_detected',
-): NudgeMessage {
+function buildM2Message(payload: Record<string, unknown>, action = 'risk_detected'): NudgeMessage {
   return {
     module: 'M2',
     action,
@@ -68,9 +65,7 @@ function buildM2Message(
 }
 
 /** Crée un mock de StorageService pour les tests M2 */
-function createMockStorage(options: {
-  isWhitelisted?: boolean;
-}): Partial<StorageService> {
+function createMockStorage(options: { isWhitelisted?: boolean }): Partial<StorageService> {
   return {
     isWhitelisted: vi.fn().mockResolvedValue(options.isWhitelisted ?? false),
     addToWhitelist: vi.fn().mockResolvedValue(undefined),
@@ -180,7 +175,10 @@ describe('createM2Handler — validation du payload', () => {
   it('rejette une action inconnue', async () => {
     const storage = createMockStorage({});
     const handler = createM2Handler(storage as StorageService, createFakeKey());
-    const msg = buildM2Message({ signals: ['http', 'hsts_miss'], domain_hash: DOMAIN_HASH_VALID }, 'unknown_action');
+    const msg = buildM2Message(
+      { signals: ['http', 'hsts_miss'], domain_hash: DOMAIN_HASH_VALID },
+      'unknown_action',
+    );
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(false);
@@ -197,7 +195,7 @@ describe('createM2Handler — validation du payload', () => {
     expect(response.reason).toBe('invalid_domain_hash');
   });
 
-  it('rejette si signals n\'est pas un tableau', async () => {
+  it("rejette si signals n'est pas un tableau", async () => {
     const storage = createMockStorage({});
     const handler = createM2Handler(storage as StorageService, createFakeKey());
     const msg = buildM2Message({ signals: 'http', domain_hash: DOMAIN_HASH_VALID });
@@ -292,7 +290,7 @@ describe('createM2Handler — logique métier', () => {
     expect(response.data?.['domain_hash']).toBe(DOMAIN_HASH_VALID);
   });
 
-  it('enregistre le domaine en session après l\'affichage', async () => {
+  it("enregistre le domaine en session après l'affichage", async () => {
     const storage = createMockStorage({});
     const handler = createM2Handler(storage as StorageService, createFakeKey());
     const msg = buildM2Message({
@@ -306,7 +304,7 @@ describe('createM2Handler — logique métier', () => {
     expect(session).toContain(DOMAIN_HASH_VALID);
   });
 
-  it('n\'ajoute pas le domaine en session si skip (signaux insuffisants)', async () => {
+  it("n'ajoute pas le domaine en session si skip (signaux insuffisants)", async () => {
     const storage = createMockStorage({});
     const handler = createM2Handler(storage as StorageService, createFakeKey());
     const msg = buildM2Message({
@@ -319,7 +317,7 @@ describe('createM2Handler — logique métier', () => {
     expect(session).not.toContain(DOMAIN_HASH_VALID);
   });
 
-  it('logue l\'événement pour M3 quand le nudge est affiché', async () => {
+  it("logue l'événement pour M3 quand le nudge est affiché", async () => {
     const storage = createMockStorage({});
     const handler = createM2Handler(storage as StorageService, createFakeKey());
     const msg = buildM2Message({
@@ -395,7 +393,7 @@ describe('createM2Handler — overlay_action', () => {
     expect(storage.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_VALID, 'M2');
   });
 
-  it('enregistre l\'événement pour dismissed', async () => {
+  it("enregistre l'événement pour dismissed", async () => {
     const storage = createMockStorage({});
     const handler = createM2Handler(storage as StorageService, createFakeKey());
     const msg = buildM2Message(
@@ -414,10 +412,7 @@ describe('createM2Handler — overlay_action', () => {
   it('rejette un payload sans user_action', async () => {
     const storage = createMockStorage({});
     const handler = createM2Handler(storage as StorageService, createFakeKey());
-    const msg = buildM2Message(
-      { domain_hash: DOMAIN_HASH_VALID },
-      'overlay_action',
-    );
+    const msg = buildM2Message({ domain_hash: DOMAIN_HASH_VALID }, 'overlay_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(false);

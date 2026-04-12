@@ -102,9 +102,6 @@ export class ToastM5 extends BaseNudge {
     this.toastContainer.appendChild(actionsArea);
 
     this.shadow.appendChild(this.toastContainer);
-
-    // Focus trap pour l'accessibilité
-    this.trapFocus(this.toastContainer);
   }
 
   /**

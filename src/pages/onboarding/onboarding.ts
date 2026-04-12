@@ -392,7 +392,7 @@ function renderStep4(stepContainer: HTMLElement): void {
 
   // Lien politique de confidentialité
   const privacyLink = document.createElement('a');
-  privacyLink.href = chrome.runtime.getURL('pages/static/privacy.html');
+  privacyLink.href = browser.runtime.getURL('pages/static/privacy.html');
   privacyLink.target = '_blank';
   privacyLink.rel = 'noopener noreferrer';
   privacyLink.className = 'privacy-link';

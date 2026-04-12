@@ -75,6 +75,10 @@ export class MessageRouter {
   /**
    * Traite un message validé : vérifie le quota puis dispatche au handler du module.
    *
+   * L'incrément du quota (M-002) est effectué APRÈS la réponse du handler,
+   * et uniquement si le handler répond avec action === 'show'. Cela évite d'incrémenter
+   * le quota pour des messages qui n'aboutissent pas à l'affichage d'un nudge.
+   *
    * @param msg          - Message validé NudgeMessage
    * @param sender       - Contexte d'émission (tabId, frameId)
    * @param sendResponse - Callback Chrome pour envoyer la réponse
@@ -100,11 +104,6 @@ export class MessageRouter {
       return;
     }
 
-    // Incrémenter le quota seulement pour les modules non critiques
-    if (!isCritical) {
-      await this.quotaManager.incrementQuota();
-    }
-
     // Dispatch vers le handler du module
     const handler = this.handlers.get(msg.module);
     if (!handler) {
@@ -121,6 +120,13 @@ export class MessageRouter {
     try {
       const response = await handler(msg, sender);
       sendResponse(response);
+
+      // M-002 : incrémenter le quota APRÈS la réponse du handler,
+      // uniquement si le nudge est effectivement affiché (action === 'show')
+      // et que le module n'est pas critique (critiques bypassen le quota)
+      if (!isCritical && response.action === 'show') {
+        await this.quotaManager.incrementQuota();
+      }
     } catch (err: unknown) {
       // Erreur technique — ne jamais exposer les détails à l'émetteur
       const response: NudgeResponse = {

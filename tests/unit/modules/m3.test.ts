@@ -352,7 +352,7 @@ describe('ScoreCalculator — clé de semaine ISO', () => {
     expect(prev).toBe('2026-W09');
   });
 
-  it('getPreviousWeekKey gère le passage d\'année', () => {
+  it("getPreviousWeekKey gère le passage d'année", () => {
     const prev = calc.getPreviousWeekKey('2026-W01');
     // Semaine 1 → dernière semaine de 2025 (W52 ou W53)
     expect(prev).toMatch(/^2025-W(52|53)$/);

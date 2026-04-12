@@ -328,11 +328,6 @@ function renderChart(container: HTMLElement, scores: WeeklyScoreData[]): void {
   // Wrapper scrollable pour les 52 semaines
   const chartWrapper = document.createElement('div');
   chartWrapper.className = 'chart-wrapper';
-  chartWrapper.setAttribute('role', 'img');
-  chartWrapper.setAttribute(
-    'aria-label',
-    'Graphique des scores (voir tableau ci-dessous pour les détails)',
-  );
   chartWrapper.appendChild(svg);
   section.appendChild(chartWrapper);
 
@@ -606,7 +601,7 @@ function renderSettingsButton(container: HTMLElement): void {
       ? `chrome-extension://${browser.runtime.id}/pages/options/options.html`
       : '';
     if (optionsUrl) {
-      chrome.tabs.create({ url: optionsUrl });
+      void browser.tabs.create({ url: optionsUrl });
     }
   });
 

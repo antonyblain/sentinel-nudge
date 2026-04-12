@@ -165,6 +165,21 @@ export abstract class BaseNudge extends HTMLElement {
         cursor: pointer;
         padding: var(--sn-space-sm) var(--sn-space-md);
       }
+
+      /* ACC-05 : indicateur de focus visible pour la navigation clavier (WCAG 2.4.11) */
+      :focus-visible {
+        outline: 3px solid var(--sn-color-accent);
+        outline-offset: 2px;
+      }
+
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid var(--sn-color-accent);
+        outline-offset: 2px;
+      }
     `;
   }
 

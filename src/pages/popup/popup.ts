@@ -276,7 +276,7 @@ function renderActionsSection(container: HTMLElement): void {
       ? `chrome-extension://${browser.runtime.id}/pages/dashboard/dashboard.html`
       : '';
     if (dashboardUrl) {
-      chrome.tabs.create({ url: dashboardUrl });
+      void browser.tabs.create({ url: dashboardUrl });
     }
   });
   actionsDiv.appendChild(btnDashboard);
@@ -291,7 +291,7 @@ function renderActionsSection(container: HTMLElement): void {
       ? `chrome-extension://${browser.runtime.id}/pages/options/options.html`
       : '';
     if (optionsUrl) {
-      chrome.tabs.create({ url: optionsUrl });
+      void browser.tabs.create({ url: optionsUrl });
     }
   });
   actionsDiv.appendChild(btnSettings);
@@ -370,7 +370,7 @@ async function initPopup(): Promise<void> {
     root.removeChild(loadingEl);
 
     // Rendu des sections
-    const mainContent = document.createElement('main');
+    const mainContent = document.createElement('div');
     mainContent.className = 'popup-content';
 
     renderScoreSection(mainContent, currentScore);

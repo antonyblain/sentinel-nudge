@@ -29,16 +29,14 @@ global.chrome = {
       get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
         callback(mockLocalStorage);
       }),
-      set: vi.fn(
-        (items: Record<string, unknown>, callback?: () => void) => {
-          Object.assign(mockLocalStorage, items);
-          callback?.();
-        },
-      ),
+      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
+        Object.assign(mockLocalStorage, items);
+        callback?.();
+      }),
     },
   },
   tabs: {
-    create: vi.fn(),
+    create: vi.fn().mockResolvedValue({}), // MV3 — retourne une Promise native
   },
   runtime: {
     getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`),
@@ -55,11 +53,7 @@ const DOMAIN_HASH_1 = '1'.repeat(64);
 const DOMAIN_HASH_2 = '2'.repeat(64);
 
 /** Crée un PasswordHashRecord factice (valeur chiffrée non fonctionnelle en test) */
-function buildHashRecord(
-  hash: string,
-  domainHash: string,
-  id = 1,
-): PasswordHashRecord {
+function buildHashRecord(hash: string, domainHash: string, id = 1): PasswordHashRecord {
   return {
     id,
     tag: hash.substring(0, 8),
@@ -271,10 +265,7 @@ describe('createM7Handler — action toast_action', () => {
   it('rejette un toast_action avec payload invalide', async () => {
     const storage = createMockStorage({});
     const handler = createM7Handler(storage as StorageService, createFakeKey());
-    const msg = buildM7Message(
-      { user_action: null, domain_hash: DOMAIN_HASH_1 },
-      'toast_action',
-    );
+    const msg = buildM7Message({ user_action: null, domain_hash: DOMAIN_HASH_1 }, 'toast_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(false);

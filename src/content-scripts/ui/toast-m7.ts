@@ -90,6 +90,7 @@ export class ToastM7 extends BaseNudge {
 
     const closeBtn = document.createElement('button');
     closeBtn.setAttribute('id', 'sn-m7-close');
+    closeBtn.setAttribute('type', 'button');
     closeBtn.setAttribute('aria-label', 'Fermer cette notification');
     closeBtn.textContent = '×';
     closeBtn.addEventListener('click', () => {
@@ -115,6 +116,7 @@ export class ToastM7 extends BaseNudge {
 
     const btnLearnMore = document.createElement('button');
     btnLearnMore.setAttribute('id', 'sn-m7-btn-learn');
+    btnLearnMore.setAttribute('type', 'button');
     btnLearnMore.textContent = 'Voir comment';
     btnLearnMore.addEventListener('click', () => {
       this.closeToast('learn_more');
@@ -122,6 +124,7 @@ export class ToastM7 extends BaseNudge {
 
     const btnOk = document.createElement('button');
     btnOk.setAttribute('id', 'sn-m7-btn-ok');
+    btnOk.setAttribute('type', 'button');
     btnOk.textContent = 'OK, compris';
     btnOk.addEventListener('click', () => {
       this.closeToast('acknowledged');
@@ -129,6 +132,7 @@ export class ToastM7 extends BaseNudge {
 
     const btnSuppress = document.createElement('button');
     btnSuppress.setAttribute('id', 'sn-m7-btn-suppress');
+    btnSuppress.setAttribute('type', 'button');
     btnSuppress.textContent = 'Ne plus ce site';
     btnSuppress.addEventListener('click', () => {
       this.closeToast('suppress_domain');
@@ -153,9 +157,6 @@ export class ToastM7 extends BaseNudge {
     // Pause du timer au hover
     this.toastContainer.addEventListener('mouseenter', () => this.pauseTimer());
     this.toastContainer.addEventListener('mouseleave', () => this.resumeTimer());
-
-    // Focus trap (accessibilité)
-    this.trapFocus(this.toastContainer);
   }
 
   /**

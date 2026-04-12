@@ -203,8 +203,8 @@ async function handleToastAction(
 
     // Ouvrir la page d'explication si "learn_more"
     if (user_action === 'learn_more') {
-      await chrome.tabs.create({
-        url: chrome.runtime.getURL('pages/explanations/password-manager.html'),
+      await browser.tabs.create({
+        url: browser.runtime.getURL('pages/explanations/password-manager.html'),
       });
     }
 
