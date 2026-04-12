@@ -28,11 +28,9 @@
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
-import { ToastM17, registerToastM17 } from '@/content-scripts/ui/toast-m17';
-import type { SensitiveDataType } from '@/content-scripts/ui/toast-m17';
 
-// Enregistrer le custom element au chargement du content script
-registerToastM17();
+/** Types de données sensibles détectées */
+type SensitiveDataType = 'credit_card' | 'iban' | 'api_key';
 
 /** Limite de caractères pour l'analyse (SFD §2.7.3 CA-M17-08 : > 10k → 1000 premiers) */
 const MAX_ANALYZE_LENGTH = 1000;
@@ -311,15 +309,112 @@ async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
  *
  * @param dataType - Type de donnée détectée (pour l'affichage dans le toast)
  */
+/**
+ * Affiche un toast M17 directement dans le DOM de la page.
+ *
+ * N'utilise PAS les Custom Elements (customElements.define ne fonctionne pas
+ * dans l'isolated world des content scripts Chrome MV3).
+ * Construit le DOM manuellement avec un Shadow DOM pour l'isolation CSS.
+ */
 function showToastM17(dataType: SensitiveDataType): void {
-  // Utiliser new ToastM17() au lieu de document.createElement('sn-toast-m17')
-  // car customElements.define() ne fonctionne pas correctement dans les content scripts
-  // Chrome (isolated world vs main world — le prototype chain est cassé).
-  const toast = new ToastM17();
-  document.body.appendChild(toast);
-  toast.open(dataType, (_action) => {
-    // L'action est déjà envoyée au SW dans closeToast() via browser.runtime.sendMessage
+  const labels: Record<SensitiveDataType, string> = {
+    credit_card: 'Numéro de carte bancaire',
+    iban: 'IBAN / RIB',
+    api_key: 'Clé API',
+  };
+
+  // Conteneur hôte
+  const host = document.createElement('div');
+  host.setAttribute('style', 'all:initial; position:fixed; bottom:24px; right:24px; z-index:2147483647;');
+  document.body.appendChild(host);
+
+  // Shadow DOM pour isolation CSS
+  const shadow = host.attachShadow({ mode: 'open' });
+
+  // Styles
+  const style = document.createElement('style');
+  style.textContent = `
+    .toast { background:#1A1A1A; color:#fff; border-radius:8px; padding:16px 20px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.3); max-width:380px; font:15px/1.5 system-ui,sans-serif;
+      animation:slideUp .2s ease-out; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .title { font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+    .icon { font-size:20px; }
+    .desc { font-size:13px; color:#D1D5DB; margin-bottom:12px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    button { border:none; border-radius:6px; padding:8px 16px; font:14px system-ui,sans-serif;
+      cursor:pointer; min-height:44px; }
+    .btn-danger { background:#DC2626; color:#fff; }
+    .btn-danger:hover { background:#B91C1C; }
+    .btn-secondary { background:#374151; color:#fff; }
+    .btn-secondary:hover { background:#4B5563; }
+    .btn-link { background:none; color:#93C5FD; text-decoration:underline; padding:8px; }
+    @media(prefers-reduced-motion:reduce){ .toast{animation:none} }
+  `;
+  shadow.appendChild(style);
+
+  // Toast
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+
+  const title = document.createElement('div');
+  title.className = 'title';
+  const iconSpan = document.createElement('span');
+  iconSpan.className = 'icon';
+  iconSpan.setAttribute('aria-hidden', 'true');
+  iconSpan.textContent = '\u26A0\uFE0F';
+  title.appendChild(iconSpan);
+  const titleText = document.createElement('span');
+  titleText.textContent = 'Données sensibles détectées';
+  title.appendChild(titleText);
+  toast.appendChild(title);
+
+  const desc = document.createElement('p');
+  desc.className = 'desc';
+  desc.textContent = `Type détecté : ${labels[dataType] ?? dataType}. Attention au copier-coller de données confidentielles.`;
+  toast.appendChild(desc);
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const btnClear = document.createElement('button');
+  btnClear.type = 'button';
+  btnClear.className = 'btn-danger';
+  btnClear.textContent = 'Vider le presse-papiers';
+  btnClear.addEventListener('click', () => {
+    navigator.clipboard.writeText('').then(() => {
+      btnClear.textContent = '\u2713 Vidé';
+      btnClear.disabled = true;
+    }).catch(() => {
+      btnClear.textContent = 'Échec — videz manuellement';
+    });
   });
+  actions.appendChild(btnClear);
+
+  const btnOk = document.createElement('button');
+  btnOk.type = 'button';
+  btnOk.className = 'btn-secondary';
+  btnOk.textContent = 'OK, merci';
+  btnOk.addEventListener('click', () => host.remove());
+  actions.appendChild(btnOk);
+
+  const btnInfo = document.createElement('button');
+  btnInfo.type = 'button';
+  btnInfo.className = 'btn-link';
+  btnInfo.textContent = 'En savoir plus';
+  btnInfo.addEventListener('click', () => {
+    window.open(browser.runtime.getURL('pages/static/m17-explication.html'), '_blank');
+  });
+  actions.appendChild(btnInfo);
+
+  toast.appendChild(actions);
+  shadow.appendChild(toast);
+
+  // Auto-fermeture après 15s
+  setTimeout(() => { if (host.parentNode) host.remove(); }, 15000);
 }
 
 initPasteDetector();
