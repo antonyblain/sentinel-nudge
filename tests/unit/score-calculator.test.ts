@@ -1,9 +1,9 @@
 /**
  * @file tests/unit/score-calculator.test.ts
- * @description Tests unitaires du calculateur de score hebdomadaire M3.
+ * @description Tests de base du calculateur de score hebdomadaire M3.
  *
- * Squelette de tests — l'implémentation complète sera ajoutée en P4 module M3.
- * TODO(P4-M3) : tests des 5 composantes de scoring.
+ * Les tests complets des 5 composantes sont dans tests/unit/modules/m3.test.ts.
+ * Ce fichier couvre uniquement getCurrentWeekKey.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,7 +11,6 @@ import { ScoreCalculator } from '@/background/score-calculator';
 
 describe('ScoreCalculator.getCurrentWeekKey', () => {
   it('retourne une clé au format YYYY-Www', () => {
-    // StorageService mock minimal pour instancier ScoreCalculator
     const mockStorage = {} as Parameters<typeof ScoreCalculator.prototype.constructor>[0];
     const calculator = new ScoreCalculator(mockStorage as never);
     const weekKey = calculator.getCurrentWeekKey();

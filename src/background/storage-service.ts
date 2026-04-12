@@ -572,4 +572,65 @@ export class StorageService {
         reject(new Error(`[StorageService] Échec removeFromWhitelist: ${request.error?.message ?? ''}`));
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Store events — Méthodes spécialisées M6 (quiz sessions)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Lit les N derniers événements de quiz M6 depuis le store events.
+   *
+   * Retourne les payloads déchiffrés des N dernières sessions,
+   * triés du plus récent au plus ancien.
+   *
+   * @param n         - Nombre de sessions récentes à retourner
+   * @param cryptoKey - Clé AES-256-GCM pour le déchiffrement
+   * @returns Liste des payloads des dernières sessions quiz
+   */
+  async getRecentQuizSessions(n: number, cryptoKey: CryptoKey): Promise<EventPayload[]> {
+    try {
+      // Lire tous les événements M6 (depuis le début)
+      const allM6 = await this.getEvents('M6', 0, cryptoKey);
+      // Filtrer les sessions complètes et retourner les N dernières
+      return allM6
+        .filter((e) => e.action === 'quiz_completed' || e.action === 'quiz_incomplete')
+        .slice(-n);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Retourne le nombre total de sessions quiz M6 enregistrées.
+   * Utilisé par le calcul de spaced repetition pour déterminer l'intervalle.
+   *
+   * @returns Nombre de sessions quiz M6
+   */
+  async getQuizSessionCount(): Promise<number> {
+    const db = this.getDB();
+    const tx = db.transaction('events', 'readonly');
+    const store = tx.objectStore('events');
+    const index = store.index('module');
+
+    return new Promise((resolve, reject) => {
+      let count = 0;
+      const request = index.openCursor(IDBKeyRange.only('M6'));
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(count);
+          return;
+        }
+        const record = cursor.value as { module: string };
+        if (record) {
+          count++;
+        }
+        cursor.continue();
+      };
+
+      request.onerror = () =>
+        reject(new Error(`[StorageService] Échec getQuizSessionCount: ${request.error?.message ?? ''}`));
+    });
+  }
 }

@@ -26,6 +26,9 @@ import { AlarmManager, ALARM_NAMES } from './alarm-manager';
 import { MessageRouter } from './message-router';
 import { ScoreCalculator } from './score-calculator';
 import { createM2Handler } from './handlers/m2-handler';
+import { createM3Handler } from './handlers/m3-handler';
+import { createM5Handler } from './handlers/m5-handler';
+import { createM6Handler } from './handlers/m6-handler';
 import { createM17Handler } from './handlers/m17-handler';
 import { createM7Handler } from './handlers/m7-handler';
 import { createM9Handler } from './handlers/m9-handler';
@@ -53,48 +56,61 @@ const scoreCalculator = new ScoreCalculator(storageService);
  * Chaque méthode correspond à une alarme définie dans AlarmManager.
  */
 const alarmDispatcher: AlarmDispatcher = {
+  /**
+   * Calcul du score hebdomadaire M3 (alarme lundi 09h).
+   */
   async onM3Weekly(): Promise<void> {
-    // Calcul du score hebdomadaire M3 — nécessite la clé de chiffrement
     const cryptoKey = await loadCryptoKey();
     if (!cryptoKey) return;
-    await scoreCalculator.calculateWeeklyScore(cryptoKey);
+
+    await storageService.initDB();
+    const config = await storageService.getConfig();
+    const enabledModules = config?.modules as Partial<Record<string, boolean>> | undefined;
+    await scoreCalculator.calculateWeeklyScore(cryptoKey, enabledModules);
   },
 
+  /**
+   * Vérification de mise à jour navigateur M5 (alarme toutes les 48h).
+   * Délègue au handler M5 via le message interne 'check_update'.
+   */
   async onM5Update(): Promise<void> {
-    // Vérification mise à jour navigateur via API native Chrome (M5)
-    const result = await browser.runtime.requestUpdateCheck();
-    if (result.status === 'update_available') {
-      // Injection du toast M5 dans l'onglet actif
-      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-      const activeTab = tabs[0];
-      if (activeTab?.id) {
-        await browser.tabs.sendMessage(activeTab.id, {
-          module: 'M5',
-          action: 'show_update_toast',
-          payload: {},
-          timestamp: Date.now(),
-        });
-      }
+    const cryptoKey = await loadCryptoKey();
+    if (!cryptoKey) return;
+
+    await storageService.initDB();
+    // Déclencher la vérification via le handler M5
+    const handler = messageRouter.getHandler('M5');
+    if (handler) {
+      await handler(
+        { module: 'M5', action: 'check_update', payload: {}, timestamp: Date.now() },
+        {} as chrome.runtime.MessageSender,
+      );
     }
   },
 
+  /**
+   * Vérification de la date de quiz M6 (spaced repetition).
+   * Délègue au handler M6 via le message interne 'check_quiz'.
+   */
   async onM6Quiz(): Promise<void> {
-    // Déclenchement quiz M6 dans l'onglet actif
-    // TODO(P4-M6) : vérifier les conditions de déclenchement (spaced repetition)
-    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    const activeTab = tabs[0];
-    if (activeTab?.id) {
-      await messageRouter.sendToTab(activeTab.id, {
-        module: 'M6',
-        action: 'trigger_quiz',
-        payload: {},
-        timestamp: Date.now(),
-      });
+    const cryptoKey = await loadCryptoKey();
+    if (!cryptoKey) return;
+
+    await storageService.initDB();
+    // Déclencher la vérification via le handler M6
+    const handler = messageRouter.getHandler('M6');
+    if (handler) {
+      await handler(
+        { module: 'M6', action: 'check_quiz', payload: {}, timestamp: Date.now() },
+        {} as chrome.runtime.MessageSender,
+      );
     }
   },
 
+  /**
+   * Purge des données expirées (alarme quotidienne 02h00).
+   */
   async onPurgeDaily(): Promise<void> {
-    // Purge des données expirées (90 jours pour events)
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
     await storageService.initDB();
     await storageService.purgeExpired(ninetyDaysAgo);
@@ -120,7 +136,7 @@ async function loadCryptoKey(): Promise<CryptoKey | null> {
 }
 
 /**
- * Enregistre les handlers des modules M7 et M9 dans le MessageRouter.
+ * Enregistre les handlers de tous les modules dans le MessageRouter.
  *
  * Cette fonction est appelée au démarrage du SW et après chaque réveil,
  * car les handlers sont perdus quand le SW est tué.
@@ -131,6 +147,15 @@ async function loadCryptoKey(): Promise<CryptoKey | null> {
 function registerModuleHandlers(cryptoKey: CryptoKey): void {
   // Handler M2 — saisie en contexte risqué (critique — bypass quota automatique)
   messageRouter.registerHandler('M2', createM2Handler(storageService, cryptoKey));
+
+  // Handler M3 — score cyber-hygiène hebdomadaire
+  messageRouter.registerHandler('M3', createM3Handler(storageService, scoreCalculator, cryptoKey));
+
+  // Handler M5 — vérification mise à jour navigateur
+  messageRouter.registerHandler('M5', createM5Handler(storageService, cryptoKey));
+
+  // Handler M6 — quiz phishing (spaced repetition)
+  messageRouter.registerHandler('M6', createM6Handler(storageService, cryptoKey));
 
   // Handler M7 — détection réutilisation mot de passe
   messageRouter.registerHandler('M7', createM7Handler(storageService, cryptoKey));
@@ -215,7 +240,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     await onFirstInstall();
   } else if (details.reason === 'update') {
-    // TODO(P4-MIGRATION) : appliquer les migrations IndexedDB si version change
     await storageService.initDB();
     alarmManager.setupAlarms();
     // Réenregistrement des handlers après mise à jour
@@ -228,13 +252,27 @@ chrome.runtime.onInstalled.addListener(async (details) => {
  * Événement de démarrage du navigateur.
  * Réinitialise les alarmes (elles peuvent avoir expiré pendant l'arrêt Chrome).
  * Réenregistre les handlers de modules (perdus quand le SW était tué).
+ * Déclenche une vérification M5 au démarrage (SFD §2.3.1).
  */
 chrome.runtime.onStartup.addListener(async () => {
   alarmManager.setupAlarms();
   void quotaManager.resetIfNewDay();
+
   // Réenregistrement des handlers après réveil du SW
   const cryptoKey = await loadCryptoKey();
-  if (cryptoKey) registerModuleHandlers(cryptoKey);
+  if (cryptoKey) {
+    registerModuleHandlers(cryptoKey);
+    await storageService.initDB();
+
+    // Vérification M5 au démarrage (SFD §2.3.1)
+    const m5Handler = messageRouter.getHandler('M5');
+    if (m5Handler) {
+      void m5Handler(
+        { module: 'M5', action: 'check_update', payload: {}, timestamp: Date.now() },
+        {} as chrome.runtime.MessageSender,
+      );
+    }
+  }
 });
 
 /**

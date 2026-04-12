@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement
-- **Dernière action** : M2 et M17 implémentés — risk-analyzer, overlay-m2, m2-handler, paste-detector, toast-m17, m17-handler — build OK, lint OK, 127 tests OK — 2026-04-12
-- **Prochaine action attendue** : Implémenter M3 (score-calculator composantes), M5 (update check), M6 (quiz corpus + overlay). Pages statiques HTML manquantes (BACKLOG-PAGES-STATIC).
+- **Dernière action** : M3 (score-calculator composantes + badge), M5 (update check + anti-snooze), M6 (quiz corpus + overlay + spaced repetition) implémentés — build OK, lint OK, 200 tests OK — 2026-04-12
+- **Prochaine action attendue** : Implémenter M7 (hash password + comparaison blur), M9 (zxcvbn temps réel), popup/options/dashboard/onboarding, pages statiques HTML (BACKLOG-PAGES-STATIC).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
@@ -20,11 +20,22 @@
 | P1 | p1-cahier-des-charges-v1.1.md | v1.1 | Validé | 2026-04-11 |
 | P1 | p1-analyse-licences-open-source-v1.0.md | v1.0 | Validé (GPL v3 retenue) | 2026-04-11 |
 | P2 | gouvernance-pv-securite-p2-v1.0.md | v1.0 | Produit | 2026-04-11 |
-| P2 | p2-sfd-v1.0.md | v1.0 | Validé | 2026-04-11 |
 | P2 | p2-sfd-v1.1.md | v1.1 | Validé | 2026-04-11 |
 | P3 | p3-dat-v1.1.md | v1.1 | Validé | 2026-04-11 |
 | P3 | gouvernance-pv-architecture-v1.0.md | v1.0 | Validé | 2026-04-11 |
 | P3 | p3-aipd-m7-v1.0.md | v1.0 | Validé (D-SEC-005 satisfait) | 2026-04-11 |
+| P4 | src/background/handlers/m5-handler.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/content-scripts/ui/toast-m5.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/background/score-calculator.ts | — | Refondu (5 composantes M3) | 2026-04-12 |
+| P4 | src/background/handlers/m3-handler.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/background/handlers/m6-handler.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/content-scripts/ui/toast-m6.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/content-scripts/ui/overlay-m6.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/assets/data/quiz-corpus.json | — | 20 questions (15 FR + 5 EN) | 2026-04-12 |
+| P4 | src/background/service-worker.ts | — | M3/M5/M6 intégrés | 2026-04-12 |
+| P4 | tests/unit/modules/m5.test.ts | — | 15 tests OK | 2026-04-12 |
+| P4 | tests/unit/modules/m3.test.ts | — | 35 tests OK | 2026-04-12 |
+| P4 | tests/unit/modules/m6.test.ts | — | 23 tests OK | 2026-04-12 |
 
 ## Actions manuelles en attente
 
@@ -43,3 +54,5 @@
 - Gestionnaires mdp : uniquement projets open source nommés (KeePass, KeePassXC, Bitwarden, Vaultwarden)
 - M5 : détection via chrome.runtime.requestUpdateCheck() (API native, pas de version embarquée)
 - Couche d'abstraction navigateur à prévoir dès v1 pour compatibilité future Firefox/Edge
+- M3 score-calculator : pondérations M5=20, M6=25, M2=20, M7=20, M9=15. Redistribution proportionnelle si modules désactivés.
+- M6 spaced repetition : intervalles [0, 7, 21, 42, 70] jours puis 30j/mois. Score <50% → ×0.7, score 100% → ×1.2

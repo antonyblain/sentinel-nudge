@@ -146,6 +146,17 @@ export class MessageRouter {
    * @param message - Message à envoyer au content script UI
    * @returns Réponse du content script (optionnelle)
    */
+  /**
+   * Retourne le handler enregistré pour un module donné.
+   * Utilisé par le service worker pour appeler directement un handler (alarmes internes).
+   *
+   * @param moduleId - Identifiant du module
+   * @returns Handler ou undefined si non enregistré
+   */
+  getHandler(moduleId: ModuleId): ModuleHandler | undefined {
+    return this.handlers.get(moduleId);
+  }
+
   async sendToTab(tabId: number, message: NudgeMessage): Promise<NudgeResponse | null> {
     try {
       const response = await browser.tabs.sendMessage(tabId, message);
