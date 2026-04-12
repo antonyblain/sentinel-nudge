@@ -41,6 +41,10 @@
 | TACHE-037 | TÂCHE | UX-08 — Fusionner règle border:none orpheline .btn dans options.css | Should | À faire | P4' | Développeur | Brand Book §1.2 |
 | TACHE-038 | TÂCHE | UX-09 — Remplacer emoji 🔄 par icône SVG inline dans toast-m5 | Should | À faire | P4' | Développeur | Brand Book §1.2 |
 | TACHE-039 | TÂCHE | UX-10 — Ajouter max-height:480px + overflow-y:auto sur popup body | Should | À faire | P4' | Développeur | Brand Book §1.2 |
+| TACHE-040 | TÂCHE | Mettre à jour AIPD §1.3 — ajouter chrome.storage.local comme lieu de stockage whitelist M2 | Should | À faire | P5 | DPO | Revue DPO whitelist M2 |
+| TACHE-041 | TÂCHE | Documenter comportement HTTP/HTTPS hash (FNV-1a ≠ SHA-256 pour même domaine) dans DAT | Should | À faire | P5 | Architecte logiciel | R-SEC-02 / R-020 |
+| TACHE-042 | TÂCHE | Fusionner whitelist chrome.storage.local + IndexedDB dans l'export portabilité RGPD Art. 20 | Could | À faire | P5 | Développeur | Revue DPO |
+| TACHE-043 | TÂCHE | Plafonner taille whitelist M2 chrome.storage.local (10 000 entrées max) | Could | À faire | P5 | Développeur | R-SEC-04 |
 
 ## Actions résiduelles par phase
 

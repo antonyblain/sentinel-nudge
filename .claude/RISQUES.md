@@ -21,6 +21,10 @@
 | R-017 | Corpus quiz insuffisant (RT-009 du DAT) | Fonctionnel | 1 | 1 | 1 | Min 50 questions avant release. | Analyste métier | Ouvert |
 | R-018 | Frais CWS 5 USD (RT-010 du DAT) | Organisationnel | N/A | Bloquant | N/A | Soumettre au Commanditaire pour validation. | Orchestrateur | Ouvert |
 
+| R-019 | Divergence chrome.storage.local / IndexedDB sur whitelist M2 si SW tué pendant écriture | Technique | 2 | 2 | 4 | R-SEC-01 : synchronisation bidirectionnelle au démarrage du SW (plan B). En l'état, le content script est la source de vérité pour M2. | Architecte sécurité | Ouvert |
+| R-020 | FNV-1a (HTTP) produit un hash différent de SHA-256 (HTTPS) pour un même domaine — whitelist HTTP ne protège pas en HTTPS | Technique | 2 | 1 | 2 | Comportement voulu : un site passant de HTTP à HTTPS change de profil de risque. Documenter dans le DAT. | Architecte sécurité | Accepté |
+| R-021 | domain_hash whitelist M2 dans chrome.storage.local sans chiffrement ni purge automatique — données pseudonymisées persistantes | RGPD | 1 | 1 | 1 | chrome.storage.local.clear() couvre le droit à l'effacement. Durée de conservation = jusqu'à suppression manuelle ou désinstallation. Documenter dans AIPD. | DPO | Ouvert |
+
 ## Échelle
 - **Probabilité** : 1 = Rare, 2 = Possible, 3 = Probable, 4 = Quasi certain
 - **Impact** : 1 = Négligeable, 2 = Modéré, 3 = Significatif, 4 = Critique

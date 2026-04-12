@@ -102,8 +102,9 @@ async function loadTrustedDomains(): Promise<void> {
     const result = await browser.storage.local.get([M2_CS_WHITELIST_KEY]);
     const domains = result[M2_CS_WHITELIST_KEY];
     if (Array.isArray(domains)) {
+      const HEX64 = /^[0-9a-f]{64}$/;
       for (const d of domains) {
-        if (typeof d === 'string') trustedDomainHashes.add(d);
+        if (typeof d === 'string' && HEX64.test(d)) trustedDomainHashes.add(d);
       }
     }
   } catch {

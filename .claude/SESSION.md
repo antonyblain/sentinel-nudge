@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement (fin de sprint)
-- **Dernière action** : Nettoyage P4 complet — code mort supprimé (8 fichiers UI + sanitize.ts + 4 type guards + 4 clés i18n), 11 logs diagnostic retirés, 5 liens "En savoir plus" corrigés, focus trap M2 corrigé, comportements M2 (abandonner/continuer/confiance) corrigés, pages statiques renommées avec noms parlants, typosquatting enrichi 219→496 domaines (TACHE-011), export RGPD handlers implémentés (TACHE-013). Build OK, 200 tests OK — 2026-04-12
-- **Prochaine action attendue** : P4' — Intégration design system Brand Book (palette Aegis Blue validée, 10 tâches TACHE-030 à TACHE-039 dont dark mode v1). Puis comité revue de code P4 et transition P5 — tests unitaires (couverture 80%).
+- **Dernière action** : Nettoyage P4 + bugs M2 corrigés (boucle overlay, whitelist persistée triple couche, liens "En savoir plus", comportements boutons). Revues techniques complètes (archi sécu, DPO, archi logiciel). Addendum DAT whitelist M2 produit. PDCA P-015 CI Prettier. 200 tests OK, CI verte — 2026-04-13
+- **Prochaine action attendue** : P4' — Intégration design system Brand Book (palette Aegis Blue, 10 tâches TACHE-030 à TACHE-039 dont dark mode v1). Puis comité revue de code P4 et transition P5.
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
