@@ -251,12 +251,27 @@ function createModuleToggle(
  *
  * @param el - Élément où afficher la confirmation
  */
-function showSavedFeedback(el: HTMLElement): void {
-  const savedMsg = browser.i18n.getMessage('options_saved') || 'Enregistré';
-  el.textContent = savedMsg;
-  el.style.display = 'inline';
+function showSavedFeedback(_el: HTMLElement): void {
+  // Toast fixe en bas de page, visible quel que soit le scroll
+  const existingToast = document.getElementById('sn-options-toast');
+  if (existingToast) existingToast.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'sn-options-toast';
+  toast.className = 'options-toast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.textContent = browser.i18n.getMessage('options_saved') || '✓ Enregistré';
+  document.body.appendChild(toast);
+
+  // Animation d'entrée
+  requestAnimationFrame(() => {
+    toast.classList.add('options-toast-visible');
+  });
+
   setTimeout(() => {
-    el.style.display = 'none';
+    toast.classList.remove('options-toast-visible');
+    setTimeout(() => toast.remove(), 300);
   }, 1500);
 }
 

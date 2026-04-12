@@ -25,8 +25,14 @@ import type { NudgeMessage, M2Payload, M7Payload, M9Payload, M17Payload } from '
  * @param value - Valeur à tester (inconnue à la réception du message)
  * @returns true si la valeur est un ModuleId valide
  */
+/** Identifiants internes (non-modules) acceptés par le message router */
+const INTERNAL_IDS: readonly string[] = ['EXPORT'];
+
 export function isValidModuleId(value: unknown): value is ModuleId {
-  return typeof value === 'string' && (MODULE_IDS as readonly string[]).includes(value);
+  return (
+    typeof value === 'string' &&
+    ((MODULE_IDS as readonly string[]).includes(value) || INTERNAL_IDS.includes(value))
+  );
 }
 
 /**

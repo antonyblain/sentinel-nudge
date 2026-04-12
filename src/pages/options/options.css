@@ -68,12 +68,34 @@ body {
   margin-bottom: var(--sn-space-xl);
 }
 
-/* Feedback sauvegarde */
+/* Feedback sauvegarde — toast fixe en bas de page */
 .save-feedback {
-  font-size: var(--sn-font-size-small);
-  color: var(--sn-color-success);
+  display: none;
+}
+
+.options-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--sn-color-success);
+  color: #ffffff;
+  padding: var(--sn-space-sm) var(--sn-space-lg);
+  border-radius: var(--sn-radius);
+  font-size: var(--sn-font-size-body);
   font-weight: var(--sn-font-weight-bold);
-  margin-left: var(--sn-space-md);
+  box-shadow: var(--sn-shadow);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  pointer-events: none;
+}
+
+.options-toast-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Sections */

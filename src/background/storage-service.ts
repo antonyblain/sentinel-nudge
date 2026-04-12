@@ -634,6 +634,48 @@ export class StorageService {
     });
   }
 
+  /**
+   * Récupère tous les scores hebdomadaires (export RGPD Art. 20).
+   */
+  async getAllWeeklyScores(): Promise<object[]> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('weekly_scores', 'readonly');
+      const store = tx.objectStore('weekly_scores');
+      const request = store.getAll();
+      request.onsuccess = (): void => resolve(request.result as object[]);
+      request.onerror = (): void => reject(new Error('[StorageService] Échec getAllWeeklyScores'));
+    });
+  }
+
+  /**
+   * Récupère toutes les sessions quiz (export RGPD Art. 20).
+   */
+  async getAllQuizSessions(): Promise<object[]> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('quiz_sessions', 'readonly');
+      const store = tx.objectStore('quiz_sessions');
+      const request = store.getAll();
+      request.onsuccess = (): void => resolve(request.result as object[]);
+      request.onerror = (): void => reject(new Error('[StorageService] Échec getAllQuizSessions'));
+    });
+  }
+
+  /**
+   * Récupère toutes les entrées de la whitelist (export RGPD Art. 20).
+   */
+  async getAllWhitelist(): Promise<object[]> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('whitelist', 'readonly');
+      const store = tx.objectStore('whitelist');
+      const request = store.getAll();
+      request.onsuccess = (): void => resolve(request.result as object[]);
+      request.onerror = (): void => reject(new Error('[StorageService] Échec getAllWhitelist'));
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // Store whitelist (IndexedDB) — Modules M2 et M7
   // ---------------------------------------------------------------------------

@@ -25,6 +25,7 @@ import { QuotaManager } from './quota-manager';
 import { AlarmManager, ALARM_NAMES } from './alarm-manager';
 import { MessageRouter } from './message-router';
 import { ScoreCalculator } from './score-calculator';
+import { createExportHandler } from './handlers/export-handler';
 import { createM2Handler } from './handlers/m2-handler';
 import { createM3Handler } from './handlers/m3-handler';
 import { createM5Handler } from './handlers/m5-handler';
@@ -165,6 +166,10 @@ function registerModuleHandlers(cryptoKey: CryptoKey): void {
 
   // Handler M17 — données sensibles presse-papiers (critique — bypass quota automatique)
   messageRouter.registerHandler('M17', createM17Handler(storageService, cryptoKey));
+
+  // Handler EXPORT — export données RGPD Art. 20
+  const exportHandler = createExportHandler(storageService);
+  messageRouter.registerHandler('EXPORT', exportHandler);
 }
 
 /**

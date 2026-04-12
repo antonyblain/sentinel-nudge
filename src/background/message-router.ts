@@ -34,7 +34,7 @@ export type ModuleHandler = (
  */
 export class MessageRouter {
   private readonly quotaManager: QuotaManager;
-  private readonly handlers: Map<ModuleId, ModuleHandler> = new Map();
+  private readonly handlers: Map<string, ModuleHandler> = new Map();
 
   constructor(quotaManager: QuotaManager) {
     this.quotaManager = quotaManager;
@@ -46,7 +46,7 @@ export class MessageRouter {
    * @param moduleId - Identifiant du module
    * @param handler  - Fonction asynchrone traitant les messages du module
    */
-  registerHandler(moduleId: ModuleId, handler: ModuleHandler): void {
+  registerHandler(moduleId: ModuleId | string, handler: ModuleHandler): void {
     this.handlers.set(moduleId, handler);
   }
 
