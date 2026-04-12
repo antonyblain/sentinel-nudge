@@ -538,8 +538,10 @@ function createOverlayM2DOM(
     document.removeEventListener('keydown', handleKeydown);
     host.remove();
 
-    // Envoyer l'action au SW (await pour fiabiliser whitelist/trusted)
-    const sendAction = async (): Promise<void> => {
+    // Envoyer l'action au SW puis appliquer les effets locaux.
+    // On attend la réponse pour que le whitelist/session soit persisté
+    // AVANT de libérer le guard et refocus (évite la race condition).
+    const finalize = async (): Promise<void> => {
       try {
         await browser.runtime.sendMessage({
           module: 'M2',
@@ -550,20 +552,18 @@ function createOverlayM2DOM(
       } catch {
         // SW endormi — non bloquant, l'action locale reste effective
       }
+
+      // Comportements spécifiques par action
+      if (action === 'abandoned') {
+        field.value = '';
+        field.blur();
+      } else if (action === 'dismissed' || action === 'trusted') {
+        field.focus();
+      }
+
+      onAction(action);
     };
-    void sendAction();
-
-    // Comportements spécifiques par action
-    if (action === 'abandoned') {
-      // Abandonner : blur le champ password original et vider la saisie
-      field.value = '';
-      field.blur();
-    } else if (action === 'dismissed') {
-      // Continuer : refocus le champ pour que l'utilisateur puisse reprendre la saisie
-      field.focus();
-    }
-
-    onAction(action);
+    void finalize();
   }
 
   // Premier focus sur "Abandonner la saisie" (action sûre — SFD §2.1)
