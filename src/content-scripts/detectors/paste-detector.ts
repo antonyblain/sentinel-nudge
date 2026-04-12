@@ -293,8 +293,9 @@ async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
       data?: Record<string, unknown>;
     } | null;
 
-    // Si le SW autorise l'affichage du toast
-    if (response?.action === 'show') {
+    // M17 est critique — afficher le toast sauf si le SW refuse explicitement (skip quota)
+    // Fail-open : si la réponse est null, erreur ou show → on affiche
+    if (!response || response.action !== 'skip') {
       showToastM17(primaryType);
     }
   } catch {
@@ -325,7 +326,12 @@ function showToastM17(dataType: SensitiveDataType): void {
 
   // Conteneur hôte
   const host = document.createElement('div');
-  host.setAttribute('style', 'all:initial; position:fixed; bottom:24px; right:24px; z-index:2147483647;');
+  // all:initial reset + display:block explicite (all:initial remet display à inline,
+  // ce qui rend l'élément invisible car inline+fixed = taille zéro sans contenu inline)
+  host.setAttribute(
+    'style',
+    'all:initial; display:block; position:fixed; bottom:24px; right:24px; z-index:2147483647; width:380px; pointer-events:auto;',
+  );
   document.body.appendChild(host);
 
   // Shadow DOM pour isolation CSS
