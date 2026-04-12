@@ -267,6 +267,10 @@ export function shannonEntropy(text: string): number {
 /**
  * Notifie le service worker de la détection et déclenche le toast M17.
  *
+ * Le toast est affiché IMMÉDIATEMENT après la détection, avant la communication
+ * avec le SW. Le SW est notifié en arrière-plan pour le logging uniquement (fire and forget).
+ * Cela garantit l'affichage même si le SW est endormi (Bug 5-6 — M17 fiabilité).
+ *
  * Seul le type de données est transmis — jamais la valeur sensible (D-SEC-002).
  * Si plusieurs types sont détectés, le premier (priorité la plus haute) est utilisé
  * pour le toast, mais tous sont enregistrés.
@@ -276,6 +280,11 @@ export function shannonEntropy(text: string): number {
 async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
   const primaryType = types[0]!;
 
+  // M17 critique : afficher le toast IMMÉDIATEMENT, sans attendre la réponse du SW
+  showToastM17(primaryType);
+
+  // Notifier le SW en arrière-plan pour le logging (fire and forget)
+  // Un échec ici est non bloquant — le toast est déjà affiché
   const message = {
     module: 'M17' as const,
     action: 'sensitive_data_detected',
@@ -285,23 +294,10 @@ async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
     },
     timestamp: Date.now(),
   };
-
   try {
-    const response = (await browser.runtime.sendMessage(message)) as {
-      success: boolean;
-      action: string;
-      data?: Record<string, unknown>;
-    } | null;
-
-    // M17 est critique — afficher le toast sauf si le SW refuse explicitement (skip quota)
-    // Fail-open : si la réponse est null, erreur ou show → on affiche
-    if (!response || response.action !== 'skip') {
-      showToastM17(primaryType);
-    }
+    await browser.runtime.sendMessage(message);
   } catch {
-    // SW endormi ou inaccessible — M17 est un module critique (bypass quota),
-    // afficher le toast directement sans attendre la validation du SW
-    showToastM17(primaryType);
+    // SW endormi — logging perdu mais toast déjà affiché, non bloquant
   }
 }
 
@@ -391,12 +387,15 @@ function showToastM17(dataType: SensitiveDataType): void {
   btnClear.className = 'btn-danger';
   btnClear.textContent = 'Vider le presse-papiers';
   btnClear.addEventListener('click', () => {
-    navigator.clipboard.writeText('').then(() => {
-      btnClear.textContent = '\u2713 Vidé';
-      btnClear.disabled = true;
-    }).catch(() => {
-      btnClear.textContent = 'Échec — videz manuellement';
-    });
+    navigator.clipboard
+      .writeText('')
+      .then(() => {
+        btnClear.textContent = '\u2713 Vidé';
+        btnClear.disabled = true;
+      })
+      .catch(() => {
+        btnClear.textContent = 'Échec — videz manuellement';
+      });
   });
   actions.appendChild(btnClear);
 
@@ -420,7 +419,9 @@ function showToastM17(dataType: SensitiveDataType): void {
   shadow.appendChild(toast);
 
   // Auto-fermeture après 15s
-  setTimeout(() => { if (host.parentNode) host.remove(); }, 15000);
+  setTimeout(() => {
+    if (host.parentNode) host.remove();
+  }, 15000);
 }
 
 initPasteDetector();

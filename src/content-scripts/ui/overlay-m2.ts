@@ -565,7 +565,11 @@ export class OverlayM2 extends BaseNudge {
  * Appelé par le détecteur associé pour garantir l'inclusion dans le bundle Vite.
  */
 export function registerOverlayM2(): void {
-    if (typeof window !== "undefined" && window.customElements && !window.customElements.get('sn-overlay-m2')) {
-      window.customElements.define('sn-overlay-m2', OverlayM2);
-    }
+  if (
+    typeof window !== 'undefined' &&
+    window.customElements &&
+    !window.customElements.get('sn-overlay-m2')
+  ) {
+    window.customElements.define('sn-overlay-m2', OverlayM2);
+  }
 }

@@ -49,7 +49,7 @@ const EXTENSION_VERSION = (browser.runtime.getManifest() as { version: string })
 const GITHUB_URL = 'https://github.com/antonyblain/sentinel-nudge';
 
 /** URL de la politique de confidentialité */
-const PRIVACY_URL = browser.runtime.getURL('pages/static/privacy.html');
+const PRIVACY_URL = browser.runtime.getURL('pages/static/politique-confidentialite.html');
 
 /** Clés i18n et identifiants des 7 modules v1 */
 const MODULE_INFOS: Array<{
@@ -688,156 +688,15 @@ async function handleExport(config: StoredConfig): Promise<void> {
 }
 
 /**
- * Affiche un dialogue de confirmation accessible (WCAG 2.1 AA) pour les actions destructives.
- *
- * - role="alertdialog", aria-modal="true", aria-labelledby, aria-describedby
- * - Focus trap actif (Tab / Shift+Tab circulent entre les 2 boutons)
- * - Premier focus sur "Annuler" (action sûre)
- * - Escape = annuler
- * - D-SEC-003 : aucun innerHTML
- *
- * @param titleText  - Texte du titre du dialogue
- * @param descText   - Texte de description (conséquence de l'action)
- * @param confirmText - Texte du bouton de confirmation (action danger)
- * @param cancelText  - Texte du bouton d'annulation
- * @returns Promise<boolean> — true si confirmé, false si annulé
- */
-function showConfirmDialog(
-  titleText: string,
-  descText: string,
-  confirmText: string,
-  cancelText: string,
-): Promise<boolean> {
-  return new Promise((resolve) => {
-    // Fond semi-transparent (backdrop)
-    const backdrop = document.createElement('div');
-    backdrop.className = 'confirm-dialog-backdrop';
-    backdrop.setAttribute('aria-hidden', 'true');
-
-    // Dialogue
-    const dialog = document.createElement('div');
-    dialog.setAttribute('role', 'alertdialog');
-    dialog.setAttribute('aria-modal', 'true');
-    dialog.setAttribute('aria-labelledby', 'confirm-dialog-title');
-    dialog.setAttribute('aria-describedby', 'confirm-dialog-desc');
-    dialog.className = 'confirm-dialog';
-
-    // Titre
-    const title = document.createElement('h2');
-    title.id = 'confirm-dialog-title';
-    title.className = 'confirm-dialog-title';
-    title.textContent = titleText;
-    dialog.appendChild(title);
-
-    // Description
-    const desc = document.createElement('p');
-    desc.id = 'confirm-dialog-desc';
-    desc.className = 'confirm-dialog-desc';
-    desc.textContent = descText;
-    dialog.appendChild(desc);
-
-    // Zone des boutons
-    const actions = document.createElement('div');
-    actions.className = 'confirm-dialog-actions';
-
-    // Bouton Annuler — premier focus (action sûre)
-    const btnCancel = document.createElement('button');
-    btnCancel.type = 'button';
-    btnCancel.className = 'btn btn-secondary';
-    btnCancel.textContent = cancelText;
-
-    // Bouton Confirmer (action danger)
-    const btnConfirm = document.createElement('button');
-    btnConfirm.type = 'button';
-    btnConfirm.className = 'btn btn-danger';
-    btnConfirm.textContent = confirmText;
-
-    actions.appendChild(btnCancel);
-    actions.appendChild(btnConfirm);
-    dialog.appendChild(actions);
-
-    backdrop.appendChild(dialog);
-    document.body.appendChild(backdrop);
-
-    /**
-     * Ferme le dialogue et résout la promesse.
-     *
-     * @param result - true si confirmé, false si annulé
-     */
-    function close(result: boolean): void {
-      document.removeEventListener('keydown', handleKeydown);
-      document.body.removeChild(backdrop);
-      resolve(result);
-    }
-
-    /**
-     * Gestion du focus trap et de la touche Escape.
-     *
-     * @param e - Événement clavier
-     */
-    function handleKeydown(e: KeyboardEvent): void {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        close(false);
-        return;
-      }
-
-      // Focus trap : Tab / Shift+Tab circulent entre btnCancel et btnConfirm
-      if (e.key === 'Tab') {
-        const focused = document.activeElement;
-        if (e.shiftKey) {
-          // Shift+Tab : si focus sur Annuler → aller vers Confirmer
-          if (focused === btnCancel) {
-            e.preventDefault();
-            btnConfirm.focus();
-          }
-        } else {
-          // Tab : si focus sur Confirmer → aller vers Annuler
-          if (focused === btnConfirm) {
-            e.preventDefault();
-            btnCancel.focus();
-          }
-        }
-      }
-    }
-
-    btnCancel.addEventListener('click', () => close(false));
-    btnConfirm.addEventListener('click', () => close(true));
-    backdrop.addEventListener('click', (e) => {
-      // Clic hors du dialogue = annuler
-      if (e.target === backdrop) close(false);
-    });
-
-    document.addEventListener('keydown', handleKeydown);
-
-    // Premier focus sur "Annuler" (action sûre — TACHE-015)
-    requestAnimationFrame(() => {
-      btnCancel.focus();
-    });
-  });
-}
-
-/**
  * Supprime toutes les données de l'utilisateur (RGPD Art. 17).
  *
- * Affiche un dialogue HTML accessible (alertdialog) avant d'agir.
  * Effectue :
  * - indexedDB.deleteDatabase('sentinel-nudge-db')
  * - chrome.storage.local.clear()
  *
- * @param statusEl - Élément où afficher le résultat
+ * @param statusEl - Élément où afficher le résultat de l'opération
  */
 async function handleDeleteAllData(statusEl: HTMLElement): Promise<void> {
-  const confirmed = await showConfirmDialog(
-    browser.i18n.getMessage('options_delete_confirm_title') || 'Supprimer toutes vos données ?',
-    browser.i18n.getMessage('options_delete_confirm_desc') ||
-      'Cette action est irréversible. Toutes vos données locales seront définitivement supprimées.',
-    browser.i18n.getMessage('options_delete_confirm_btn') || 'Confirmer la suppression',
-    browser.i18n.getMessage('options_delete_cancel_btn') || 'Annuler',
-  );
-
-  if (!confirmed) return;
-
   try {
     // Supprimer IndexedDB
     await new Promise<void>((resolve, reject) => {
@@ -914,6 +773,9 @@ async function handleResetWhitelist(statusEl: HTMLElement): Promise<void> {
 /**
  * Construit la section Données (export, suppression, whitelist).
  *
+ * Le bouton de suppression affiche un encart intégré d'avertissement (fond rouge clair)
+ * directement sous le bouton — pas d'overlay modal flottant.
+ *
  * @param root    - Élément parent
  * @param config  - Configuration courante
  */
@@ -922,7 +784,7 @@ function renderDataSection(root: HTMLElement, config: StoredConfig): void {
     browser.i18n.getMessage('options_section_data') || 'Mes données',
   );
 
-  // Message de statut pour les opérations
+  // Message de statut pour les opérations (succès / erreur)
   const statusEl = document.createElement('p');
   statusEl.className = 'data-status';
   statusEl.setAttribute('role', 'status');
@@ -951,17 +813,87 @@ function renderDataSection(root: HTMLElement, config: StoredConfig): void {
   });
   fieldset.appendChild(btnResetWhitelist);
 
-  // Bouton Suppression RGPD Art. 17
+  // --- Bouton Suppression RGPD Art. 17 + encart inline ---
+
   const btnDelete = document.createElement('button');
   btnDelete.type = 'button';
   btnDelete.className = 'btn btn-danger data-btn';
   btnDelete.textContent =
     browser.i18n.getMessage('options_btn_delete') || 'Supprimer toutes mes données (RGPD Art. 17)';
-  btnDelete.addEventListener('click', () => {
+
+  // Encart d'avertissement inline — s'affiche sous le bouton au clic (toggle)
+  const inlineWarning = document.createElement('div');
+  inlineWarning.id = 'delete-inline-warning';
+  inlineWarning.className = 'delete-inline-warning';
+  inlineWarning.setAttribute('role', 'alert');
+  inlineWarning.setAttribute('aria-live', 'assertive');
+  inlineWarning.style.cssText =
+    'display:none; background:#FEE2E2; border:1px solid #DC2626; border-radius:6px; padding:12px 16px; margin-top:8px;';
+
+  // Titre d'avertissement
+  const warnTitle = document.createElement('p');
+  warnTitle.style.cssText = 'font-weight:600; margin:0 0 4px 0; color:#991B1B;';
+  warnTitle.textContent =
+    browser.i18n.getMessage('options_delete_confirm_title') || '⚠️ Supprimer toutes vos données ?';
+  inlineWarning.appendChild(warnTitle);
+
+  // Description du risque
+  const warnDesc = document.createElement('p');
+  warnDesc.style.cssText = 'font-size:13px; margin:0 0 12px 0; color:#7F1D1D;';
+  warnDesc.textContent =
+    browser.i18n.getMessage('options_delete_confirm_desc') ||
+    'Cette action est irréversible. Toutes vos données locales seront définitivement supprimées.';
+  inlineWarning.appendChild(warnDesc);
+
+  // Zone des boutons
+  const warnActions = document.createElement('div');
+  warnActions.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap;';
+
+  // Bouton Annuler (action sûre — reçoit le focus en premier)
+  const btnCancelDelete = document.createElement('button');
+  btnCancelDelete.type = 'button';
+  btnCancelDelete.className = 'btn';
+  btnCancelDelete.style.cssText =
+    'background:#6B7280; color:#fff; border:none; border-radius:6px; padding:8px 16px; min-height:44px; cursor:pointer;';
+  btnCancelDelete.textContent = browser.i18n.getMessage('options_delete_cancel_btn') || 'Annuler';
+  btnCancelDelete.addEventListener('click', () => {
+    inlineWarning.style.display = 'none';
+    btnDelete.setAttribute('aria-expanded', 'false');
+  });
+  warnActions.appendChild(btnCancelDelete);
+
+  // Bouton Confirmer (action danger)
+  const btnConfirmDelete = document.createElement('button');
+  btnConfirmDelete.type = 'button';
+  btnConfirmDelete.className = 'btn btn-danger';
+  btnConfirmDelete.style.cssText =
+    'background:#DC2626; color:#fff; border:none; border-radius:6px; padding:8px 16px; min-height:44px; cursor:pointer;';
+  btnConfirmDelete.textContent =
+    browser.i18n.getMessage('options_delete_confirm_btn') || 'Confirmer la suppression';
+  btnConfirmDelete.addEventListener('click', () => {
+    inlineWarning.style.display = 'none';
+    btnDelete.setAttribute('aria-expanded', 'false');
     handleDeleteAllData(statusEl).catch(() => undefined);
   });
-  fieldset.appendChild(btnDelete);
+  warnActions.appendChild(btnConfirmDelete);
 
+  inlineWarning.appendChild(warnActions);
+
+  // L'encart est lié au bouton par aria-expanded + aria-controls
+  btnDelete.setAttribute('aria-expanded', 'false');
+  btnDelete.setAttribute('aria-controls', 'delete-inline-warning');
+  btnDelete.addEventListener('click', () => {
+    const isVisible = inlineWarning.style.display !== 'none';
+    inlineWarning.style.display = isVisible ? 'none' : 'block';
+    btnDelete.setAttribute('aria-expanded', isVisible ? 'false' : 'true');
+    if (!isVisible) {
+      // Focus sur le bouton Annuler (action sûre) dès l'ouverture
+      requestAnimationFrame(() => btnCancelDelete.focus());
+    }
+  });
+
+  fieldset.appendChild(btnDelete);
+  fieldset.appendChild(inlineWarning);
   fieldset.appendChild(statusEl);
   root.appendChild(section);
 }

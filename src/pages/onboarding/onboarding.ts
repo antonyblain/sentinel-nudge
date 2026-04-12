@@ -336,7 +336,6 @@ function renderStep3(stepContainer: HTMLElement): void {
         'aria-label',
         `${browser.i18n.getMessage(mod.nameKey)} (consentement requis à l'étape suivante)`,
       );
-
     }
 
     input.addEventListener('change', () => {
@@ -351,16 +350,16 @@ function renderStep3(stepContainer: HTMLElement): void {
     switchWrapper.appendChild(switchVisual);
     wrapper.appendChild(switchWrapper);
 
-    fieldset.appendChild(wrapper);
-
-    // Note M7 : ajoutée APRÈS le wrapper dans le fieldset (pas dedans)
+    // Note M7 : ajoutée AVANT le wrapper pour apparaître entre le module précédent et M7
     if (mod.id === 'M7') {
       const m7Note = document.createElement('p');
       m7Note.className = 'module-row-m7-note';
       m7Note.textContent =
-        "Ce module nécessite votre consentement explicite. Il sera proposé à l'étape suivante.";
+        "Le module suivant nécessite votre consentement explicite. Il sera proposé à l'étape suivante.";
       fieldset.appendChild(m7Note);
     }
+
+    fieldset.appendChild(wrapper);
   }
 
   stepContainer.appendChild(fieldset);

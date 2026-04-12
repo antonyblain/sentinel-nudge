@@ -543,12 +543,12 @@ function renderNudgeStats(
 function renderQuizSection(container: HTMLElement, sessions: QuizSessionData[]): void {
   const section = document.createElement('section');
   section.className = 'dashboard-section quiz-section';
-  section.setAttribute('aria-label', 'Quiz M6');
+  section.setAttribute('aria-label', 'Quiz');
 
   const h2 = document.createElement('h2');
   h2.className = 'section-title';
   h2.textContent =
-    browser.i18n.getMessage('dashboard_quiz_title') || 'Quiz M6 — Résistance au phishing';
+    browser.i18n.getMessage('dashboard_quiz_title') || 'Quiz — Résistance au phishing';
   section.appendChild(h2);
 
   if (sessions.length === 0) {

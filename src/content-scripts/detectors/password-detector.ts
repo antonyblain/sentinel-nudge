@@ -32,17 +32,12 @@
 
 import { browser } from '@/shared/browser/browser-adapter';
 import { hashPassword, hashDomain } from '@/shared/utils/hash';
-import { OverlayM9, registerOverlayM9 } from '@/content-scripts/ui/overlay-m9';
-import { ToastM7, registerToastM7 } from '@/content-scripts/ui/toast-m7';
-import { OverlayM2, registerOverlayM2 } from '@/content-scripts/ui/overlay-m2';
 import { analyzeRisks } from '@/content-scripts/detectors/risk-analyzer';
 import { zxcvbn } from '@zxcvbn-ts/core';
 
-// Enregistrer les custom elements au chargement du content script
-// Garantit leur inclusion dans le bundle Vite (évite le tree-shaking)
-registerOverlayM2();
-registerOverlayM9();
-registerToastM7();
+// Note : les Custom Elements (customElements.define) ne fonctionnent PAS dans les
+// content scripts Chrome MV3 (isolated world — "Illegal constructor").
+// Les overlays M2, M9 et le toast M7 sont construits directement en DOM + Shadow DOM.
 
 /** Délai de debounce pour l'évaluation zxcvbn (ms) */
 const DEBOUNCE_MS = 150;
@@ -59,12 +54,21 @@ const M7_DEFER_AFTER_M2_MS = 5000;
 interface M9Context {
   /** Le champ password surveillé */
   field: HTMLInputElement;
-  /** L'overlay M9 associé */
-  overlay: OverlayM9;
+  /** Le host Shadow DOM de l'indicateur M9 inséré après le champ */
+  overlayHost: HTMLDivElement | null;
+  /** Fonctions de mise à jour et contrôle de l'overlay M9 */
+  overlayControls: M9OverlayControls | null;
   /** ID du debounce en cours */
   debounceId: ReturnType<typeof setTimeout> | null;
   /** true si un gestionnaire de mots de passe a été détecté */
   pmDetected: boolean;
+}
+
+/** Contrôleurs de l'overlay M9 DOM direct */
+interface M9OverlayControls {
+  update: (score: number, value: string, mode: 'password' | 'passphrase', width: number) => void;
+  show: () => void;
+  hide: () => void;
 }
 
 /** Map des champs surveillés par M9 (clé = champ) */
@@ -240,11 +244,8 @@ async function showOverlayM2(
   signals: string[],
   domainHash: string,
 ): Promise<boolean> {
-  const overlay = new OverlayM2();
-  document.body.appendChild(overlay);
-
   return new Promise((resolve) => {
-    overlay.open(signals, domainHash, (action) => {
+    createOverlayM2DOM(signals, domainHash, (action) => {
       // M2 fermé — M7 peut être différé si applicable (SFD §2.1.5)
       if (action !== 'abandoned') {
         fieldsWithM2Active.delete(field);
@@ -254,27 +255,273 @@ async function showOverlayM2(
   });
 }
 
+/**
+ * Crée et affiche l'overlay M2 directement en DOM + Shadow DOM.
+ * Résout le bug "Illegal constructor" des Custom Elements en content script MV3.
+ *
+ * Reproduit la logique de overlay-m2.ts sans Custom Elements :
+ * - Backdrop semi-transparent
+ * - Panel latéral droit (400px) avec role="alertdialog"
+ * - Signaux de risque listés, explication inline toggle, 4 boutons
+ * - Focus trap (Tab / Shift+Tab) + Escape = dismissed
+ * - First focus sur "Abandonner la saisie" (action sûre)
+ *
+ * Sécurité (D-SEC-003) : aucun innerHTML.
+ *
+ * @param signals    - Signaux de risque détectés
+ * @param domainHash - Hash salé du domaine courant
+ * @param onAction   - Callback avec l'action choisie
+ */
+function createOverlayM2DOM(
+  signals: string[],
+  domainHash: string,
+  onAction: (action: 'dismissed' | 'trusted' | 'abandoned' | 'why') => void,
+): void {
+  const SIGNAL_FALLBACKS: Record<string, string> = {
+    http: 'Ce site utilise HTTP (non chiffré)',
+    hsts_miss: "Ce site n'est pas dans la liste HSTS preload",
+    levenshtein: 'Ce domaine ressemble à un site connu (typosquatting possible)',
+    cert_invalid: "Le certificat TLS n'est pas valide",
+  };
+  const SIGNAL_KEYS: Record<string, string> = {
+    http: 'm2_signal_http',
+    hsts_miss: 'm2_signal_hsts_miss',
+    levenshtein: 'm2_signal_levenshtein',
+    cert_invalid: 'm2_signal_cert_invalid',
+  };
+
+  // Hôte fixe plein-écran
+  const host = document.createElement('div');
+  host.style.cssText =
+    'all:initial; display:block; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:2147483647; pointer-events:none;';
+  document.body.appendChild(host);
+
+  const shadow = host.attachShadow({ mode: 'open' });
+
+  const style = document.createElement('style');
+  style.textContent = [
+    '#bd{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.3);pointer-events:all;animation:fi .2s ease-out}',
+    '#pn{position:fixed;top:0;right:0;height:100vh;width:400px;max-width:100vw;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,.2);display:flex;flex-direction:column;padding:24px;overflow-y:auto;pointer-events:all;font:15px/1.5 system-ui,sans-serif;color:#111827;animation:si .2s ease-out;box-sizing:border-box}',
+    '@keyframes fi{from{opacity:0}to{opacity:1}}',
+    '@keyframes si{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}',
+    '.ico{text-align:center;font-size:48px;margin-bottom:16px}',
+    'h2{font-size:18px;font-weight:700;color:#DC2626;margin:0 0 8px}',
+    '.desc{margin:0 0 16px;line-height:1.5;color:#111827}',
+    'ul{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:4px}',
+    'li{background:#FEF2F2;border-left:3px solid #DC2626;padding:8px 12px;border-radius:0 6px 6px 0;font-size:13px}',
+    '.expl{background:#F0F9FF;border:1px solid #BAE6FD;border-radius:6px;padding:16px;margin-bottom:16px}',
+    '.expl h3{margin:0 0 8px;font-size:15px;font-weight:700;color:#2563EB}',
+    '.expl p{margin:0 0 8px;font-size:13px;line-height:1.5}',
+    '.acts{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:16px}',
+    'button{width:100%;min-height:44px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:700;border:none;text-align:center}',
+    '#ba{background:#DC2626;color:#fff}#ba:hover{opacity:.9}',
+    '#bc{background:#E5E7EB;color:#111827}#bc:hover{background:#D1D5DB}',
+    '#bt{background:none;border:1px solid #16A34A!important;color:#16A34A}#bt:hover{background:#F0FDF4}',
+    '#bw{background:none;border:1px solid #D1D5DB!important;color:#6B7280;font-weight:400;font-size:13px}#bw:hover{color:#111827;background:#F9FAFB}',
+    '@media(max-width:440px){#pn{width:100vw}}',
+    '@media(prefers-reduced-motion:reduce){#bd,#pn{animation:none}}',
+  ].join('');
+  shadow.appendChild(style);
+
+  // Backdrop
+  const backdrop = document.createElement('div');
+  backdrop.id = 'bd';
+  backdrop.setAttribute('aria-hidden', 'true');
+  backdrop.addEventListener('click', () => closeM2('dismissed'));
+  shadow.appendChild(backdrop);
+
+  // Panel
+  const panel = document.createElement('div');
+  panel.id = 'pn';
+  panel.setAttribute('role', 'alertdialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'sn-m2-ttl');
+  panel.setAttribute('aria-describedby', 'sn-m2-dsc');
+
+  const iconDiv = document.createElement('div');
+  iconDiv.className = 'ico';
+  iconDiv.setAttribute('aria-hidden', 'true');
+  iconDiv.textContent = '⚠️';
+  panel.appendChild(iconDiv);
+
+  const titleEl = document.createElement('h2');
+  titleEl.id = 'sn-m2-ttl';
+  titleEl.textContent = browser.i18n.getMessage('m2_overlay_title') || 'Site à risque détecté';
+  panel.appendChild(titleEl);
+
+  const descEl = document.createElement('p');
+  descEl.id = 'sn-m2-dsc';
+  descEl.className = 'desc';
+  descEl.textContent =
+    browser.i18n.getMessage('m2_overlay_description') ||
+    'Sentinel Nudge a détecté des signaux de risque sur ce site.';
+  panel.appendChild(descEl);
+
+  // Signaux
+  const signalList = document.createElement('ul');
+  signalList.setAttribute(
+    'aria-label',
+    browser.i18n.getMessage('m2_overlay_signals_label') || 'Signaux de risque détectés',
+  );
+  for (const sig of signals) {
+    const li = document.createElement('li');
+    const key = SIGNAL_KEYS[sig];
+    const fallback = SIGNAL_FALLBACKS[sig] ?? 'Signal : ' + sig;
+    li.textContent = key ? browser.i18n.getMessage(key) || fallback : fallback;
+    signalList.appendChild(li);
+  }
+  panel.appendChild(signalList);
+
+  // Section explication (masquée par défaut)
+  const expl = document.createElement('div');
+  expl.className = 'expl';
+  expl.hidden = true;
+
+  const explTitle = document.createElement('h3');
+  explTitle.textContent =
+    browser.i18n.getMessage('m2_explanation_title') || 'Pourquoi cette alerte ?';
+  expl.appendChild(explTitle);
+
+  const explP1 = document.createElement('p');
+  explP1.textContent =
+    browser.i18n.getMessage('m2_explanation_para1') ||
+    "Les signaux détectés indiquent que ce site présente des caractéristiques couramment associées aux attaques de phishing et d'usurpation d'identité.";
+  expl.appendChild(explP1);
+
+  const explP2 = document.createElement('p');
+  explP2.textContent =
+    browser.i18n.getMessage('m2_explanation_para2') ||
+    'Saisir un mot de passe sur un site non sécurisé ou imitant un site connu expose vos identifiants à des tiers malveillants.';
+  expl.appendChild(explP2);
+
+  const btnLearn = document.createElement('button');
+  btnLearn.style.cssText =
+    'margin-top:8px;background:none;border:1px solid #2563EB;color:#2563EB;font-size:13px;padding:6px 12px;min-height:44px;min-width:0;cursor:pointer;border-radius:6px;width:auto;font-weight:400;';
+  btnLearn.textContent =
+    browser.i18n.getMessage('m2_overlay_btn_learn') || 'En savoir plus sur les risques';
+  btnLearn.addEventListener('click', () => {
+    void browser.runtime.sendMessage({
+      module: 'M2',
+      action: 'open_explanation',
+      payload: { signals },
+      timestamp: Date.now(),
+    });
+  });
+  expl.appendChild(btnLearn);
+  panel.appendChild(expl);
+
+  // Boutons d'action
+  const acts = document.createElement('div');
+  acts.className = 'acts';
+
+  const btnAbandon = document.createElement('button');
+  btnAbandon.id = 'ba';
+  btnAbandon.type = 'button';
+  btnAbandon.textContent =
+    browser.i18n.getMessage('m2_overlay_btn_abandon') || 'Abandonner la saisie';
+  btnAbandon.addEventListener('click', () => closeM2('abandoned'));
+
+  const btnContinue = document.createElement('button');
+  btnContinue.id = 'bc';
+  btnContinue.type = 'button';
+  btnContinue.textContent =
+    browser.i18n.getMessage('m2_overlay_btn_dismiss') || 'Continuer quand même';
+  btnContinue.addEventListener('click', () => closeM2('dismissed'));
+
+  const btnTrust = document.createElement('button');
+  btnTrust.id = 'bt';
+  btnTrust.type = 'button';
+  btnTrust.textContent =
+    browser.i18n.getMessage('m2_overlay_btn_trust') || 'Marquer comme de confiance';
+  btnTrust.addEventListener('click', () => closeM2('trusted'));
+
+  const btnWhy = document.createElement('button');
+  btnWhy.id = 'bw';
+  btnWhy.type = 'button';
+  btnWhy.setAttribute('aria-expanded', 'false');
+  btnWhy.textContent = browser.i18n.getMessage('m2_overlay_btn_why') || 'Pourquoi ce message ?';
+  btnWhy.addEventListener('click', () => {
+    const hidden = expl.hidden;
+    expl.hidden = !hidden;
+    btnWhy.setAttribute('aria-expanded', hidden ? 'true' : 'false');
+  });
+
+  acts.appendChild(btnAbandon);
+  acts.appendChild(btnContinue);
+  acts.appendChild(btnTrust);
+  acts.appendChild(btnWhy);
+  panel.appendChild(acts);
+
+  shadow.appendChild(panel);
+
+  // Focus trap + Escape
+  function handleKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeM2('dismissed');
+      return;
+    }
+    if (e.key === 'Tab') {
+      const focusable = [btnAbandon, btnContinue, btnTrust, btnWhy];
+      const active = shadow.activeElement;
+      const idx = focusable.indexOf(active as HTMLButtonElement);
+      if (e.shiftKey) {
+        if (idx <= 0) {
+          e.preventDefault();
+          focusable[focusable.length - 1]!.focus();
+        }
+      } else {
+        if (idx === focusable.length - 1) {
+          e.preventDefault();
+          focusable[0]!.focus();
+        }
+      }
+    }
+  }
+  document.addEventListener('keydown', handleKeydown);
+
+  function closeM2(action: 'dismissed' | 'trusted' | 'abandoned' | 'why'): void {
+    document.removeEventListener('keydown', handleKeydown);
+
+    void browser.runtime.sendMessage({
+      module: 'M2',
+      action: 'overlay_action',
+      payload: { user_action: action, domain_hash: domainHash, signals },
+      timestamp: Date.now(),
+    });
+
+    if (action === 'abandoned') {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) active.blur();
+    }
+
+    host.remove();
+    onAction(action);
+  }
+
+  // Premier focus sur "Abandonner la saisie" (action sûre — SFD §2.1)
+  requestAnimationFrame(() => btnAbandon.focus());
+}
+
 // ---------------------------------------------------------------------------
 // Module M9 — initialisation et gestion de l'overlay
 // ---------------------------------------------------------------------------
 
 /**
- * Initialise l'overlay M9 pour un champ de création de mot de passe.
+ * Initialise l'indicateur de force M9 pour un champ de création de mot de passe.
+ * Construction DOM directe + Shadow DOM (pas de Custom Elements — isolated world MV3).
  *
  * @param field - Champ password détecté comme formulaire de création
  */
 function initM9ForField(field: HTMLInputElement): void {
   if (m9Contexts.has(field)) return; // Déjà initialisé
 
-  const overlay = new OverlayM9();
-  overlay.style.display = 'none';
-
-  // Insertion juste après le champ — même largeur garantie via JS
-  field.insertAdjacentElement('afterend', overlay);
+  const controls = createStrengthIndicator(field);
 
   const context: M9Context = {
     field,
-    overlay,
+    overlayHost: controls.host,
+    overlayControls: controls,
     debounceId: null,
     pmDetected: false,
   };
@@ -285,21 +532,271 @@ function initM9ForField(field: HTMLInputElement): void {
   field.addEventListener('input', () => {
     handlePasswordInput(field);
   });
-
-  // Synchroniser la largeur de l'overlay avec le champ
-  syncOverlayWidth(field, overlay);
-  window.addEventListener('resize', () => syncOverlayWidth(field, overlay));
 }
 
 /**
- * Synchronise la largeur de l'overlay avec celle du champ parent.
+ * Synchronise la largeur de l'indicateur M9 avec celle du champ parent.
  *
- * @param field   - Champ parent
- * @param overlay - Overlay à redimensionner
+ * @param field - Champ parent
+ * @param host  - Élément host de l'indicateur
  */
-function syncOverlayWidth(field: HTMLInputElement, overlay: OverlayM9): void {
+function syncM9Width(field: HTMLInputElement, host: HTMLDivElement): void {
   const rect = field.getBoundingClientRect();
-  overlay.style.width = `${rect.width}px`;
+  host.style.width = `${rect.width}px`;
+}
+
+/**
+ * Crée l'indicateur de force de mot de passe M9 directement en DOM + Shadow DOM.
+ * Résout le bug "Illegal constructor" des Custom Elements en content script MV3.
+ *
+ * Structure : <div host> → Shadow DOM → styles + conteneur indicateur
+ *
+ * Accessibilité :
+ * - role="meter", aria-valuenow, aria-valuemin="0", aria-valuemax="4", aria-valuetext
+ * - aria-live="polite" sur la zone de suggestion
+ *
+ * @param field - Champ password après lequel insérer l'indicateur
+ * @returns Objet host + contrôles (update/show/hide)
+ */
+function createStrengthIndicator(
+  field: HTMLInputElement,
+): M9OverlayControls & { host: HTMLDivElement } {
+  const SCORE_COLORS = ['#DC2626', '#DC2626', '#D97706', '#16A34A', '#166534'] as const;
+  const SCORE_LABELS = ['Très faible', 'Faible', 'Moyen', 'Fort', 'Très fort'] as const;
+  const ANSSI_MARKERS = [
+    "Déconseillé par l'ANSSI",
+    "Déconseillé par l'ANSSI",
+    'Acceptable',
+    'Recommandé',
+    'Recommandé',
+  ] as const;
+  const SCORE_KEYS = [
+    'm9_score_very_weak',
+    'm9_score_weak',
+    'm9_score_medium',
+    'm9_score_strong',
+    'm9_score_very_strong',
+  ] as const;
+  const ANSSI_KEYS = [
+    'm9_anssi_not_recommended',
+    'm9_anssi_not_recommended',
+    'm9_anssi_acceptable',
+    'm9_anssi_recommended',
+    'm9_anssi_recommended',
+  ] as const;
+
+  // Conteneur hôte — display:block pour rester dans le flux
+  const host = document.createElement('div');
+  host.style.cssText = 'display:none; width:100%; box-sizing:border-box;';
+  field.insertAdjacentElement('afterend', host);
+
+  // Shadow DOM pour isolation CSS
+  const shadow = host.attachShadow({ mode: 'open' });
+
+  const style = document.createElement('style');
+  style.textContent = [
+    '.sn-m9{font:13px/1.4 system-ui,sans-serif;padding:4px 0;box-sizing:border-box;width:100%}',
+    '.sn-m9-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}',
+    '.sn-m9-meter{flex:1}',
+    '.sn-m9-bar-bg{background:#E5E7EB;border-radius:4px;height:6px;overflow:hidden;width:100%}',
+    '.sn-m9-bar-fill{height:100%;border-radius:4px;width:0%;transition:width .2s ease,background-color .2s ease}',
+    '.sn-m9-labels{display:flex;flex-direction:column;align-items:flex-end;min-width:120px;flex-shrink:0}',
+    '.sn-m9-label{font-weight:600;font-size:13px}',
+    '.sn-m9-anssi{font-size:11px;color:#6B7280}',
+    '.sn-m9-suggestion{margin:0;color:#111827;font-size:13px;min-height:1.5em}',
+    '@media(prefers-reduced-motion:reduce){.sn-m9-bar-fill{transition:none}}',
+  ].join('');
+  shadow.appendChild(style);
+
+  const containerEl = document.createElement('div');
+  containerEl.className = 'sn-m9';
+
+  const barRow = document.createElement('div');
+  barRow.className = 'sn-m9-bar-row';
+
+  const meter = document.createElement('div');
+  meter.className = 'sn-m9-meter';
+  meter.setAttribute('role', 'meter');
+  meter.setAttribute(
+    'aria-label',
+    browser.i18n.getMessage('m9_meter_label') || 'Force du mot de passe',
+  );
+  meter.setAttribute('aria-valuenow', '0');
+  meter.setAttribute('aria-valuemin', '0');
+  meter.setAttribute('aria-valuemax', '4');
+  meter.setAttribute('aria-valuetext', SCORE_LABELS[0]);
+
+  const barBg = document.createElement('div');
+  barBg.className = 'sn-m9-bar-bg';
+  const barFill = document.createElement('div');
+  barFill.className = 'sn-m9-bar-fill';
+  barBg.appendChild(barFill);
+  meter.appendChild(barBg);
+
+  const labelGroup = document.createElement('div');
+  labelGroup.className = 'sn-m9-labels';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'sn-m9-label';
+  const anssiEl = document.createElement('span');
+  anssiEl.className = 'sn-m9-anssi';
+  labelGroup.appendChild(labelEl);
+  labelGroup.appendChild(anssiEl);
+
+  barRow.appendChild(meter);
+  barRow.appendChild(labelGroup);
+  containerEl.appendChild(barRow);
+
+  const suggestionEl = document.createElement('p');
+  suggestionEl.className = 'sn-m9-suggestion';
+  suggestionEl.setAttribute('aria-live', 'polite');
+  suggestionEl.setAttribute('aria-atomic', 'true');
+  containerEl.appendChild(suggestionEl);
+
+  shadow.appendChild(containerEl);
+
+  // Synchroniser la largeur initiale et au resize
+  syncM9Width(field, host);
+  window.addEventListener('resize', () => syncM9Width(field, host));
+
+  const controls = {
+    host,
+    update(score: number, value: string, mode: 'password' | 'passphrase', width: number): void {
+      host.style.width = `${width}px`;
+      const clamped = Math.max(0, Math.min(4, score));
+      const color = SCORE_COLORS[clamped]!;
+      const label = browser.i18n.getMessage(SCORE_KEYS[clamped]!) || SCORE_LABELS[clamped]!;
+      const anssi = browser.i18n.getMessage(ANSSI_KEYS[clamped]!) || ANSSI_MARKERS[clamped]!;
+
+      const percent = ((clamped + 1) / 5) * 100;
+      barFill.style.width = `${percent}%`;
+      barFill.style.backgroundColor = color;
+      meter.setAttribute('aria-valuenow', String(clamped));
+      meter.setAttribute('aria-valuetext', label);
+      labelEl.textContent = label;
+      labelEl.style.color = color;
+      anssiEl.textContent = anssi;
+      suggestionEl.textContent = getM9Suggestion(score, value, mode);
+    },
+    show(): void {
+      host.style.display = 'block';
+    },
+    hide(): void {
+      host.style.display = 'none';
+    },
+  };
+
+  return controls;
+}
+
+/**
+ * Génère la suggestion textuelle pour l'indicateur M9 selon le score et le mode.
+ *
+ * @param score - Score zxcvbn (0-4)
+ * @param value - Valeur courante du mot de passe
+ * @param mode  - 'password' ou 'passphrase'
+ * @returns Texte de suggestion
+ */
+function getM9Suggestion(score: number, value: string, mode: 'password' | 'passphrase'): string {
+  if (mode === 'passphrase') {
+    if (score >= 4) {
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_excellent') ||
+        'Excellente phrase de passe ! Longue et imprévisible.'
+      );
+    }
+    if (score >= 3) {
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_good') ||
+        'Bonne phrase de passe ! Facile à retenir, difficile à deviner.'
+      );
+    }
+    const words = value
+      .trim()
+      .split(/s+/)
+      .filter((w) => w.length > 0);
+    const COMMON_WORDS = new Set([
+      'le',
+      'la',
+      'de',
+      'un',
+      'je',
+      'et',
+      'les',
+      'des',
+      'du',
+      'en',
+      'il',
+      'est',
+      'au',
+      'ce',
+      'sur',
+      'que',
+      'se',
+      'ne',
+      'sa',
+      'ou',
+    ]);
+    if (words.length < 4) {
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_too_short') ||
+        'Ajoutez un ou deux mots pour renforcer votre phrase de passe.'
+      );
+    }
+    if (words.some((w) => COMMON_WORDS.has(w.toLowerCase()))) {
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_common_words') ||
+        'Remplacez les mots très courants par des mots plus originaux.'
+      );
+    }
+    return (
+      browser.i18n.getMessage('m9_suggestion_pp_unusual_words') ||
+      'Essayez des mots moins courants ou sans lien logique entre eux.'
+    );
+  }
+  // Mode mot de passe classique
+  if (score >= 4) {
+    return (
+      browser.i18n.getMessage('m9_suggestion_pw_excellent') ||
+      'Excellent ! Ce mot de passe est très solide.'
+    );
+  }
+  if (score >= 3) {
+    return (
+      browser.i18n.getMessage('m9_suggestion_pw_good') ||
+      'Bon mot de passe ! Pensez aussi à la phrase de passe : plus longue, plus facile à retenir.'
+    );
+  }
+  const hasDigit = /d/.test(value);
+  const hasSymbol = /[^a-zA-Z0-9]/.test(value);
+  const hasSequence = /(?:123|234|345|456|567|678|789|890|abc|bcd|cde|qwerty|azerty)/i.test(value);
+  if (hasSequence) {
+    return (
+      browser.i18n.getMessage('m9_suggestion_pw_sequence') ||
+      'Évitez les séquences prévisibles (123, abc, azerty…).'
+    );
+  }
+  if (value.length < 12) {
+    return (
+      browser.i18n.getMessage('m9_suggestion_pw_too_short') ||
+      'Ajoutez des caractères — visez au moins 12.'
+    );
+  }
+  if (!hasDigit && !hasSymbol) {
+    return (
+      browser.i18n.getMessage('m9_suggestion_pw_no_special') ||
+      'Ajoutez un chiffre ou un caractère spécial pour renforcer la force.'
+    );
+  }
+  if (!hasSymbol && value.length >= 12) {
+    return (
+      browser.i18n.getMessage('m9_suggestion_pw_add_symbol') ||
+      'Un caractère spécial (@, #, !) vous ferait passer à Fort.'
+    );
+  }
+  return (
+    browser.i18n.getMessage('m9_suggestion_pw_keep_going') ||
+    'Continuez à améliorer votre mot de passe.'
+  );
 }
 
 /**
@@ -334,7 +831,7 @@ function evaluatePasswordStrength(field: HTMLInputElement): void {
   const value = field.value;
 
   if (value.length === 0) {
-    ctx.overlay.hide();
+    ctx.overlayControls?.hide();
     return;
   }
 
@@ -343,8 +840,8 @@ function evaluatePasswordStrength(field: HTMLInputElement): void {
   const mode = detectInputType(value);
   const rect = field.getBoundingClientRect();
 
-  ctx.overlay.show();
-  ctx.overlay.update(result.score, value, mode, rect.width);
+  ctx.overlayControls?.show();
+  ctx.overlayControls?.update(result.score, value, mode, rect.width);
 }
 
 // ---------------------------------------------------------------------------
@@ -460,7 +957,7 @@ async function handleFormSubmit(
         timestamp: Date.now(),
       });
     }
-    m9Ctx.overlay.hide();
+    m9Ctx.overlayControls?.hide();
   }
 
   // --- M7 : hachage et envoi ---
@@ -516,15 +1013,165 @@ async function handleFormSubmit(
 
 /**
  * Affiche le toast M7 sur la page courante.
+ * Construction DOM directe + Shadow DOM (pas de Custom Elements — isolated world MV3).
+ *
+ * Reproduit la logique de toast-m7.ts :
+ * - role="status", aria-live="polite"
+ * - Timer auto-fermeture 8s, mis en pause au hover
+ * - 3 boutons : "Voir comment", "OK, compris", "Ne plus ce site"
+ * - Barre de progression du timer
+ *
+ * Sécurité (D-SEC-003) : aucun innerHTML.
  *
  * @param domainHash - Hash salé du domaine courant pour la suppression_list
  */
 function showToastM7(domainHash: string): void {
-  const toast = new ToastM7();
-  document.body.appendChild(toast);
-  toast.open(domainHash, (_action) => {
-    // L'action est déjà envoyée au SW dans closeToast() via browser.runtime.sendMessage
-  });
+  const TOAST_MS = 8000;
+
+  const host = document.createElement('div');
+  host.style.cssText =
+    'all:initial; display:block; position:fixed; bottom:24px; right:24px; z-index:2147483647; max-width:380px; width:100%; pointer-events:auto;';
+  document.body.appendChild(host);
+
+  const shadow = host.attachShadow({ mode: 'open' });
+
+  const style = document.createElement('style');
+  style.textContent = [
+    '.toast{display:flex;flex-direction:column;background:#fff;border:2px solid #DC2626;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:16px;font:15px/1.5 system-ui,sans-serif;color:#111827;overflow:hidden}',
+    '.hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}',
+    '.ico{font-size:20px;flex-shrink:0}',
+    '.ttl{flex:1;font-size:15px;font-weight:700}',
+    '.cls{background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;border-radius:6px;padding:0}',
+    '.cls:hover{color:#111827;background:#F3F4F6}',
+    '.bdy{margin:0 0 16px;line-height:1.5;color:#111827}',
+    '.acts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}',
+    '.acts button{flex:1;min-width:100px;padding:8px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;min-height:44px}',
+    '.bl{background:#2563EB;color:#fff}.bl:hover{opacity:.9}',
+    '.bo{background:#E5E7EB;color:#111827}.bo:hover{background:#D1D5DB}',
+    '.bs{background:none;color:#6B7280;border:1px solid #D1D5DB!important;font-weight:400}.bs:hover{color:#111827;background:#F9FAFB}',
+    '.tbg{height:3px;background:#E5E7EB;border-radius:2px;overflow:hidden;margin-top:4px}',
+    '.tbar{height:100%;background:#DC2626;border-radius:2px;width:100%}',
+    '@media(prefers-reduced-motion:reduce){.tbar{transition:none}}',
+  ].join('');
+  shadow.appendChild(style);
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.setAttribute('aria-atomic', 'true');
+
+  const hdr = document.createElement('div');
+  hdr.className = 'hdr';
+
+  const ico = document.createElement('span');
+  ico.className = 'ico';
+  ico.setAttribute('aria-hidden', 'true');
+  ico.textContent = '🔐';
+  hdr.appendChild(ico);
+
+  const ttl = document.createElement('strong');
+  ttl.className = 'ttl';
+  ttl.textContent = browser.i18n.getMessage('m7_toast_title') || 'Mot de passe déjà utilisé';
+  hdr.appendChild(ttl);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'cls';
+  closeBtn.type = 'button';
+  closeBtn.setAttribute(
+    'aria-label',
+    browser.i18n.getMessage('m7_toast_btn_close_label') || 'Fermer cette notification',
+  );
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', () => closeToast('acknowledged'));
+  hdr.appendChild(closeBtn);
+  toast.appendChild(hdr);
+
+  const bdy = document.createElement('p');
+  bdy.className = 'bdy';
+  bdy.textContent =
+    browser.i18n.getMessage('m7_toast_body') ||
+    "Ce mot de passe est utilisé sur un autre site. La réutilisation augmente le risque si l'un de vos comptes est compromis.";
+  toast.appendChild(bdy);
+
+  const acts = document.createElement('div');
+  acts.className = 'acts';
+
+  const btnLearn = document.createElement('button');
+  btnLearn.className = 'bl';
+  btnLearn.type = 'button';
+  btnLearn.textContent = browser.i18n.getMessage('m7_toast_btn_learn') || 'Voir comment';
+  btnLearn.addEventListener('click', () => closeToast('learn_more'));
+  acts.appendChild(btnLearn);
+
+  const btnOk = document.createElement('button');
+  btnOk.className = 'bo';
+  btnOk.type = 'button';
+  btnOk.textContent = browser.i18n.getMessage('m7_toast_btn_ok') || 'OK, compris';
+  btnOk.addEventListener('click', () => closeToast('acknowledged'));
+  acts.appendChild(btnOk);
+
+  const btnSuppress = document.createElement('button');
+  btnSuppress.className = 'bs';
+  btnSuppress.type = 'button';
+  btnSuppress.textContent = browser.i18n.getMessage('m7_toast_btn_suppress') || 'Ne plus ce site';
+  btnSuppress.addEventListener('click', () => closeToast('suppress_domain'));
+  acts.appendChild(btnSuppress);
+
+  toast.appendChild(acts);
+
+  const timerBg = document.createElement('div');
+  timerBg.className = 'tbg';
+  const timerBar = document.createElement('div');
+  timerBar.className = 'tbar';
+  timerBg.appendChild(timerBar);
+  toast.appendChild(timerBg);
+
+  shadow.appendChild(toast);
+
+  // Timer auto-fermeture avec pause hover
+  let timerId: ReturnType<typeof setTimeout> | null = null;
+  let timerStart = 0;
+  let remaining = TOAST_MS;
+
+  function startTimer(): void {
+    timerStart = Date.now();
+    timerBar.style.transition = `width ${remaining}ms linear`;
+    timerBar.style.width = '0%';
+    timerId = setTimeout(() => closeToast('timeout'), remaining);
+  }
+
+  function pauseTimer(): void {
+    if (!timerId) return;
+    clearTimeout(timerId);
+    timerId = null;
+    remaining -= Date.now() - timerStart;
+    const elapsed = TOAST_MS - remaining;
+    const pct = (elapsed / TOAST_MS) * 100;
+    timerBar.style.transition = 'none';
+    timerBar.style.width = `${pct}%`;
+  }
+
+  function resumeTimer(): void {
+    if (remaining <= 0) return;
+    startTimer();
+  }
+
+  toast.addEventListener('mouseenter', pauseTimer);
+  toast.addEventListener('mouseleave', resumeTimer);
+
+  function closeToast(action: string): void {
+    if (timerId) clearTimeout(timerId);
+    void browser.runtime.sendMessage({
+      module: 'M7',
+      action: 'toast_action',
+      payload: { user_action: action, domain_hash: domainHash },
+      timestamp: Date.now(),
+    });
+    host.remove();
+  }
+
+  startTimer();
 }
 
 // ---------------------------------------------------------------------------

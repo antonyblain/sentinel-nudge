@@ -796,8 +796,8 @@
     }
   },
   "dashboard_quiz_title": {
-    "message": "Quiz M6 — Résistance au phishing",
-    "description": "Section quiz M6 du dashboard"
+    "message": "Quiz — Résistance au phishing",
+    "description": "Section quiz du dashboard"
   },
   "dashboard_quiz_last_score": {
     "message": "Dernier score : $1 %",

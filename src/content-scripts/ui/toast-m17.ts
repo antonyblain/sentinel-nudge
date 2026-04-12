@@ -445,7 +445,11 @@ export class ToastM17 extends BaseNudge {
  */
 export function registerToastM17(): void {
   try {
-    if (typeof window !== 'undefined' && window.customElements && !window.customElements.get('sn-toast-m17')) {
+    if (
+      typeof window !== 'undefined' &&
+      window.customElements &&
+      !window.customElements.get('sn-toast-m17')
+    ) {
       window.customElements.define('sn-toast-m17', ToastM17);
     }
   } catch {
