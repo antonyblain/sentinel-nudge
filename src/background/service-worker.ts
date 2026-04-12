@@ -25,6 +25,8 @@ import { QuotaManager } from './quota-manager';
 import { AlarmManager, ALARM_NAMES } from './alarm-manager';
 import { MessageRouter } from './message-router';
 import { ScoreCalculator } from './score-calculator';
+import { createM2Handler } from './handlers/m2-handler';
+import { createM17Handler } from './handlers/m17-handler';
 import { createM7Handler } from './handlers/m7-handler';
 import { createM9Handler } from './handlers/m9-handler';
 import type { AlarmDispatcher } from './alarm-manager';
@@ -127,11 +129,17 @@ async function loadCryptoKey(): Promise<CryptoKey | null> {
  * @param cryptoKey - Clé AES-256-GCM chargée depuis chrome.storage.local
  */
 function registerModuleHandlers(cryptoKey: CryptoKey): void {
+  // Handler M2 — saisie en contexte risqué (critique — bypass quota automatique)
+  messageRouter.registerHandler('M2', createM2Handler(storageService, cryptoKey));
+
   // Handler M7 — détection réutilisation mot de passe
   messageRouter.registerHandler('M7', createM7Handler(storageService, cryptoKey));
 
   // Handler M9 — enregistrement du score de force au submit
   messageRouter.registerHandler('M9', createM9Handler(storageService, cryptoKey));
+
+  // Handler M17 — données sensibles presse-papiers (critique — bypass quota automatique)
+  messageRouter.registerHandler('M17', createM17Handler(storageService, cryptoKey));
 }
 
 /**

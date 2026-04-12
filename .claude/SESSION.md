@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement
-- **Dernière action** : Socle technique initialisé (62 fichiers, build OK, lint OK, 36/39 tests). PDCA P4 complété (9 anomalies corrigées, DAT/TECH_STACK mis à jour, LL-007) — 2026-04-11
-- **Prochaine action attendue** : Implémenter les modules un par un. Commencer par les modules socles (M9 zxcvbn, M7 hash, M2 risques) puis les modules dépendants (M3 score, M5 update, M6 quiz, M17 clipboard). Corriger les 3 tests crypto (P-012 mock SubtleCrypto).
+- **Dernière action** : M2 et M17 implémentés — risk-analyzer, overlay-m2, m2-handler, paste-detector, toast-m17, m17-handler — build OK, lint OK, 127 tests OK — 2026-04-12
+- **Prochaine action attendue** : Implémenter M3 (score-calculator composantes), M5 (update check), M6 (quiz corpus + overlay). Pages statiques HTML manquantes (BACKLOG-PAGES-STATIC).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits

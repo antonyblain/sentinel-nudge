@@ -1,11 +1,14 @@
 /**
  * @file content-scripts/detectors/password-detector.ts
- * @description Détecteur de champs mot de passe — modules M7 et M9.
+ * @description Détecteur de champs mot de passe — modules M2, M7 et M9.
  *
  * Ce content script est injecté dynamiquement via scripting.executeScript()
- * uniquement si M7 ou M9 est activé dans la configuration.
+ * uniquement si M2, M7 ou M9 est activé dans la configuration.
  *
  * Responsabilités :
+ * - M2 : Au focus d'un champ password (non-création), analyse les signaux de risque
+ *         via risk-analyzer, envoie au SW si ≥ 2 signaux et conditions remplies,
+ *         affiche l'overlay interstitiel si le SW répond 'show'.
  * - M9 : Détecte les champs de création de mot de passe (confirmation présente OU
  *         autocomplete="new-password"), vérifie l'absence de gestionnaire,
  *         évalue la force en temps réel via zxcvbn-ts (debounce 150ms),
@@ -16,16 +19,23 @@
  * Sécurité :
  * - Le mot de passe en clair n'est JAMAIS envoyé au service worker (D-SEC-001)
  * - Le hash M7 est calculé et la variable nullifiée en < 5ms
- * - Les overlays M9 sont en Shadow DOM pour isolation CSS (D-SEC-003)
+ * - Les overlays sont en Shadow DOM pour isolation CSS (D-SEC-003)
  * - Aucun innerHTML utilisé (D-SEC-003)
+ * - M2 : le domain_hash est calculé localement, jamais le domaine en clair
  *
- * Référence : SFD §2.5 (M7), §2.6 (M9), DAT §6.2, §9.4 (D-SEC-001)
+ * Priorité M2 vs M7 (SFD §2.1.5) :
+ * M2 est prioritaire sur M7 sur le même formulaire.
+ * Si M2 est affiché, M7 est différé de 5s après la fermeture.
+ *
+ * Référence : SFD §2.1 (M2), §2.5 (M7), §2.6 (M9), DAT §6.2, §9.4 (D-SEC-001)
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
 import { hashPassword, hashDomain } from '@/shared/utils/hash';
 import { OverlayM9 } from '@/content-scripts/ui/overlay-m9';
 import { ToastM7 } from '@/content-scripts/ui/toast-m7';
+import { OverlayM2 } from '@/content-scripts/ui/overlay-m2';
+import { analyzeRisks } from '@/content-scripts/detectors/risk-analyzer';
 import { zxcvbn } from '@zxcvbn-ts/core';
 
 /** Délai de debounce pour l'évaluation zxcvbn (ms) */
@@ -33,6 +43,9 @@ const DEBOUNCE_MS = 150;
 
 /** Délai de détection gestionnaire de mots de passe après focus (ms) */
 const PASSWORD_MANAGER_DETECT_MS = 500;
+
+/** Délai de différé M7 après fermeture de l'overlay M2 (SFD §2.1.5 : 5s) */
+const M7_DEFER_AFTER_M2_MS = 5000;
 
 /**
  * Contexte d'un champ de création de mot de passe surveillé par M9.
@@ -53,6 +66,12 @@ const m9Contexts = new WeakMap<HTMLInputElement, M9Context>();
 
 /** Set des champs déjà soumis (pour éviter le double traitement) */
 const submittedFields = new WeakSet<HTMLInputElement>();
+
+/**
+ * Set des champs sur lesquels M2 vient d'être affiché.
+ * Utilisé pour différer M7 de 5s (SFD §2.1.5).
+ */
+const fieldsWithM2Active = new WeakSet<HTMLInputElement>();
 
 // ---------------------------------------------------------------------------
 // Détection du gestionnaire de mots de passe
@@ -82,7 +101,7 @@ function hasPasswordManagerHint(field: HTMLInputElement): boolean {
  * Vérifie si le champ a été rempli automatiquement dans un délai donné.
  * Utilisé pour détecter le remplissage après focus (SFD §2.6 cas limite).
  *
- * @param field    - Champ password à surveiller
+ * @param field        - Champ password à surveiller
  * @param valueAtFocus - Valeur du champ au moment du focus
  * @returns Promise qui résout true si remplissage automatique détecté
  */
@@ -146,6 +165,89 @@ function detectInputType(value: string): 'password' | 'passphrase' {
   const spaceCount = (value.match(/ /g) ?? []).length;
   if (spaceCount >= 3 && value.length >= 20) return 'passphrase';
   return 'password';
+}
+
+// ---------------------------------------------------------------------------
+// Module M2 — analyse de risque au focus
+// ---------------------------------------------------------------------------
+
+/**
+ * Analyse les signaux de risque et déclenche l'overlay M2 si nécessaire.
+ *
+ * Processus :
+ * 1. Calculer les signaux de risque via risk-analyzer
+ * 2. Si < 2 signaux : ne rien faire
+ * 3. Calculer le domain_hash (SHA-256(salt + hostname))
+ * 4. Envoyer au SW pour vérification whitelist + session dedup + quota
+ * 5. Si SW répond 'show' : afficher l'overlay M2
+ *
+ * @param field - Champ password qui vient de recevoir le focus
+ * @returns true si M2 a été affiché (pour différer M7)
+ */
+async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
+  const url = window.location.href;
+  const { signals, riskLevel } = analyzeRisks(url);
+
+  // Moins de 2 signaux → pas de nudge M2
+  if (riskLevel < 2 || signals.length < 2) {
+    return false;
+  }
+
+  const salt = await getInstallationSalt();
+  if (!salt) return false;
+
+  const domainHash = await hashDomain(salt, location.hostname);
+
+  let swResponse: { success: boolean; action: string; data?: Record<string, unknown> } | null = null;
+
+  try {
+    swResponse = await browser.runtime.sendMessage({
+      module: 'M2',
+      action: 'risk_detected',
+      payload: {
+        signals,
+        domain_hash: domainHash,
+      },
+      timestamp: Date.now(),
+    }) as typeof swResponse;
+  } catch {
+    // SW endormi — silencieux
+    return false;
+  }
+
+  if (swResponse?.action !== 'show') {
+    return false;
+  }
+
+  // Afficher l'overlay M2
+  return await showOverlayM2(field, signals, domainHash);
+}
+
+/**
+ * Affiche l'overlay M2 sur la page courante.
+ *
+ * @param field      - Champ password source du focus
+ * @param signals    - Signaux de risque détectés
+ * @param domainHash - Hash salé du domaine
+ * @returns true si l'overlay a bien été affiché
+ */
+async function showOverlayM2(
+  field: HTMLInputElement,
+  signals: string[],
+  domainHash: string,
+): Promise<boolean> {
+  const overlay = document.createElement('sn-overlay-m2') as OverlayM2;
+  document.body.appendChild(overlay);
+
+  return new Promise((resolve) => {
+    overlay.open(signals, domainHash, (action) => {
+      // M2 fermé — M7 peut être différé si applicable (SFD §2.1.5)
+      if (action !== 'abandoned') {
+        fieldsWithM2Active.delete(field);
+      }
+      resolve(true);
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -248,6 +350,10 @@ function evaluatePasswordStrength(field: HTMLInputElement): void {
 /**
  * Gère le focus sur un champ password.
  * Vérifie si c'est un formulaire de création, détecte le gestionnaire et init M9.
+ * Si ce n'est pas un formulaire de création, déclenche l'analyse M2.
+ *
+ * Priorité M2 : si M2 est déclenché, M9 n'est pas activé (formulaires de connexion).
+ * M2 et M9 ne se conflictent pas : M2 = connexion, M9 = création (SFD §2.1.5).
  *
  * @param field - Champ password qui reçoit le focus
  */
@@ -255,20 +361,31 @@ async function handleFocusOnPasswordField(field: HTMLInputElement): Promise<void
   // Vérification gestionnaire via attributs
   if (hasPasswordManagerHint(field)) return;
 
-  // Vérification formulaire de création
-  if (!isCreationForm(field)) return;
+  // Déterminer le type de formulaire
+  const isCreation = isCreationForm(field);
 
-  // Vérification remplissage automatique dans les 500ms
-  const valueAtFocus = field.value;
-  const autoFilled = await checkAutoFill(field, valueAtFocus);
-  if (autoFilled) {
-    const ctx = m9Contexts.get(field);
-    if (ctx) ctx.pmDetected = true;
-    return;
+  if (isCreation) {
+    // Formulaire de création → M9 (pas M2 selon SFD §2.1.5)
+    // Vérification remplissage automatique dans les 500ms
+    const valueAtFocus = field.value;
+    const autoFilled = await checkAutoFill(field, valueAtFocus);
+    if (autoFilled) {
+      const ctx = m9Contexts.get(field);
+      if (ctx) ctx.pmDetected = true;
+      return;
+    }
+
+    // Initialiser M9 si pas encore fait
+    initM9ForField(field);
+  } else {
+    // Formulaire de connexion → M2 (analyse de risque)
+    const m2Shown = await handleM2OnFocus(field);
+
+    if (m2Shown) {
+      // Marquer le champ pour différer M7 si nécessaire (SFD §2.1.5)
+      fieldsWithM2Active.add(field);
+    }
   }
-
-  // Initialiser M9 si pas encore fait
-  initM9ForField(field);
 }
 
 // ---------------------------------------------------------------------------
@@ -299,10 +416,11 @@ async function getInstallationSalt(): Promise<string | null> {
  * 2. Calcule SHA-256(sel + mot_de_passe) [D-SEC-001]
  * 3. Nullifie immédiatement la variable (< 5ms)
  * 4. Envoie le hash + domain_hash au service worker
+ * 5. Si M2 était actif sur ce champ → différer M7 de 5s (SFD §2.1.5)
  *
  * Module M9 :
- * 5. Envoie le score final au service worker
- * 6. Masque l'overlay M9
+ * 6. Envoie le score final au service worker
+ * 7. Masque l'overlay M9
  *
  * @param event    - Événement submit du formulaire
  * @param pwdField - Champ password soumis
@@ -355,32 +473,40 @@ async function handleFormSubmit(
     passwordHash = await hashPassword(salt, passwordCopy);
   } finally {
     // Nullification immédiate de la variable locale (< 5ms)
-    // Note : TypeScript ne permet pas d'écrire null sur une const string,
-    // on réassigne la variable let pour écraser la référence.
     passwordCopy = '';
   }
 
   // Calcul du hash de domaine
   const domainHash = await hashDomain(salt, location.hostname);
 
-  // Envoi au service worker — jamais le mot de passe en clair
-  try {
-    const response = await browser.runtime.sendMessage({
-      module: 'M7',
-      action: 'password_submitted',
-      payload: {
-        hash: passwordHash,
-        domain_hash: domainHash,
-      },
-      timestamp: Date.now(),
-    }) as { success: boolean; action: string; data?: Record<string, unknown> } | null;
+  // Si M2 était actif sur ce champ, différer M7 de 5s (SFD §2.1.5)
+  const m2WasActive = fieldsWithM2Active.has(pwdField);
+  const sendM7 = async (): Promise<void> => {
+    try {
+      const response = await browser.runtime.sendMessage({
+        module: 'M7',
+        action: 'password_submitted',
+        payload: {
+          hash: passwordHash,
+          domain_hash: domainHash,
+        },
+        timestamp: Date.now(),
+      }) as { success: boolean; action: string; data?: Record<string, unknown> } | null;
 
-    // Si le SW demande d'afficher le toast M7
-    if (response?.action === 'show') {
-      showToastM7(domainHash);
+      // Si le SW demande d'afficher le toast M7
+      if (response?.action === 'show') {
+        showToastM7(domainHash);
+      }
+    } catch {
+      // Le SW peut être endormi — l'échec est silencieux (non bloquant pour l'utilisateur)
     }
-  } catch {
-    // Le SW peut être endormi — l'échec est silencieux (non bloquant pour l'utilisateur)
+  };
+
+  if (m2WasActive) {
+    // Différé 5s après fermeture de M2 (SFD §2.1.5)
+    setTimeout(() => void sendM7(), M7_DEFER_AFTER_M2_MS);
+  } else {
+    void sendM7();
   }
 }
 
@@ -455,7 +581,7 @@ function observeDynamicForms(): void {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
-  // Listener global focusin pour M9
+  // Listener global focusin pour M2 et M9
   document.addEventListener('focusin', (event: FocusEvent) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
