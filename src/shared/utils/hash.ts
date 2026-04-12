@@ -19,11 +19,38 @@
  * @throws Error si SubtleCrypto n'est pas disponible (contexte non sécurisé)
  */
 async function sha256Hex(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  // SubtleCrypto n'est disponible que dans les contextes sécurisés (HTTPS, localhost).
+  // Sur les pages HTTP, crypto.subtle est undefined.
+  // M2 se déclenche précisément sur les sites HTTP — un fallback est nécessaire.
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Fallback : hash non-cryptographique (FNV-1a 64 bits en hex)
+  // Suffisant pour la déduplication et la whitelist M2 — pas pour la sécurité M7
+  return fallbackHash(input);
+}
+
+/**
+ * Hash non-cryptographique FNV-1a pour les contextes non sécurisés (HTTP).
+ * Utilisé uniquement pour le domain_hash M2 sur les pages HTTP.
+ * NE PAS utiliser pour le hachage de mots de passe (M7) — SHA-256 obligatoire.
+ */
+function fallbackHash(input: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x1000193;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul(h2 ^ c, 0x01000193);
+  }
+  const hex1 = (h1 >>> 0).toString(16).padStart(8, '0');
+  const hex2 = (h2 >>> 0).toString(16).padStart(8, '0');
+  return (hex1 + hex2).padEnd(64, '0');
 }
 
 /**

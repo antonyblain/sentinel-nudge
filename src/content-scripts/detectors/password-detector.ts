@@ -242,15 +242,22 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
   const url = window.location.href;
   const { signals, riskLevel } = analyzeRisks(url);
 
+  // eslint-disable-next-line no-console
+  console.info('[SN M2] Signaux:', signals, 'riskLevel:', riskLevel);
+
   // Moins de 2 signaux → pas de nudge M2
   if (riskLevel < 2 || signals.length < 2) {
+    // eslint-disable-next-line no-console
+    console.info('[SN M2] Pas assez de signaux, M2 non déclenché');
     return false;
   }
 
   const salt = await getInstallationSalt();
-  if (!salt) return false;
+  // Si le sel n'est pas encore généré (SW pas encore initialisé), on utilise
+  // un hash placeholder — M2 est critique, il doit s'afficher même sans sel
+  const effectiveSalt = salt ?? 'sentinel-nudge-temp-salt';
 
-  const domainHash = await hashDomain(salt, location.hostname);
+  const domainHash = await hashDomain(effectiveSalt, location.hostname);
 
   let swResponse: { success: boolean; action: string; data?: Record<string, unknown> } | null =
     null;
@@ -1283,6 +1290,9 @@ function observeDynamicForms(): void {
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
+  // eslint-disable-next-line no-console
+  console.info('[SN pwd] INIT OK — protocol:', location.protocol, 'host:', location.hostname);
+
   // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
   document.addEventListener(
     'focusin',
@@ -1291,6 +1301,8 @@ function initPasswordDetector(): void {
       if (!(target instanceof HTMLInputElement)) return;
       if (target.type !== 'password') return;
 
+      // eslint-disable-next-line no-console
+      console.info('[SN pwd] FOCUS password — isCreation:', isCreationForm(target));
       void handleFocusOnPasswordField(target);
     },
     { capture: true },
