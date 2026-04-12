@@ -301,11 +301,11 @@ async function showOverlayM2(
   domainHash: string,
 ): Promise<boolean> {
   return new Promise((resolve) => {
-    createOverlayM2DOM(field, signals, domainHash, (action) => {
-      // M2 fermé — M7 peut être différé si applicable (SFD §2.1.5)
-      if (action !== 'abandoned') {
-        fieldsWithM2Active.delete(field);
-      }
+    createOverlayM2DOM(field, signals, domainHash, () => {
+      // Libérer le guard anti-réentrance dans tous les cas.
+      // Pour 'dismissed'/'trusted' : le SW a le domaine en session_duplicate → pas de réaffichage.
+      // Pour 'abandoned' : le SW retire le domaine de la session → réaffichage au prochain focus.
+      fieldsWithM2Active.delete(field);
       resolve(true);
     });
   });

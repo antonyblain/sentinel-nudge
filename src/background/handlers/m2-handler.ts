@@ -78,6 +78,19 @@ async function addDomainToSession(domainHash: string): Promise<void> {
 }
 
 /**
+ * Retire un domaine de la liste de déduplication de session.
+ * Utilisé quand l'utilisateur abandonne la saisie : le domaine doit
+ * pouvoir re-déclencher M2 si l'utilisateur reclique par erreur.
+ *
+ * @param domainHash - Hash salé du domaine à retirer
+ */
+async function removeDomainFromSession(domainHash: string): Promise<void> {
+  const domains = await getSessionDomains();
+  const filtered = domains.filter((d) => d !== domainHash);
+  await browser.storage.local.set({ [M2_SESSION_KEY]: filtered });
+}
+
+/**
  * Traite l'action 'risk_detected' : évalue les conditions et décide d'afficher ou non.
  *
  * @param storageService - Service de stockage IndexedDB
@@ -171,6 +184,12 @@ async function handleOverlayAction(
     // Ajout en whitelist si l'utilisateur fait confiance au domaine
     if (user_action === 'trusted') {
       await storageService.addToWhitelist(domain_hash, 'M2');
+    }
+
+    // Abandon : retirer le domaine de la session dedup pour permettre
+    // le réaffichage si l'utilisateur reclique par erreur
+    if (user_action === 'abandoned') {
+      await removeDomainFromSession(domain_hash);
     }
 
     // Enregistrement de l'événement pour M3
