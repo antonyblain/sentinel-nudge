@@ -287,9 +287,7 @@ export function selectAdaptiveQuestions(
 
   // Cas dégradé : pas assez de questions par type — compléter depuis tout le pool
   if (result.length < 3) {
-    const remaining = workingPool.filter(
-      (q) => !result.some((r) => r.id === q.id),
-    );
+    const remaining = workingPool.filter((q) => !result.some((r) => r.id === q.id));
     result = [...result, ...shuffleArray(remaining).slice(0, 3 - result.length)];
   }
 
@@ -523,7 +521,8 @@ async function handleQuizCompleted(
       ? (payload['categories_failed'] as string[])
       : [];
     const completed = payload['completed'] === true;
-    const answersGiven = typeof payload['answers_given'] === 'number' ? payload['answers_given'] : 0;
+    const answersGiven =
+      typeof payload['answers_given'] === 'number' ? payload['answers_given'] : 0;
 
     const now = Date.now();
 

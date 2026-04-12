@@ -194,7 +194,7 @@ async function onFirstInstall(): Promise<void> {
   const defaultConfig: ChromeStorageSchema['config'] = {
     modules: Object.fromEntries(
       MODULE_IDS.map((id) => [id, id !== 'M7']), // M7 requiert consentement explicite (RGPD)
-    ) as Record<typeof MODULE_IDS[number], boolean>,
+    ) as Record<(typeof MODULE_IDS)[number], boolean>,
     quota_limit: QUOTA_DEFAULT,
     profile: 'beginner',
     onboarding_complete: false,

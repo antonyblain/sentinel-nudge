@@ -273,20 +273,17 @@ async function handleToastAction(
       // Ouvrir chrome://settings/help (SFD §2.3.1)
       await chrome.tabs.create({ url: 'chrome://settings/help' });
       await resetSnoozeCount();
-
     } else if (userAction === 'remind_4h') {
       // Incrémenter le compteur de snoozés et programmer l'alarme
       const newSnoozeCount = Math.min(snoozeCount + 1, MAX_SNOOZE_COUNT);
       await browser.storage.local.set({ [M5_SNOOZE_COUNT_KEY]: newSnoozeCount });
       await browser.alarms.create(M5_SNOOZE_ALARM, { delayInMinutes: SNOOZE_DELAY_MINUTES });
-
     } else if (userAction === 'why') {
       // Ouvrir la page d'explication M5
       await chrome.tabs.create({
         url: chrome.runtime.getURL('pages/explanations/browser-update.html'),
       });
       // Pas de reset snoozeCount (l'utilisateur revient probablement)
-
     } else if (userAction === 'closed') {
       // Fermeture simple — remettre snoozeCount à 0 (fin du cycle de report)
       await resetSnoozeCount();

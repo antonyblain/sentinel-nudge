@@ -65,11 +65,7 @@ export class MessageRouter {
         }
 
         // Dispatch asynchrone vers le handler du module
-        void this.handleValidatedMessage(
-          msg,
-          sender as chrome.runtime.MessageSender,
-          sendResponse,
-        );
+        void this.handleValidatedMessage(msg, sender as chrome.runtime.MessageSender, sendResponse);
 
         return true; // Indique à Chrome qu'on répondra de manière asynchrone
       },

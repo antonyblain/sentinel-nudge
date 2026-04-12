@@ -86,7 +86,9 @@ export interface BrowserAdapter {
      * Injecte dynamiquement des scripts dans un onglet (injection conditionnelle par module).
      * @param injection - Paramètres d'injection
      */
-    executeScript(injection: chrome.scripting.ScriptInjection): Promise<chrome.scripting.InjectionResult[]>;
+    executeScript(
+      injection: chrome.scripting.ScriptInjection,
+    ): Promise<chrome.scripting.InjectionResult[]>;
   };
 
   alarms: {
@@ -160,11 +162,9 @@ export const browser: BrowserAdapter = {
     },
     requestUpdateCheck: (): Promise<{ status: string }> =>
       new Promise((resolve) => {
-        chrome.runtime.requestUpdateCheck(
-          (status: chrome.runtime.RequestUpdateCheckStatus) => {
-            resolve({ status });
-          },
-        );
+        chrome.runtime.requestUpdateCheck((status: chrome.runtime.RequestUpdateCheckStatus) => {
+          resolve({ status });
+        });
       }),
     get id(): string {
       return chrome.runtime.id;

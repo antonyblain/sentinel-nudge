@@ -97,10 +97,7 @@ async function isDomainSuppressed(
  * @param storageService - Service de stockage IndexedDB
  * @param domainHash     - Hash salé du domaine à supprimer
  */
-async function suppressDomain(
-  storageService: StorageService,
-  domainHash: string,
-): Promise<void> {
+async function suppressDomain(storageService: StorageService, domainHash: string): Promise<void> {
   return storageService.addToWhitelist(domainHash, 'M7');
 }
 
@@ -321,11 +318,7 @@ export function createM7Handler(
     const hash = payload.hash;
     const domainHash = payload.domain_hash;
 
-    if (
-      typeof hash !== 'string' ||
-      hash.length !== 64 ||
-      !/^[0-9a-f]{64}$/.test(hash)
-    ) {
+    if (typeof hash !== 'string' || hash.length !== 64 || !/^[0-9a-f]{64}$/.test(hash)) {
       return { success: false, action: 'skip', reason: 'invalid_hash' };
     }
     if (

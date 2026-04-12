@@ -21,5 +21,492 @@
     "placeholders": {
       "1": { "content": "$1", "example": "2" }
     }
+  },
+  "popup_title": {
+    "message": "Sentinel Nudge",
+    "description": "Popup title"
+  },
+  "popup_score_label": {
+    "message": "Cyber-hygiene score",
+    "description": "Score label in popup"
+  },
+  "popup_score_no_data": {
+    "message": "First score on Monday",
+    "description": "Message before first score calculation"
+  },
+  "popup_score_first_monday": {
+    "message": "Your first score will be calculated on $1",
+    "description": "Message with date of first Monday",
+    "placeholders": {
+      "1": { "content": "$1", "example": "Monday April 14" }
+    }
+  },
+  "popup_modules_active": {
+    "message": "$1 active modules out of 7",
+    "description": "Number of active modules",
+    "placeholders": {
+      "1": { "content": "$1", "example": "5" }
+    }
+  },
+  "popup_quota_label": {
+    "message": "Today's quota",
+    "description": "Quota section label in popup"
+  },
+  "popup_quota_remaining": {
+    "message": "$1 nudges remaining today",
+    "description": "Nudges remaining today",
+    "placeholders": {
+      "1": { "content": "$1", "example": "3" }
+    }
+  },
+  "popup_quota_unlimited": {
+    "message": "Unlimited quota enabled",
+    "description": "Unlimited quota message"
+  },
+  "popup_quota_reached": {
+    "message": "Daily quota reached",
+    "description": "Quota reached message"
+  },
+  "popup_btn_dashboard": {
+    "message": "View details",
+    "description": "Dashboard button in popup"
+  },
+  "popup_btn_settings": {
+    "message": "Settings",
+    "description": "Settings button in popup"
+  },
+  "popup_score_week": {
+    "message": "Week $1",
+    "description": "Score week",
+    "placeholders": {
+      "1": { "content": "$1", "example": "15" }
+    }
+  },
+  "popup_loading": {
+    "message": "Loading…",
+    "description": "Popup loading state"
+  },
+  "popup_error": {
+    "message": "Unable to retrieve data",
+    "description": "Popup data retrieval error"
+  },
+  "options_title": {
+    "message": "Settings — Sentinel Nudge",
+    "description": "Options page title"
+  },
+  "options_section_modules": {
+    "message": "Active modules",
+    "description": "Modules section in options"
+  },
+  "options_section_quota": {
+    "message": "Daily quota",
+    "description": "Quota section in options"
+  },
+  "options_section_profile": {
+    "message": "Profile",
+    "description": "Profile section in options"
+  },
+  "options_section_language": {
+    "message": "Language",
+    "description": "Language section in options"
+  },
+  "options_section_data": {
+    "message": "My data",
+    "description": "Data section in options"
+  },
+  "options_section_transparency": {
+    "message": "Radical transparency",
+    "description": "Transparency section in options"
+  },
+  "options_section_about": {
+    "message": "About",
+    "description": "About section in options"
+  },
+  "options_quota_warning": {
+    "message": "Warning: in unlimited mode, nudges are not limited. This may be intrusive.",
+    "description": "Unlimited quota warning"
+  },
+  "options_profile_beginner": {
+    "message": "Beginner",
+    "description": "Beginner profile"
+  },
+  "options_profile_intermediate": {
+    "message": "Intermediate",
+    "description": "Intermediate profile"
+  },
+  "options_profile_advanced": {
+    "message": "Advanced",
+    "description": "Advanced profile"
+  },
+  "options_profile_beginner_desc": {
+    "message": "Basic and intermediate-level quizzes. Educational nudges.",
+    "description": "Beginner profile description"
+  },
+  "options_profile_intermediate_desc": {
+    "message": "All level quizzes. Balance between education and challenge.",
+    "description": "Intermediate profile description"
+  },
+  "options_profile_advanced_desc": {
+    "message": "Intermediate and expert-level quizzes. Focus on new techniques.",
+    "description": "Advanced profile description"
+  },
+  "options_lang_fr": {
+    "message": "Français",
+    "description": "French language"
+  },
+  "options_lang_en": {
+    "message": "English",
+    "description": "English language"
+  },
+  "options_data_storage_size": {
+    "message": "Stored data volume: $1",
+    "description": "Data volume",
+    "placeholders": {
+      "1": { "content": "$1", "example": "~12 KB" }
+    }
+  },
+  "options_btn_export": {
+    "message": "Export my data (GDPR Art. 20)",
+    "description": "GDPR export button"
+  },
+  "options_btn_delete": {
+    "message": "Delete all my data (GDPR Art. 17)",
+    "description": "GDPR delete button"
+  },
+  "options_btn_reset_whitelist": {
+    "message": "Reset trusted sites list",
+    "description": "Reset whitelist button"
+  },
+  "options_delete_confirm": {
+    "message": "Are you sure you want to delete all your data? This action is irreversible.",
+    "description": "Delete confirmation"
+  },
+  "options_delete_success": {
+    "message": "All your data has been deleted.",
+    "description": "Delete success confirmation"
+  },
+  "options_whitelist_reset_success": {
+    "message": "The trusted sites list has been reset.",
+    "description": "Whitelist reset confirmation"
+  },
+  "options_transparency_desc": {
+    "message": "Each module is documented in detail. Click the links below to understand how each nudge works and why it is useful.",
+    "description": "Transparency section description"
+  },
+  "options_explain_link": {
+    "message": "Learn more about $1",
+    "description": "Module explanation link",
+    "placeholders": {
+      "1": { "content": "$1", "example": "M2" }
+    }
+  },
+  "options_about_version": {
+    "message": "Version: $1",
+    "description": "Extension version",
+    "placeholders": {
+      "1": { "content": "$1", "example": "1.0.0" }
+    }
+  },
+  "options_about_license": {
+    "message": "GPL v3 License",
+    "description": "Extension license"
+  },
+  "options_about_github": {
+    "message": "Source code on GitHub",
+    "description": "GitHub link"
+  },
+  "options_loading": {
+    "message": "Loading configuration…",
+    "description": "Options loading state"
+  },
+  "options_saved": {
+    "message": "Saved",
+    "description": "Save confirmation"
+  },
+  "options_accessibility_section": {
+    "message": "Accessibility",
+    "description": "Accessibility section in options"
+  },
+  "options_toast_auto_dismiss": {
+    "message": "Auto-dismiss notifications",
+    "description": "Toast auto-dismiss option"
+  },
+  "onboarding_title": {
+    "message": "Welcome to Sentinel Nudge",
+    "description": "Main onboarding title"
+  },
+  "onboarding_step_of": {
+    "message": "Step $1 of $2",
+    "description": "Progress indicator",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "4" }
+    }
+  },
+  "onboarding_btn_next": {
+    "message": "Next",
+    "description": "Next button in onboarding"
+  },
+  "onboarding_btn_prev": {
+    "message": "Previous",
+    "description": "Previous button in onboarding"
+  },
+  "onboarding_btn_finish": {
+    "message": "Finish",
+    "description": "Finish button in onboarding"
+  },
+  "onboarding_step1_title": {
+    "message": "Welcome to Sentinel Nudge",
+    "description": "Step 1 title"
+  },
+  "onboarding_step1_intro": {
+    "message": "Sentinel Nudge is a behavioral cyber-hygiene extension. It helps you adopt better security habits through contextual micro-nudges based on behavioral science research.",
+    "description": "Step 1 introduction"
+  },
+  "onboarding_step1_privacy_title": {
+    "message": "Privacy by design",
+    "description": "Step 1 privacy section title"
+  },
+  "onboarding_step1_privacy_desc": {
+    "message": "All processing is done locally on your computer. No data leaves your browser. No telemetry. Open source and auditable code.",
+    "description": "Step 1 privacy description"
+  },
+  "onboarding_step1_opensource": {
+    "message": "Open source — GPL v3 license",
+    "description": "Step 1 open source mention"
+  },
+  "onboarding_step2_title": {
+    "message": "Choose your profile",
+    "description": "Step 2 title"
+  },
+  "onboarding_step2_desc": {
+    "message": "Your profile influences the difficulty of security awareness quizzes (module M6). You can change it at any time in Settings.",
+    "description": "Step 2 description"
+  },
+  "onboarding_step3_title": {
+    "message": "Activate modules",
+    "description": "Step 3 title"
+  },
+  "onboarding_step3_desc": {
+    "message": "Each module monitors one aspect of your cyber-hygiene. All are active by default. Module M7 requires explicit consent in the next step.",
+    "description": "Step 3 description"
+  },
+  "onboarding_step4_title": {
+    "message": "M7 Consent — Password hashing",
+    "description": "Step 4 title"
+  },
+  "onboarding_step4_desc": {
+    "message": "Module M7 detects password reuse. To do this, it computes a local hash of your passwords. This hash is encrypted and never leaves your browser.",
+    "description": "Step 4 description"
+  },
+  "onboarding_step4_consent_label": {
+    "message": "I consent to Sentinel Nudge computing local password hashes to detect reuse",
+    "description": "M7 consent label"
+  },
+  "onboarding_step4_privacy_link": {
+    "message": "Read the privacy policy",
+    "description": "Privacy policy link"
+  },
+  "onboarding_profile_required": {
+    "message": "Please select a profile before continuing.",
+    "description": "Missing profile error"
+  },
+  "module_m2_name": {
+    "message": "Suspicious sites (M2)",
+    "description": "M2 module name"
+  },
+  "module_m2_desc": {
+    "message": "Alerts when entering a password on a potentially dangerous site (HTTP, typosquatting, self-signed certificate).",
+    "description": "M2 module description"
+  },
+  "module_m3_name": {
+    "message": "Cyber-hygiene score (M3)",
+    "description": "M3 module name"
+  },
+  "module_m3_desc": {
+    "message": "Calculates your cyber-hygiene score every Monday and updates the extension badge.",
+    "description": "M3 module description"
+  },
+  "module_m5_name": {
+    "message": "Browser update (M5)",
+    "description": "M5 module name"
+  },
+  "module_m5_desc": {
+    "message": "Reminds you to update your browser when an update is available.",
+    "description": "M5 module description"
+  },
+  "module_m6_name": {
+    "message": "Phishing quiz (M6)",
+    "description": "M6 module name"
+  },
+  "module_m6_desc": {
+    "message": "Periodic mini-quiz to recognize phishing attempts. Uses spaced repetition.",
+    "description": "M6 module description"
+  },
+  "module_m7_name": {
+    "message": "Password reuse (M7)",
+    "description": "M7 module name"
+  },
+  "module_m7_desc": {
+    "message": "Detects if you reuse the same password across multiple sites. Requires explicit consent.",
+    "description": "M7 module description"
+  },
+  "module_m9_name": {
+    "message": "Password strength (M9)",
+    "description": "M9 module name"
+  },
+  "module_m9_desc": {
+    "message": "Shows a strength indicator when creating a password with improvement suggestions.",
+    "description": "M9 module description"
+  },
+  "module_m17_name": {
+    "message": "Clipboard sensitive data (M17)",
+    "description": "M17 module name"
+  },
+  "module_m17_desc": {
+    "message": "Alerts if you paste a credit card number, IBAN, or API key into a form.",
+    "description": "M17 module description"
+  },
+  "dashboard_title": {
+    "message": "Dashboard — Sentinel Nudge",
+    "description": "Dashboard page title"
+  },
+  "dashboard_score_current": {
+    "message": "Current score",
+    "description": "Current score label in dashboard"
+  },
+  "dashboard_score_no_data": {
+    "message": "No score available",
+    "description": "Score unavailable"
+  },
+  "dashboard_score_delta_up": {
+    "message": "↑ $1 points this week",
+    "description": "Positive score delta",
+    "placeholders": {
+      "1": { "content": "$1", "example": "5" }
+    }
+  },
+  "dashboard_score_delta_down": {
+    "message": "↓ $1 points this week",
+    "description": "Negative score delta",
+    "placeholders": {
+      "1": { "content": "$1", "example": "3" }
+    }
+  },
+  "dashboard_score_delta_equal": {
+    "message": "= Stable this week",
+    "description": "Zero score delta"
+  },
+  "dashboard_chart_title": {
+    "message": "Cyber-hygiene score — last 52 weeks",
+    "description": "SVG chart title"
+  },
+  "dashboard_chart_desc": {
+    "message": "Bar chart showing the weekly cyber-hygiene score over the last 52 weeks. Detailed values are available in the table below.",
+    "description": "Accessible SVG chart description"
+  },
+  "dashboard_chart_table_label": {
+    "message": "Chart data: weekly scores",
+    "description": "sr-only table aria-label"
+  },
+  "dashboard_chart_table_caption": {
+    "message": "Cyber-hygiene score by week (52 weeks)",
+    "description": "sr-only table caption"
+  },
+  "dashboard_table_col_week": {
+    "message": "Week",
+    "description": "Week column header"
+  },
+  "dashboard_table_col_score": {
+    "message": "Score",
+    "description": "Score column header"
+  },
+  "dashboard_components_title": {
+    "message": "Score breakdown",
+    "description": "Score components section"
+  },
+  "dashboard_component_m5": {
+    "message": "Browser updates",
+    "description": "M5 component"
+  },
+  "dashboard_component_m6": {
+    "message": "Phishing resistance",
+    "description": "M6 component"
+  },
+  "dashboard_component_m2": {
+    "message": "Risky sites",
+    "description": "M2 component"
+  },
+  "dashboard_component_m7": {
+    "message": "Password diversity",
+    "description": "M7 component"
+  },
+  "dashboard_component_m9": {
+    "message": "Password strength",
+    "description": "M9 component"
+  },
+  "dashboard_action_title": {
+    "message": "Recommended action",
+    "description": "Recommended action section"
+  },
+  "dashboard_nudges_title": {
+    "message": "Nudge statistics",
+    "description": "Nudge stats section"
+  },
+  "dashboard_nudges_this_week": {
+    "message": "Nudges shown this week: $1",
+    "description": "Number of nudges this week",
+    "placeholders": {
+      "1": { "content": "$1", "example": "7" }
+    }
+  },
+  "dashboard_nudges_response_rate": {
+    "message": "Response rate: $1%",
+    "description": "Nudge response rate",
+    "placeholders": {
+      "1": { "content": "$1", "example": "85" }
+    }
+  },
+  "dashboard_quiz_title": {
+    "message": "M6 Quiz — Phishing resistance",
+    "description": "M6 quiz section in dashboard"
+  },
+  "dashboard_quiz_last_score": {
+    "message": "Last score: $1%",
+    "description": "Last quiz score",
+    "placeholders": {
+      "1": { "content": "$1", "example": "67" }
+    }
+  },
+  "dashboard_quiz_next_date": {
+    "message": "Next quiz: $1",
+    "description": "Next quiz date",
+    "placeholders": {
+      "1": { "content": "$1", "example": "April 21, 2026" }
+    }
+  },
+  "dashboard_quiz_no_session": {
+    "message": "No quiz completed yet.",
+    "description": "No quiz session"
+  },
+  "dashboard_btn_settings": {
+    "message": "Open settings",
+    "description": "Settings button in dashboard"
+  },
+  "dashboard_loading": {
+    "message": "Loading dashboard…",
+    "description": "Dashboard loading state"
+  },
+  "score_level_high": {
+    "message": "Good",
+    "description": "High score level"
+  },
+  "score_level_medium": {
+    "message": "Fair",
+    "description": "Medium score level"
+  },
+  "score_level_low": {
+    "message": "Low",
+    "description": "Low score level"
   }
 }

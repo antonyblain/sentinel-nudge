@@ -8,8 +8,8 @@
 
 ## État courant
 - **Phase active** : P4 — Développement
-- **Dernière action** : M3 (score-calculator composantes + badge), M5 (update check + anti-snooze), M6 (quiz corpus + overlay + spaced repetition) implémentés — build OK, lint OK, 200 tests OK — 2026-04-12
-- **Prochaine action attendue** : Implémenter M7 (hash password + comparaison blur), M9 (zxcvbn temps réel), popup/options/dashboard/onboarding, pages statiques HTML (BACKLOG-PAGES-STATIC).
+- **Dernière action** : Pages UI (popup, options, onboarding, dashboard) implémentées — lint OK, build OK, 200 tests OK — 2026-04-12
+- **Prochaine action attendue** : Implémenter M7 (hash password + comparaison blur), M9 (zxcvbn temps réel), pages statiques HTML (BACKLOG-PAGES-STATIC).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
@@ -33,6 +33,18 @@
 | P4 | src/content-scripts/ui/overlay-m6.ts | — | Implémenté | 2026-04-12 |
 | P4 | src/assets/data/quiz-corpus.json | — | 20 questions (15 FR + 5 EN) | 2026-04-12 |
 | P4 | src/background/service-worker.ts | — | M3/M5/M6 intégrés | 2026-04-12 |
+| P4 | src/pages/popup/popup.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/pages/popup/popup.css | — | Implémenté | 2026-04-12 |
+| P4 | src/pages/options/options.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/pages/options/options.css | — | Implémenté | 2026-04-12 |
+| P4 | src/pages/onboarding/onboarding.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/pages/onboarding/onboarding.css | — | Implémenté | 2026-04-12 |
+| P4 | src/pages/dashboard/dashboard.ts | — | Implémenté | 2026-04-12 |
+| P4 | src/pages/dashboard/dashboard.css | — | Implémenté | 2026-04-12 |
+| P4 | src/assets/_locales/fr/messages.json | — | Étendu (80+ clés) | 2026-04-12 |
+| P4 | src/assets/_locales/en/messages.json | — | Étendu (80+ clés) | 2026-04-12 |
+| P4 | src/manifest.json | — | web_accessible_resources ajouté | 2026-04-12 |
+| P4 | vite.config.ts | — | additionalInputs dashboard/onboarding | 2026-04-12 |
 | P4 | tests/unit/modules/m5.test.ts | — | 15 tests OK | 2026-04-12 |
 | P4 | tests/unit/modules/m3.test.ts | — | 35 tests OK | 2026-04-12 |
 | P4 | tests/unit/modules/m6.test.ts | — | 23 tests OK | 2026-04-12 |
@@ -56,3 +68,4 @@
 - Couche d'abstraction navigateur à prévoir dès v1 pour compatibilité future Firefox/Edge
 - M3 score-calculator : pondérations M5=20, M6=25, M2=20, M7=20, M9=15. Redistribution proportionnelle si modules désactivés.
 - M6 spaced repetition : intervalles [0, 7, 21, 42, 70] jours puis 30j/mois. Score <50% → ×0.7, score 100% → ×1.2
+- Pages UI : dashboard et onboarding ajoutés en additionalInputs dans vite.config.ts (non référençables via propriétés MV3 standard)

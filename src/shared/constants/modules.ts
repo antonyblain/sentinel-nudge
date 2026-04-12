@@ -14,15 +14,7 @@ import type { ModuleId } from '../types/modules';
  * Liste exhaustive des identifiants de modules valides pour la v1.
  * Tout message dont le champ `module` n'est pas dans cette liste est rejeté silencieusement.
  */
-export const MODULE_IDS: readonly ModuleId[] = [
-  'M2',
-  'M3',
-  'M5',
-  'M6',
-  'M7',
-  'M9',
-  'M17',
-] as const;
+export const MODULE_IDS: readonly ModuleId[] = ['M2', 'M3', 'M5', 'M6', 'M7', 'M9', 'M17'] as const;
 
 /**
  * Modules critiques qui bypassen le quota journalier.

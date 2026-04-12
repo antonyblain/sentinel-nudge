@@ -105,10 +105,7 @@ function hasPasswordManagerHint(field: HTMLInputElement): boolean {
  * @param valueAtFocus - Valeur du champ au moment du focus
  * @returns Promise qui résout true si remplissage automatique détecté
  */
-async function checkAutoFill(
-  field: HTMLInputElement,
-  valueAtFocus: string,
-): Promise<boolean> {
+async function checkAutoFill(field: HTMLInputElement, valueAtFocus: string): Promise<boolean> {
   return new Promise((resolve) => {
     setTimeout(() => {
       // Si la valeur a changé sans input event → remplissage automatique
@@ -198,10 +195,11 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
 
   const domainHash = await hashDomain(salt, location.hostname);
 
-  let swResponse: { success: boolean; action: string; data?: Record<string, unknown> } | null = null;
+  let swResponse: { success: boolean; action: string; data?: Record<string, unknown> } | null =
+    null;
 
   try {
-    swResponse = await browser.runtime.sendMessage({
+    swResponse = (await browser.runtime.sendMessage({
       module: 'M2',
       action: 'risk_detected',
       payload: {
@@ -209,7 +207,7 @@ async function handleM2OnFocus(field: HTMLInputElement): Promise<boolean> {
         domain_hash: domainHash,
       },
       timestamp: Date.now(),
-    }) as typeof swResponse;
+    })) as typeof swResponse;
   } catch {
     // SW endormi — silencieux
     return false;
@@ -483,7 +481,7 @@ async function handleFormSubmit(
   const m2WasActive = fieldsWithM2Active.has(pwdField);
   const sendM7 = async (): Promise<void> => {
     try {
-      const response = await browser.runtime.sendMessage({
+      const response = (await browser.runtime.sendMessage({
         module: 'M7',
         action: 'password_submitted',
         payload: {
@@ -491,7 +489,7 @@ async function handleFormSubmit(
           domain_hash: domainHash,
         },
         timestamp: Date.now(),
-      }) as { success: boolean; action: string; data?: Record<string, unknown> } | null;
+      })) as { success: boolean; action: string; data?: Record<string, unknown> } | null;
 
       // Si le SW demande d'afficher le toast M7
       if (response?.action === 'show') {

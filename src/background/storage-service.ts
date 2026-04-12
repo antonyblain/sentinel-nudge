@@ -109,7 +109,11 @@ export class StorageService {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        reject(new Error(`[StorageService] Échec ouverture IndexedDB: ${request.error?.message ?? 'Erreur inconnue'}`));
+        reject(
+          new Error(
+            `[StorageService] Échec ouverture IndexedDB: ${request.error?.message ?? 'Erreur inconnue'}`,
+          ),
+        );
       };
 
       request.onsuccess = () => {
@@ -139,7 +143,7 @@ export class StorageService {
    */
   private getDB(): IDBDatabase {
     if (!this.db) {
-      throw new Error('[StorageService] Base IndexedDB non initialisée. Appeler initDB() d\'abord.');
+      throw new Error("[StorageService] Base IndexedDB non initialisée. Appeler initDB() d'abord.");
     }
     return this.db;
   }
@@ -202,11 +206,7 @@ export class StorageService {
    * @param cryptoKey - Clé AES-256-GCM active
    * @returns ID de l'enregistrement créé
    */
-  async logEvent(
-    module: string,
-    payload: EventPayload,
-    cryptoKey: CryptoKey,
-  ): Promise<number> {
+  async logEvent(module: string, payload: EventPayload, cryptoKey: CryptoKey): Promise<number> {
     const { ciphertext, iv } = await this.crypto.encrypt(cryptoKey, payload);
 
     const record: Omit<EventRecord, 'id'> = {
@@ -261,7 +261,11 @@ export class StorageService {
         const record = cursor.value as EventRecord;
         if (module === null || record.module === module) {
           try {
-            const payload = (await this.crypto.decrypt(cryptoKey, record.value, record.iv)) as EventPayload;
+            const payload = (await this.crypto.decrypt(
+              cryptoKey,
+              record.value,
+              record.iv,
+            )) as EventPayload;
             results.push(payload);
           } catch {
             // Enregistrement corrompu — on l'ignore sans bloquer la lecture
@@ -331,7 +335,10 @@ export class StorageService {
           return;
         }
         try {
-          const decrypted = (await this.crypto.decrypt(cryptoKey, record.value, record.iv)) as Omit<WeeklyScore, 'value' | 'iv'>;
+          const decrypted = (await this.crypto.decrypt(cryptoKey, record.value, record.iv)) as Omit<
+            WeeklyScore,
+            'value' | 'iv'
+          >;
           resolve({ ...decrypted, value: record.value, iv: record.iv });
         } catch {
           resolve(null);
@@ -349,7 +356,10 @@ export class StorageService {
    * @param score     - Objet WeeklyScore à persister
    * @param cryptoKey - Clé AES-256-GCM pour le chiffrement
    */
-  async setWeeklyScore(score: Omit<WeeklyScore, 'value' | 'iv'>, cryptoKey: CryptoKey): Promise<void> {
+  async setWeeklyScore(
+    score: Omit<WeeklyScore, 'value' | 'iv'>,
+    cryptoKey: CryptoKey,
+  ): Promise<void> {
     const { ciphertext, iv } = await this.crypto.encrypt(cryptoKey, score);
     const record: WeeklyScore = { ...score, value: ciphertext, iv };
 
@@ -422,7 +432,9 @@ export class StorageService {
           const addReq = store.add(record);
           addReq.onsuccess = () => resolve();
           addReq.onerror = () =>
-            reject(new Error(`[StorageService] Échec addPasswordHash: ${addReq.error?.message ?? ''}`));
+            reject(
+              new Error(`[StorageService] Échec addPasswordHash: ${addReq.error?.message ?? ''}`),
+            );
         };
 
         if (count >= MAX_PASSWORD_HASHES) {
@@ -445,10 +457,18 @@ export class StorageService {
       };
 
       countReq.onerror = () =>
-        reject(new Error(`[StorageService] Échec count password_hashes: ${countReq.error?.message ?? ''}`));
+        reject(
+          new Error(
+            `[StorageService] Échec count password_hashes: ${countReq.error?.message ?? ''}`,
+          ),
+        );
 
       tx.onerror = () =>
-        reject(new Error(`[StorageService] Échec transaction password_hashes: ${tx.error?.message ?? ''}`));
+        reject(
+          new Error(
+            `[StorageService] Échec transaction password_hashes: ${tx.error?.message ?? ''}`,
+          ),
+        );
     });
   }
 
@@ -480,7 +500,11 @@ export class StorageService {
       };
 
       request.onerror = () =>
-        reject(new Error(`[StorageService] Échec getPasswordHashesByTag: ${request.error?.message ?? ''}`));
+        reject(
+          new Error(
+            `[StorageService] Échec getPasswordHashesByTag: ${request.error?.message ?? ''}`,
+          ),
+        );
     });
   }
 
@@ -498,7 +522,9 @@ export class StorageService {
       const request = store.count();
       request.onsuccess = () => resolve(request.result);
       request.onerror = () =>
-        reject(new Error(`[StorageService] Échec getPasswordHashCount: ${request.error?.message ?? ''}`));
+        reject(
+          new Error(`[StorageService] Échec getPasswordHashCount: ${request.error?.message ?? ''}`),
+        );
     });
   }
 
@@ -569,7 +595,9 @@ export class StorageService {
       const request = store.delete([domainHash, module]);
       request.onsuccess = () => resolve();
       request.onerror = () =>
-        reject(new Error(`[StorageService] Échec removeFromWhitelist: ${request.error?.message ?? ''}`));
+        reject(
+          new Error(`[StorageService] Échec removeFromWhitelist: ${request.error?.message ?? ''}`),
+        );
     });
   }
 
@@ -630,7 +658,9 @@ export class StorageService {
       };
 
       request.onerror = () =>
-        reject(new Error(`[StorageService] Échec getQuizSessionCount: ${request.error?.message ?? ''}`));
+        reject(
+          new Error(`[StorageService] Échec getQuizSessionCount: ${request.error?.message ?? ''}`),
+        );
     });
   }
 }

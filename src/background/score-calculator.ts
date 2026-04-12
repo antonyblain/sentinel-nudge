@@ -124,15 +124,10 @@ export class ScoreCalculator {
     };
 
     // Redistribution des poids si des modules sont désactivés (SFD §2.2.3)
-    const { components, maxWeights } = this.redistributeWeights(
-      rawComponents,
-      enabledModules,
-    );
+    const { components, maxWeights } = this.redistributeWeights(rawComponents, enabledModules);
 
     // Score total = somme des composantes redistribuées
-    const totalScore = Math.round(
-      Object.values(components).reduce((acc, v) => acc + v, 0),
-    );
+    const totalScore = Math.round(Object.values(components).reduce((acc, v) => acc + v, 0));
 
     // Score de la semaine précédente pour calculer le delta
     const previousScore = await this.getPreviousScore(weekKey, cryptoKey);
@@ -245,9 +240,7 @@ export class ScoreCalculator {
    * @returns Score de la composante (0 à 20)
    */
   calculateM7Component(m7Events: EventPayload[]): number {
-    const reuseCount = m7Events.filter(
-      (e) => e.action === 'shown' || e.action === 'silent',
-    ).length;
+    const reuseCount = m7Events.filter((e) => e.action === 'shown' || e.action === 'silent').length;
 
     return Math.max(0, COMPONENT_WEIGHTS['m7_password_diversity']! - 4 * reuseCount);
   }
@@ -273,11 +266,11 @@ export class ScoreCalculator {
       return COMPONENT_WEIGHTS['m9_password_strength']!;
     }
 
-    const strongCount = evaluations.filter(
-      (e) => (e.module_data!['score'] as number) >= 4,
-    ).length;
+    const strongCount = evaluations.filter((e) => (e.module_data!['score'] as number) >= 4).length;
 
-    return Math.round((strongCount / evaluations.length) * COMPONENT_WEIGHTS['m9_password_strength']!);
+    return Math.round(
+      (strongCount / evaluations.length) * COMPONENT_WEIGHTS['m9_password_strength']!,
+    );
   }
 
   /**
@@ -335,16 +328,10 @@ export class ScoreCalculator {
     }
 
     // Calculer la somme des poids désactivés à redistribuer
-    const disabledWeightSum = disabledKeys.reduce(
-      (acc, key) => acc + COMPONENT_WEIGHTS[key]!,
-      0,
-    );
+    const disabledWeightSum = disabledKeys.reduce((acc, key) => acc + COMPONENT_WEIGHTS[key]!, 0);
 
     // Calculer la somme des poids actifs (base de redistribution)
-    const activeWeightSum = activeKeys.reduce(
-      (acc, key) => acc + COMPONENT_WEIGHTS[key]!,
-      0,
-    );
+    const activeWeightSum = activeKeys.reduce((acc, key) => acc + COMPONENT_WEIGHTS[key]!, 0);
 
     // Calculer les nouveaux poids max pour chaque module actif
     const maxWeights: Record<keyof ScoreComponents, number> = {
@@ -357,9 +344,8 @@ export class ScoreCalculator {
 
     activeKeys.forEach((key) => {
       const baseWeight = COMPONENT_WEIGHTS[key]!;
-      const redistribution = activeWeightSum > 0
-        ? disabledWeightSum * (baseWeight / activeWeightSum)
-        : 0;
+      const redistribution =
+        activeWeightSum > 0 ? disabledWeightSum * (baseWeight / activeWeightSum) : 0;
       maxWeights[key] = baseWeight + redistribution;
     });
 

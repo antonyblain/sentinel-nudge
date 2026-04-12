@@ -67,7 +67,11 @@ export function validateNudgeMessage(msg: unknown): msg is NudgeMessage {
 export function isM2Payload(payload: unknown): payload is M2Payload {
   if (typeof payload !== 'object' || payload === null) return false;
   const p = payload as Record<string, unknown>;
-  return Array.isArray(p['signals']) && typeof p['domain_hash'] === 'string' && p['domain_hash'].length > 0;
+  return (
+    Array.isArray(p['signals']) &&
+    typeof p['domain_hash'] === 'string' &&
+    p['domain_hash'].length > 0
+  );
 }
 
 /**

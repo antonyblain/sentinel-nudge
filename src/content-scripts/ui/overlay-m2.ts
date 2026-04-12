@@ -33,9 +33,9 @@ export type OverlayM2Action = 'dismissed' | 'trusted' | 'abandoned' | 'why';
 /** Libellés des signaux de risque pour l'affichage (sans innerHTML) */
 const SIGNAL_LABELS: Record<string, string> = {
   http: 'Ce site utilise HTTP (non chiffré)',
-  hsts_miss: 'Ce site n\'est pas dans la liste HSTS preload',
+  hsts_miss: "Ce site n'est pas dans la liste HSTS preload",
   levenshtein: 'Ce domaine ressemble à un site connu (typosquatting possible)',
-  cert_invalid: 'Le certificat TLS n\'est pas valide',
+  cert_invalid: "Le certificat TLS n'est pas valide",
 };
 
 /**
@@ -181,11 +181,7 @@ export class OverlayM2 extends BaseNudge {
    * @param domainHash - SHA-256(salt + domain) du domaine courant
    * @param onAction   - Callback appelé avec l'action choisie par l'utilisateur
    */
-  open(
-    signals: string[],
-    domainHash: string,
-    onAction: (action: OverlayM2Action) => void,
-  ): void {
+  open(signals: string[], domainHash: string, onAction: (action: OverlayM2Action) => void): void {
     this.detectedSignals = signals;
     this.currentDomainHash = domainHash;
     this.onAction = onAction;
@@ -238,7 +234,7 @@ export class OverlayM2 extends BaseNudge {
     const para1 = document.createElement('p');
     para1.textContent =
       'Les signaux détectés indiquent que ce site présente des caractéristiques ' +
-      'couramment associées aux attaques de phishing et d\'usurpation d\'identité.';
+      "couramment associées aux attaques de phishing et d'usurpation d'identité.";
     section.appendChild(para1);
 
     const para2 = document.createElement('p');

@@ -106,7 +106,7 @@ export class ToastM7 extends BaseNudge {
     body.setAttribute('id', 'sn-m7-body');
     body.textContent =
       'Ce mot de passe est utilisé sur un autre site. ' +
-      'La réutilisation augmente le risque si l\'un de vos comptes est compromis.';
+      "La réutilisation augmente le risque si l'un de vos comptes est compromis.";
     this.toastContainer.appendChild(body);
 
     // --- Boutons d'action ---

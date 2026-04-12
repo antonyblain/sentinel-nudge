@@ -69,9 +69,7 @@ export class QuotaManager {
     const state = await this.getStateWithCache();
     const config = await this.storage.getConfig();
     // null = illimité (choix utilisateur "Tous"), undefined = pas de config → défaut
-    const limit = config === null || config === undefined
-      ? QUOTA_DEFAULT
-      : config.quota_limit;
+    const limit = config === null || config === undefined ? QUOTA_DEFAULT : config.quota_limit;
 
     // Quota illimité
     if (limit === null) {
@@ -142,8 +140,7 @@ export class QuotaManager {
    */
   private async getStateWithCache(): Promise<ChromeStorageSchema['quota_state']> {
     const now = Date.now();
-    const cacheValid =
-      this.cachedState !== null && now - this.cacheTimestamp < QUOTA_CACHE_TTL_MS;
+    const cacheValid = this.cachedState !== null && now - this.cacheTimestamp < QUOTA_CACHE_TTL_MS;
 
     if (cacheValid && this.cachedState) {
       return this.cachedState;

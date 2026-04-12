@@ -132,8 +132,7 @@ async function handleCalculateScore(
 
     // Cas : tous modules désactivés (SFD §2.2.4)
     const allDisabled =
-      enabledModules &&
-      ['M2', 'M5', 'M6', 'M7', 'M9'].every((m) => enabledModules[m] === false);
+      enabledModules && ['M2', 'M5', 'M6', 'M7', 'M9'].every((m) => enabledModules[m] === false);
 
     if (allDisabled) {
       await clearBadge();

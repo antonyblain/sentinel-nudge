@@ -4,14 +4,7 @@
   "version": "1.0.0",
   "description": "__MSG_extension_description__",
   "default_locale": "fr",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting",
-    "alarms",
-    "tabs",
-    "clipboardWrite"
-  ],
+  "permissions": ["activeTab", "storage", "scripting", "alarms", "tabs", "clipboardWrite"],
   "background": {
     "service_worker": "background/service-worker.ts",
     "type": "module"
@@ -34,5 +27,15 @@
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-  "web_accessible_resources": []
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "pages/dashboard/dashboard.html",
+        "pages/onboarding/onboarding.html",
+        "pages/static/*.html"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "chrome_url_overrides": {}
 }

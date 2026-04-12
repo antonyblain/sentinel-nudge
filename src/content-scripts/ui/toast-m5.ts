@@ -170,7 +170,7 @@ export class ToastM5 extends BaseNudge {
     const btnWhy = document.createElement('button');
     btnWhy.setAttribute('id', 'sn-m5-btn-why');
     btnWhy.setAttribute('type', 'button');
-    btnWhy.textContent = 'Pourquoi c\'est important ?';
+    btnWhy.textContent = "Pourquoi c'est important ?";
     btnWhy.addEventListener('click', () => {
       this.closeToast('why');
     });

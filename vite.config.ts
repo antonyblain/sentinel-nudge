@@ -8,6 +8,11 @@ import { resolve } from 'path';
  * Le plugin vite-plugin-web-extension lit le manifest.json comme source de vérité
  * et génère automatiquement les entry points (Service Worker, pages UI, content scripts).
  *
+ * Les pages dashboard et onboarding sont déclarées en additionalInputs car elles ne
+ * correspondent à aucune propriété standard du manifest MV3 reconnue par le plugin.
+ * Elles sont déclarées dans web_accessible_resources du manifest pour être accessibles
+ * via chrome.runtime.getURL() depuis le service worker et les pages de l'extension.
+ *
  * Alias @/ → src/ pour éviter les chemins relatifs profonds dans les imports.
  */
 export default defineConfig({
@@ -15,6 +20,10 @@ export default defineConfig({
   plugins: [
     webExtension({
       manifest: resolve(__dirname, 'src/manifest.json'),
+      additionalInputs: [
+        'pages/dashboard/dashboard.html',
+        'pages/onboarding/onboarding.html',
+      ],
     }),
   ],
   resolve: {

@@ -382,7 +382,8 @@ export class OverlayM6 extends BaseNudge {
     } else if (scorePct >= 66) {
       scoreComment.textContent = 'Bien joué ! Continuez à vous entraîner.';
     } else {
-      scoreComment.textContent = 'Continuez à pratiquer — la vigilance s\'améliore avec l\'entraînement.';
+      scoreComment.textContent =
+        "Continuez à pratiquer — la vigilance s'améliore avec l'entraînement.";
     }
 
     scoreSection.appendChild(scoreText);
@@ -412,8 +413,7 @@ export class OverlayM6 extends BaseNudge {
     const correctCount = this.state.answers.filter((a) => a.correct).length;
     const totalAnswered = this.state.answers.length;
     const totalQuestions = this.state.questions.length;
-    const scorePct =
-      totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+    const scorePct = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
 
     const results: QuizResults = {
       score_pct: completed ? scorePct : Math.round((correctCount / totalQuestions) * 100),

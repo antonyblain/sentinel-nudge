@@ -69,10 +69,7 @@ function initPasteDetector(): void {
 function handlePaste(event: ClipboardEvent): void {
   // Exclusion des champs password (SFD §2.7.3 CA-M17-06)
   const target = event.target;
-  if (
-    target instanceof HTMLInputElement &&
-    target.type === 'password'
-  ) {
+  if (target instanceof HTMLInputElement && target.type === 'password') {
     return;
   }
 
@@ -286,7 +283,7 @@ async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
   };
 
   try {
-    const response = await browser.runtime.sendMessage(message) as {
+    const response = (await browser.runtime.sendMessage(message)) as {
       success: boolean;
       action: string;
       data?: Record<string, unknown>;

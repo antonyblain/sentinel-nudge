@@ -89,8 +89,8 @@ export class ToastM6 extends BaseNudge {
     const body = document.createElement('p');
     body.setAttribute('id', 'sn-m6-body');
     body.textContent =
-      "Votre prochain quiz de sensibilisation au phishing est disponible. " +
-      "3 questions pour tester et renforcer votre vigilance.";
+      'Votre prochain quiz de sensibilisation au phishing est disponible. ' +
+      '3 questions pour tester et renforcer votre vigilance.';
     this.toastContainer.appendChild(body);
 
     // --- Zone des boutons d'action ---

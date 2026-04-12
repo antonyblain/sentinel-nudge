@@ -1,17 +1,18 @@
 /**
  * popup.css — Styles de la popup Sentinel Nudge
  * Design system tokens CSS (DAT §11.4) — 25 tokens
+ * Taille fixe : 320px × ~400px (MV3 popup)
  */
 
 :root {
   /* Couleurs sémantiques */
-  --sn-color-fg: #1a1a1a;        /* Texte principal — ratio 18.1:1 sur bg blanc */
-  --sn-color-bg: #ffffff;        /* Fond */
-  --sn-color-accent: #2563eb;    /* Interactif (boutons, liens) — ratio 5.9:1 sur bg */
-  --sn-color-danger: #dc2626;    /* Danger / erreur — ratio 5.9:1 sur bg */
-  --sn-color-success: #16a34a;   /* Succès — ratio 5.1:1 sur bg */
-  --sn-color-warning: #d97706;   /* Avertissement — ratio 4.6:1 sur bg */
-  --sn-color-muted: #6b7280;     /* Texte secondaire — ratio 4.6:1 sur bg */
+  --sn-color-fg: #1a1a1a; /* Texte principal — ratio 18.1:1 sur bg blanc */
+  --sn-color-bg: #ffffff; /* Fond */
+  --sn-color-accent: #2563eb; /* Interactif (boutons, liens) — ratio 5.9:1 sur bg */
+  --sn-color-danger: #dc2626; /* Danger / erreur — ratio 5.9:1 sur bg */
+  --sn-color-success: #16a34a; /* Succès — ratio 5.1:1 sur bg */
+  --sn-color-warning: #d97706; /* Avertissement — ratio 4.6:1 sur bg */
+  --sn-color-muted: #6b7280; /* Texte secondaire — ratio 4.6:1 sur bg */
 
   /* Typographie */
   --sn-font-size-body: 15px;
@@ -43,13 +44,17 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: var(--sn-font-size-body);
   font-weight: var(--sn-font-weight-normal);
   line-height: var(--sn-line-height);
   color: var(--sn-color-fg);
   background-color: var(--sn-color-bg);
-  min-width: 300px;
+  width: 320px;
+  min-height: 360px;
   padding: var(--sn-space-md);
 }
 
@@ -64,6 +69,158 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* En-tête popup */
+header {
+  margin-bottom: var(--sn-space-md);
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: var(--sn-space-sm);
+}
+
+.popup-title {
+  font-size: var(--sn-font-size-title);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-accent);
+  text-align: center;
+}
+
+/* Contenu principal */
+.popup-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-md);
+}
+
+/* Section titre */
+.section-title {
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--sn-space-sm);
+}
+
+/* Jauge de score */
+.score-gauge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sn-space-xs);
+}
+
+.score-level {
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+}
+
+/* État initial (pas encore de score) */
+.score-no-data {
+  text-align: center;
+  padding: var(--sn-space-md) 0;
+}
+
+.score-no-data-label {
+  font-size: var(--sn-font-size-title);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-muted);
+  margin-bottom: var(--sn-space-xs);
+}
+
+.score-no-data-date {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-muted);
+}
+
+/* Section statut */
+.status-section {
+  border: 1px solid #e5e7eb;
+  border-radius: var(--sn-radius);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sn-space-xs) 0;
+}
+
+.status-row + .status-row {
+  border-top: 1px solid #f3f4f6;
+}
+
+.status-label {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-muted);
+}
+
+.status-value {
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-fg);
+}
+
+/* Boutons d'action */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-sm);
+  margin-top: var(--sn-space-xs);
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  min-height: 44px; /* WCAG 2.5.5 — cibles 44×44px */
+  border: none;
+  border-radius: var(--sn-radius);
+  font-size: var(--sn-font-size-body);
+  font-weight: var(--sn-font-weight-bold);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background-color 150ms ease,
+    transform 100ms ease;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background-color: var(--sn-color-accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-secondary {
+  background-color: #f3f4f6;
+  color: var(--sn-color-fg);
+  border: 1px solid #e5e7eb;
+}
+
+.btn-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+/* États de chargement et erreur */
+.loading-text,
+.error-text {
+  text-align: center;
+  padding: var(--sn-space-lg) 0;
+  color: var(--sn-color-muted);
+  font-size: var(--sn-font-size-small);
+}
+
+.error-text {
+  color: var(--sn-color-danger);
 }
 
 /* Respect des préférences de mouvement réduit — DAT §11.2 */

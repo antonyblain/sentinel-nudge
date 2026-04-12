@@ -31,7 +31,11 @@ import { BaseNudge } from './base-nudge';
 import { browser } from '@/shared/browser/browser-adapter';
 
 /** Actions utilisateur possibles sur le toast M17 */
-export type ToastM17Action = 'clipboard_cleared' | 'acknowledged' | 'learn_more' | 'clipboard_clear_failed';
+export type ToastM17Action =
+  | 'clipboard_cleared'
+  | 'acknowledged'
+  | 'learn_more'
+  | 'clipboard_clear_failed';
 
 /** Types de données sensibles détectables par M17 */
 export type SensitiveDataType = 'credit_card' | 'iban' | 'api_key';
@@ -108,8 +112,7 @@ export class ToastM17 extends BaseNudge {
     // --- Corps (mis à jour dans open()) ---
     const body = document.createElement('p');
     body.setAttribute('id', 'sn-m17-body');
-    body.textContent =
-      'Vous venez de coller une donnée sensible dans un champ.';
+    body.textContent = 'Vous venez de coller une donnée sensible dans un champ.';
     this.toastContainer.appendChild(body);
 
     // --- Zone des boutons d'action ---

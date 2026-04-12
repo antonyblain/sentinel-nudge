@@ -53,8 +53,8 @@ const SCORE_LABELS: readonly string[] = [
  * Marqueurs ANSSI par score zxcvbn (0-4).
  */
 const ANSSI_MARKERS: readonly string[] = [
-  'Déconseillé par l\'ANSSI',
-  'Déconseillé par l\'ANSSI',
+  "Déconseillé par l'ANSSI",
+  "Déconseillé par l'ANSSI",
   'Acceptable',
   'Recommandé',
   'Recommandé',
@@ -62,8 +62,26 @@ const ANSSI_MARKERS: readonly string[] = [
 
 /** Mots très courants français utilisés pour la détection de passphrase faible */
 const COMMON_FRENCH_WORDS = new Set([
-  'le', 'la', 'de', 'un', 'je', 'et', 'les', 'des', 'du', 'en',
-  'il', 'est', 'au', 'ce', 'sur', 'que', 'se', 'ne', 'sa', 'ou',
+  'le',
+  'la',
+  'de',
+  'un',
+  'je',
+  'et',
+  'les',
+  'des',
+  'du',
+  'en',
+  'il',
+  'est',
+  'au',
+  'ce',
+  'sur',
+  'que',
+  'se',
+  'ne',
+  'sa',
+  'ou',
 ]);
 
 /**
@@ -240,7 +258,9 @@ export class OverlayM9 extends BaseNudge {
     // Analyse contextuelle pour les scores faibles
     const hasDigit = /\d/.test(value);
     const hasSymbol = /[^a-zA-Z0-9]/.test(value);
-    const hasSequence = /(?:123|234|345|456|567|678|789|890|abc|bcd|cde|qwerty|azerty)/i.test(value);
+    const hasSequence = /(?:123|234|345|456|567|678|789|890|abc|bcd|cde|qwerty|azerty)/i.test(
+      value,
+    );
 
     if (hasSequence) {
       return 'Évitez les séquences prévisibles (123, abc, azerty…).';
@@ -272,7 +292,10 @@ export class OverlayM9 extends BaseNudge {
       return 'Bonne phrase de passe ! Facile à retenir, difficile à deviner.';
     }
 
-    const words = value.trim().split(/\s+/).filter((w) => w.length > 0);
+    const words = value
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
     const wordCount = words.length;
 
     // Détection de mots très courants

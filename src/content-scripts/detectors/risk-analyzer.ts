@@ -80,11 +80,16 @@ function initializeData(): void {
       hstsPreloadSet = new Set(data.hashes as string[]);
     } else {
       hstsLoadError = true;
-      console.warn('[M2 RiskAnalyzer] hsts-preload.json: champ "hashes" absent ou invalide — signal hsts_miss désactivé');
+      console.warn(
+        '[M2 RiskAnalyzer] hsts-preload.json: champ "hashes" absent ou invalide — signal hsts_miss désactivé',
+      );
     }
   } catch (err) {
     hstsLoadError = true;
-    console.error('[M2 RiskAnalyzer] Erreur chargement hsts-preload.json:', err instanceof Error ? err.message : 'Erreur inconnue');
+    console.error(
+      '[M2 RiskAnalyzer] Erreur chargement hsts-preload.json:',
+      err instanceof Error ? err.message : 'Erreur inconnue',
+    );
   }
 
   // Chargement des cibles typosquatting
@@ -94,11 +99,16 @@ function initializeData(): void {
       typosquattingTargets = data.targets as string[];
     } else {
       typosquattingLoadError = true;
-      console.warn('[M2 RiskAnalyzer] typosquatting-targets.json: champ "targets" absent ou invalide — signal levenshtein désactivé');
+      console.warn(
+        '[M2 RiskAnalyzer] typosquatting-targets.json: champ "targets" absent ou invalide — signal levenshtein désactivé',
+      );
     }
   } catch (err) {
     typosquattingLoadError = true;
-    console.error('[M2 RiskAnalyzer] Erreur chargement typosquatting-targets.json:', err instanceof Error ? err.message : 'Erreur inconnue');
+    console.error(
+      '[M2 RiskAnalyzer] Erreur chargement typosquatting-targets.json:',
+      err instanceof Error ? err.message : 'Erreur inconnue',
+    );
   }
 }
 
@@ -214,8 +224,16 @@ function checkLevenshtein(hostname: string): boolean {
  * Non exportés en production (underscore par convention).
  */
 export const _internals = {
-  get hstsLoadError(): boolean { return hstsLoadError; },
-  get typosquattingLoadError(): boolean { return typosquattingLoadError; },
-  get hstsPreloadSetSize(): number { return hstsPreloadSet.size; },
-  get typosquattingTargetsCount(): number { return typosquattingTargets.length; },
+  get hstsLoadError(): boolean {
+    return hstsLoadError;
+  },
+  get typosquattingLoadError(): boolean {
+    return typosquattingLoadError;
+  },
+  get hstsPreloadSetSize(): number {
+    return hstsPreloadSet.size;
+  },
+  get typosquattingTargetsCount(): number {
+    return typosquattingTargets.length;
+  },
 };
