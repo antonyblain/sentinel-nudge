@@ -530,10 +530,12 @@ async function finishOnboarding(): Promise<void> {
     // Nettoyer la clé d'étape en cours
     await browser.storage.local.remove([ONBOARDING_STEP_KEY]);
 
-    // Fermer l'onglet (ou ouvrir le dashboard)
-    const currentTab = await browser.tabs.query({ active: true, currentWindow: true });
-    if (currentTab.length > 0 && currentTab[0].id !== undefined) {
-      chrome.tabs.remove(currentTab[0].id);
+    // Rediriger vers la popup ou fermer l'onglet
+    try {
+      window.close();
+    } catch {
+      // Si window.close() ne fonctionne pas, rediriger vers une page vide
+      window.location.href = 'about:blank';
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -661,7 +663,19 @@ async function initOnboarding(): Promise<void> {
 
   // Événement Terminer
   btnFinish.addEventListener('click', () => {
-    finishOnboarding().catch(() => undefined);
+    btnFinish.disabled = true;
+    btnFinish.textContent = 'Enregistrement...';
+    finishOnboarding().catch((err: unknown) => {
+      btnFinish.disabled = false;
+      btnFinish.textContent = browser.i18n.getMessage('onboarding_btn_finish') || 'Terminer';
+      // Afficher l'erreur à l'utilisateur
+      const errMsg = document.createElement('p');
+      errMsg.className = 'step-error';
+      errMsg.style.display = 'block';
+      errMsg.setAttribute('role', 'alert');
+      errMsg.textContent = `Erreur : ${err instanceof Error ? err.message : String(err)}`;
+      stepArea.appendChild(errMsg);
+    });
   });
 
   navDiv.appendChild(btnPrev);
