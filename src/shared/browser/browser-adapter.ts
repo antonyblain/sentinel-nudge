@@ -195,10 +195,14 @@ export const browser: BrowserAdapter = {
     getManifest: (): object => chrome.runtime.getManifest(),
   },
 
+  // Note : chrome.tabs, chrome.scripting et chrome.alarms ne sont PAS disponibles
+  // dans les content scripts. Les accès sont défensifs (optional chaining) pour
+  // éviter les crashes quand le browser-adapter est bundlé dans un content script.
+
   tabs: {
     sendMessage: (tabId: number, message: unknown): Promise<unknown> =>
       new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(tabId, message, (response) => {
+        chrome.tabs?.sendMessage(tabId, message, (response) => {
           if (chrome.runtime.lastError) {
             reject(new Error(chrome.runtime.lastError.message));
           } else {
@@ -207,26 +211,27 @@ export const browser: BrowserAdapter = {
         });
       }),
     query: (queryInfo: object): Promise<chrome.tabs.Tab[]> =>
-      new Promise((resolve) => chrome.tabs.query(queryInfo, resolve)),
+      new Promise((resolve) => chrome.tabs?.query(queryInfo, resolve) ?? resolve([])),
     create: (createProperties: chrome.tabs.CreateProperties): Promise<void> =>
-      chrome.tabs.create(createProperties).then(() => undefined),
+      chrome.tabs?.create(createProperties).then(() => undefined) ?? Promise.resolve(),
   },
 
   scripting: {
     executeScript: (
       injection: chrome.scripting.ScriptInjection,
-    ): Promise<chrome.scripting.InjectionResult[]> => chrome.scripting.executeScript(injection),
+    ): Promise<chrome.scripting.InjectionResult[]> =>
+      chrome.scripting?.executeScript(injection) ?? Promise.resolve([]),
   },
 
   alarms: {
     create: (name: string, alarmInfo: chrome.alarms.AlarmCreateInfo): void => {
-      chrome.alarms.create(name, alarmInfo);
+      chrome.alarms?.create(name, alarmInfo);
     },
     clear: (name: string): Promise<boolean> =>
-      new Promise((resolve) => chrome.alarms.clear(name, resolve)),
+      new Promise((resolve) => chrome.alarms?.clear(name, resolve) ?? resolve(false)),
     onAlarm: {
       addListener: (callback: (alarm: chrome.alarms.Alarm) => void): void => {
-        chrome.alarms.onAlarm.addListener(callback);
+        chrome.alarms?.onAlarm.addListener(callback);
       },
     },
   },
