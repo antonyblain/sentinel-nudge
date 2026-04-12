@@ -9,7 +9,7 @@
 ## État courant
 - **Phase active** : P4 — Développement (fin de sprint)
 - **Dernière action** : Nettoyage P4 complet — code mort supprimé (8 fichiers UI + sanitize.ts + 4 type guards + 4 clés i18n), 11 logs diagnostic retirés, 5 liens "En savoir plus" corrigés, focus trap M2 corrigé, comportements M2 (abandonner/continuer/confiance) corrigés, pages statiques renommées avec noms parlants, typosquatting enrichi 219→496 domaines (TACHE-011), export RGPD handlers implémentés (TACHE-013). Build OK, 200 tests OK — 2026-04-12
-- **Prochaine action attendue** : Comité revue de code P4 puis transition P5 — tests unitaires (couverture 80%).
+- **Prochaine action attendue** : P4' — Intégration design system Brand Book (palette Aegis Blue validée, 10 tâches TACHE-030 à TACHE-039 dont dark mode v1). Puis comité revue de code P4 et transition P5 — tests unitaires (couverture 80%).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
@@ -60,6 +60,8 @@
 | P4 | tests/unit/modules/m5.test.ts | — | 15 tests OK | 2026-04-12 |
 | P4 | tests/unit/modules/m3.test.ts | — | 35 tests OK | 2026-04-12 |
 | P4 | tests/unit/modules/m6.test.ts | — | 23 tests OK | 2026-04-12 |
+| P4' | docs/p4-conception/brand-book-sentinel-nudge.md | v1.0 | Validé — palette Aegis Blue retenue | 2026-04-12 |
+| P4' | docs/p4-conception/brand-book-preview.html | — | Preview interactive 5 palettes | 2026-04-12 |
 
 ## Actions manuelles en attente
 
@@ -83,3 +85,4 @@
 - Pages UI : dashboard et onboarding ajoutés en additionalInputs dans vite.config.ts (non référençables via propriétés MV3 standard)
 - TACHE-013 (handleExport) : les handlers SW pour EXPORT (get_all_events, get_all_quiz_sessions, get_whitelist, get_password_hash_meta) restent à implémenter côté service-worker.ts — gap fonctionnel connu, non bloquant pour le build
 - Pages statiques d'explication : renommées avec noms parlants (sites-suspects.html, score-cyber-hygiene.html, mise-a-jour-navigateur.html, quiz-phishing.html, reutilisation-mots-de-passe.html, force-mots-de-passe.html, donnees-sensibles-presse-papiers.html). MODULE_INFOS dans options.ts et tous les handlers SW alignés.
+- Brand Book validé 2026-04-12 : palette **Aegis Blue** retenue (proposition 1). Dark mode décidé pour v1 (pas v2). 10 tâches UX créées (TACHE-030 à TACHE-039) dans une phase P4' d'intégration design system.

@@ -420,8 +420,10 @@ Le badge Chrome (petit texte coloré sur l'icône 16px) doit être configuré vi
 
   /* Typographie */
   --sn-font-body:         system-ui, -apple-system, BlinkMacSystemFont,
-                          "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --sn-font-mono:         ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+                          "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+                          "Helvetica Neue", Arial, sans-serif;
+  --sn-font-mono:         ui-monospace, "Cascadia Code", "Source Code Pro",
+                          Menlo, Consolas, "DejaVu Sans Mono", monospace;
   --sn-font-size-display: 26px;
   --sn-font-size-h1:      22px;
   --sn-font-size-h2:      18px;
@@ -481,8 +483,10 @@ Le badge Chrome (petit texte coloré sur l'icône 16px) doit être configuré vi
 
   /* Typographie (identique entre palettes) */
   --sn-font-body:         system-ui, -apple-system, BlinkMacSystemFont,
-                          "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --sn-font-mono:         ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+                          "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+                          "Helvetica Neue", Arial, sans-serif;
+  --sn-font-mono:         ui-monospace, "Cascadia Code", "Source Code Pro",
+                          Menlo, Consolas, "DejaVu Sans Mono", monospace;
   --sn-font-size-display: 26px;
   --sn-font-size-h1:      22px;
   --sn-font-size-h2:      18px;
@@ -541,8 +545,10 @@ Le badge Chrome (petit texte coloré sur l'icône 16px) doit être configuré vi
 
   /* Typographie */
   --sn-font-body:         system-ui, -apple-system, BlinkMacSystemFont,
-                          "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --sn-font-mono:         ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+                          "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+                          "Helvetica Neue", Arial, sans-serif;
+  --sn-font-mono:         ui-monospace, "Cascadia Code", "Source Code Pro",
+                          Menlo, Consolas, "DejaVu Sans Mono", monospace;
   --sn-font-size-display: 26px;
   --sn-font-size-h1:      22px;
   --sn-font-size-h2:      18px;
@@ -601,8 +607,10 @@ Le badge Chrome (petit texte coloré sur l'icône 16px) doit être configuré vi
 
   /* Typographie */
   --sn-font-body:         system-ui, -apple-system, BlinkMacSystemFont,
-                          "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --sn-font-mono:         ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+                          "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+                          "Helvetica Neue", Arial, sans-serif;
+  --sn-font-mono:         ui-monospace, "Cascadia Code", "Source Code Pro",
+                          Menlo, Consolas, "DejaVu Sans Mono", monospace;
   --sn-font-size-display: 26px;
   --sn-font-size-h1:      22px;
   --sn-font-size-h2:      18px;
@@ -661,8 +669,10 @@ Le badge Chrome (petit texte coloré sur l'icône 16px) doit être configuré vi
 
   /* Typographie */
   --sn-font-body:         system-ui, -apple-system, BlinkMacSystemFont,
-                          "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --sn-font-mono:         ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+                          "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+                          "Helvetica Neue", Arial, sans-serif;
+  --sn-font-mono:         ui-monospace, "Cascadia Code", "Source Code Pro",
+                          Menlo, Consolas, "DejaVu Sans Mono", monospace;
   --sn-font-size-display: 26px;
   --sn-font-size-h1:      22px;
   --sn-font-size-h2:      18px;
