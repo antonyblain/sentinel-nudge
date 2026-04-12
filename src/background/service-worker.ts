@@ -303,55 +303,17 @@ browser.alarms.onAlarm.addListener(async (alarm: chrome.alarms.Alarm) => {
 messageRouter.listen();
 
 // ---------------------------------------------------------------------------
-// Injection dynamique des content scripts (DAT §10.3)
+// Content scripts — déclarés statiquement dans le manifest (content_scripts)
 // ---------------------------------------------------------------------------
-
-/**
- * Injecte les content scripts (détecteurs) dans un onglet donné.
- *
- * Les scripts sont injectés conditionnellement selon les modules activés :
- * - password-detector.ts : si M2, M7 ou M9 sont actifs
- * - paste-detector.ts : si M17 est actif
- *
- * Référence : DAT §10.3 (Lazy loading modules), Manifest V3 injection dynamique
- */
-async function injectContentScripts(tabId: number): Promise<void> {
-  try {
-    const storageData = await browser.storage.local.get(['config']);
-    const config = storageData['config'] as Record<string, Record<string, boolean>> | undefined;
-    const modules = config?.['modules'] ?? {};
-
-    // Injecter le détecteur de mots de passe si M2, M7 ou M9 sont actifs
-    if (modules['M2'] !== false || modules['M7'] !== false || modules['M9'] !== false) {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: ['content-scripts/detectors/password-detector.js'],
-      });
-    }
-
-    // Injecter le détecteur de paste si M17 est actif
-    if (modules['M17'] !== false) {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: ['content-scripts/detectors/paste-detector.js'],
-      });
-    }
-  } catch {
-    // Injection impossible (page chrome://, about:, etc.) — silencieux
-  }
-}
-
-/**
- * Listener chrome.tabs.onUpdated : injecte les content scripts
- * quand une page termine son chargement (document_idle).
- */
-chrome.tabs.onUpdated.addListener(
-  (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
-    if (changeInfo.status === 'complete') {
-      void injectContentScripts(tabId);
-    }
-  },
-);
+// Les content scripts (password-detector, paste-detector) sont injectés
+// automatiquement par Chrome sur toutes les pages http/https via la
+// déclaration content_scripts du manifest.json (run_at: document_idle).
+//
+// La désactivation module par module est gérée côté content script :
+// chaque détecteur vérifie la config dans chrome.storage.local avant
+// de s'activer. Pas d'injection dynamique via scripting.executeScript
+// car celle-ci nécessite host_permissions ou une action utilisateur.
+// ---------------------------------------------------------------------------
 
 // Enregistrement initial des handlers (premier réveil du SW au chargement de la page)
 // Nécessaire car onStartup n'est appelé qu'au démarrage du navigateur, pas au réveil du SW

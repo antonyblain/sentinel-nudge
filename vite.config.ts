@@ -23,8 +23,6 @@ export default defineConfig({
       additionalInputs: [
         'pages/dashboard/dashboard.html',
         'pages/onboarding/onboarding.html',
-        'content-scripts/detectors/password-detector.ts',
-        'content-scripts/detectors/paste-detector.ts',
       ],
     }),
   ],
