@@ -416,7 +416,10 @@ function showToastM17(dataType: SensitiveDataType): void {
   btnInfo.className = 'btn-link';
   btnInfo.textContent = 'En savoir plus';
   btnInfo.addEventListener('click', () => {
-    window.open(browser.runtime.getURL('pages/static/donnees-sensibles-presse-papiers.html'), '_blank');
+    window.open(
+      browser.runtime.getURL('pages/static/donnees-sensibles-presse-papiers.html'),
+      '_blank',
+    );
   });
   actions.appendChild(btnInfo);
 

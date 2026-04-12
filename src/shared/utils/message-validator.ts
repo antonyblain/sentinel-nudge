@@ -54,4 +54,3 @@ export function validateNudgeMessage(msg: unknown): msg is NudgeMessage {
   if (typeof m['timestamp'] !== 'number') return false;
   return true;
 }
-
