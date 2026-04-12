@@ -240,7 +240,7 @@ async function showOverlayM2(
   signals: string[],
   domainHash: string,
 ): Promise<boolean> {
-  const overlay = document.createElement('sn-overlay-m2') as OverlayM2;
+  const overlay = new OverlayM2();
   document.body.appendChild(overlay);
 
   return new Promise((resolve) => {
@@ -266,7 +266,7 @@ async function showOverlayM2(
 function initM9ForField(field: HTMLInputElement): void {
   if (m9Contexts.has(field)) return; // Déjà initialisé
 
-  const overlay = document.createElement('sn-overlay-m9') as OverlayM9;
+  const overlay = new OverlayM9();
   overlay.style.display = 'none';
 
   // Insertion juste après le champ — même largeur garantie via JS
@@ -520,7 +520,7 @@ async function handleFormSubmit(
  * @param domainHash - Hash salé du domaine courant pour la suppression_list
  */
 function showToastM7(domainHash: string): void {
-  const toast = document.createElement('sn-toast-m7') as ToastM7;
+  const toast = new ToastM7();
   document.body.appendChild(toast);
   toast.open(domainHash, (_action) => {
     // L'action est déjà envoyée au SW dans closeToast() via browser.runtime.sendMessage

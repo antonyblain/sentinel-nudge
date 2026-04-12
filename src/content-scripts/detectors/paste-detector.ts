@@ -312,7 +312,10 @@ async function notifyServiceWorker(types: SensitiveDataType[]): Promise<void> {
  * @param dataType - Type de donnée détectée (pour l'affichage dans le toast)
  */
 function showToastM17(dataType: SensitiveDataType): void {
-  const toast = document.createElement('sn-toast-m17') as ToastM17;
+  // Utiliser new ToastM17() au lieu de document.createElement('sn-toast-m17')
+  // car customElements.define() ne fonctionne pas correctement dans les content scripts
+  // Chrome (isolated world vs main world — le prototype chain est cassé).
+  const toast = new ToastM17();
   document.body.appendChild(toast);
   toast.open(dataType, (_action) => {
     // L'action est déjà envoyée au SW dans closeToast() via browser.runtime.sendMessage
