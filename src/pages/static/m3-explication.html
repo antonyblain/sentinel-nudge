@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M3 — Score de cyber-hygiène : comment est-il calculé — Sentinel Nudge</title>
+    <style>
+      :root {
+        --sn-color-bg: #ffffff;
+        --sn-color-fg: #111827;
+        --sn-color-accent: #2563eb;
+        --sn-color-success: #16a34a;
+        --sn-color-muted: #6b7280;
+        --sn-color-border: #e5e7eb;
+        --sn-font-size-body: 1rem;
+        --sn-font-size-small: 0.875rem;
+        --sn-line-height: 1.6;
+        --sn-radius: 8px;
+        --sn-space-sm: 0.5rem;
+        --sn-space-md: 1rem;
+        --sn-space-lg: 1.5rem;
+        --sn-space-xl: 2rem;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --sn-color-bg: #1f2937;
+          --sn-color-fg: #f9fafb;
+          --sn-color-accent: #60a5fa;
+          --sn-color-border: #374151;
+          --sn-color-muted: #9ca3af;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: var(--sn-font-size-body);
+        line-height: var(--sn-line-height);
+        color: var(--sn-color-fg);
+        background: var(--sn-color-bg);
+        margin: 0;
+        padding: var(--sn-space-lg);
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      header {
+        margin-bottom: var(--sn-space-xl);
+        border-bottom: 2px solid var(--sn-color-accent);
+        padding-bottom: var(--sn-space-md);
+      }
+      .badge {
+        display: inline-block;
+        background: var(--sn-color-accent);
+        color: #fff;
+        font-size: var(--sn-font-size-small);
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        margin-bottom: var(--sn-space-sm);
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-sm);
+        color: var(--sn-color-accent);
+      }
+      .subtitle {
+        color: var(--sn-color-muted);
+        font-size: var(--sn-font-size-small);
+        margin: 0;
+      }
+      section {
+        margin-bottom: var(--sn-space-xl);
+      }
+      h2 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-md);
+        border-left: 4px solid var(--sn-color-accent);
+        padding-left: var(--sn-space-sm);
+      }
+      p {
+        margin: 0 0 var(--sn-space-md);
+      }
+      ul,
+      ol {
+        margin: 0 0 var(--sn-space-md);
+        padding-left: 1.5rem;
+      }
+      li {
+        margin-bottom: var(--sn-space-sm);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: var(--sn-space-md);
+        font-size: var(--sn-font-size-small);
+      }
+      th,
+      td {
+        padding: var(--sn-space-sm) var(--sn-space-md);
+        text-align: left;
+        border-bottom: 1px solid var(--sn-color-border);
+      }
+      th {
+        font-weight: 700;
+        background: #f9fafb;
+      }
+      @media (prefers-color-scheme: dark) {
+        th {
+          background: #374151;
+        }
+      }
+      .tip-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+      @media (prefers-color-scheme: dark) {
+        .tip-box {
+          background: #14532d;
+          border-color: #16a34a;
+        }
+      }
+      .ref-list {
+        list-style: none;
+        padding: 0;
+      }
+      .ref-list li {
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        margin-bottom: var(--sn-space-sm);
+        padding-left: var(--sn-space-md);
+        border-left: 2px solid var(--sn-color-border);
+      }
+      footer {
+        margin-top: var(--sn-space-xl);
+        padding-top: var(--sn-space-md);
+        border-top: 1px solid var(--sn-color-border);
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: var(--sn-space-md);
+        }
+        table {
+          font-size: 0.75rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="badge" aria-label="Module M3">M3</span>
+      <h1>Score de cyber-hygiène — comment est-il calculé</h1>
+      <p class="subtitle">Sentinel Nudge — Documentation du module M3</p>
+    </header>
+
+    <main>
+      <section aria-labelledby="section-risk">
+        <h2 id="section-risk">Description du module</h2>
+        <p>
+          Le module M3 calcule chaque lundi matin un score global de cyber-hygiène sur 100 points.
+          Ce score synthétise votre comportement de sécurité numérique au cours de la semaine
+          écoulée, mesuré par les autres modules actifs de Sentinel Nudge.
+        </p>
+        <p>
+          Le score est affiché sur le badge de l'extension et dans le tableau de bord. Il est conçu
+          pour être compréhensible, actionnable et non culpabilisant.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-mechanism">
+        <h2 id="section-mechanism">Mécanisme de calcul</h2>
+        <p>Le score est composé de cinq composantes pondérées :</p>
+        <table>
+          <caption>
+            Pondérations des composantes du score M3
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Composante</th>
+              <th scope="col">Module source</th>
+              <th scope="col">Poids</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Mise à jour navigateur</td>
+              <td>M5</td>
+              <td>20 %</td>
+            </tr>
+            <tr>
+              <td>Résistance au phishing</td>
+              <td>M6</td>
+              <td>25 %</td>
+            </tr>
+            <tr>
+              <td>Évitement de sites risqués</td>
+              <td>M2</td>
+              <td>20 %</td>
+            </tr>
+            <tr>
+              <td>Diversité des mots de passe</td>
+              <td>M7</td>
+              <td>20 %</td>
+            </tr>
+            <tr>
+              <td>Force des mots de passe</td>
+              <td>M9</td>
+              <td>15 %</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          Si un ou plusieurs modules sont désactivés, leurs poids sont redistribués
+          proportionnellement entre les modules actifs, de sorte que le total reste toujours 100 %.
+        </p>
+        <p>
+          Le calcul est réalisé localement par le service worker le lundi à 9h. Aucune donnée ne
+          quitte votre navigateur.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-advice">
+        <h2 id="section-advice">Conseils pratiques</h2>
+        <div class="tip-box">
+          <strong>Pour améliorer votre score :</strong>
+          <ul>
+            <li>Maintenez votre navigateur à jour (impact fort : +20 points).</li>
+            <li>Complétez les quiz phishing M6 régulièrement (impact fort : +25 points).</li>
+            <li>Créez des mots de passe forts et uniques pour chaque site.</li>
+            <li>Activez tous les modules pour bénéficier d'une mesure complète.</li>
+          </ul>
+        </div>
+        <p>
+          Le score est disponible dans le tableau de bord avec l'historique des 52 dernières
+          semaines et le détail de chaque composante.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-refs">
+        <h2 id="section-refs">Sources scientifiques</h2>
+        <ul class="ref-list">
+          <li>
+            Wash, R. &amp; Rader, E. (2015). "Too much knowledge? Security beliefs and protective
+            behaviors among United States internet users." <em>Proc. SOUPS 2015</em>. Corrélation
+            entre feedback de score et adoption de comportements sécurisés.
+          </li>
+          <li>
+            Bada, M., Sasse, A.M. &amp; Nurse, J.R.C. (2019). "Cyber Security Awareness Campaigns:
+            Why do they fail to change behaviour?" <em>arXiv:1901.02672</em>. Importance du feedback
+            comportemental individualisé.
+          </li>
+          <li>
+            Fogg, B.J. (2003).
+            <em>Persuasive Technology: Using Computers to Change What We Think and Do</em>. Morgan
+            Kaufmann. Fondements théoriques du nudging par score.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Sentinel Nudge — Extension open-source de cyber-hygiène comportementale — Licence GPL v3
+      </p>
+    </footer>
+  </body>
+</html>

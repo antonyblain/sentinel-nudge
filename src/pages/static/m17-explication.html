@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M17 — Données sensibles : risques du copier-coller — Sentinel Nudge</title>
+    <style>
+      :root {
+        --sn-color-bg: #ffffff;
+        --sn-color-fg: #111827;
+        --sn-color-accent: #2563eb;
+        --sn-color-warning: #d97706;
+        --sn-color-muted: #6b7280;
+        --sn-color-border: #e5e7eb;
+        --sn-font-size-body: 1rem;
+        --sn-font-size-small: 0.875rem;
+        --sn-line-height: 1.6;
+        --sn-radius: 8px;
+        --sn-space-sm: 0.5rem;
+        --sn-space-md: 1rem;
+        --sn-space-lg: 1.5rem;
+        --sn-space-xl: 2rem;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --sn-color-bg: #1f2937;
+          --sn-color-fg: #f9fafb;
+          --sn-color-accent: #60a5fa;
+          --sn-color-border: #374151;
+          --sn-color-muted: #9ca3af;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: var(--sn-font-size-body);
+        line-height: var(--sn-line-height);
+        color: var(--sn-color-fg);
+        background: var(--sn-color-bg);
+        margin: 0;
+        padding: var(--sn-space-lg);
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      header {
+        margin-bottom: var(--sn-space-xl);
+        border-bottom: 2px solid var(--sn-color-warning);
+        padding-bottom: var(--sn-space-md);
+      }
+      .badge {
+        display: inline-block;
+        background: var(--sn-color-warning);
+        color: #fff;
+        font-size: var(--sn-font-size-small);
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        margin-bottom: var(--sn-space-sm);
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-sm);
+        color: var(--sn-color-warning);
+      }
+      .subtitle {
+        color: var(--sn-color-muted);
+        font-size: var(--sn-font-size-small);
+        margin: 0;
+      }
+      section {
+        margin-bottom: var(--sn-space-xl);
+      }
+      h2 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-md);
+        border-left: 4px solid var(--sn-color-accent);
+        padding-left: var(--sn-space-sm);
+      }
+      p {
+        margin: 0 0 var(--sn-space-md);
+      }
+      ul,
+      ol {
+        margin: 0 0 var(--sn-space-md);
+        padding-left: 1.5rem;
+      }
+      li {
+        margin-bottom: var(--sn-space-sm);
+      }
+      .tip-box {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+      @media (prefers-color-scheme: dark) {
+        .tip-box {
+          background: #451a03;
+          border-color: #d97706;
+        }
+      }
+      .ref-list {
+        list-style: none;
+        padding: 0;
+      }
+      .ref-list li {
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        margin-bottom: var(--sn-space-sm);
+        padding-left: var(--sn-space-md);
+        border-left: 2px solid var(--sn-color-border);
+      }
+      footer {
+        margin-top: var(--sn-space-xl);
+        padding-top: var(--sn-space-md);
+        border-top: 1px solid var(--sn-color-border);
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: var(--sn-space-md);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="badge" aria-label="Module M17">M17</span>
+      <h1>Données sensibles — risques du copier-coller</h1>
+      <p class="subtitle">Sentinel Nudge — Documentation du module M17</p>
+    </header>
+
+    <main>
+      <section aria-labelledby="section-risk">
+        <h2 id="section-risk">Description du risque</h2>
+        <p>
+          Le presse-papiers (clipboard) est une zone mémoire partagée entre toutes les applications
+          ouvertes sur votre ordinateur. Lorsque vous copiez un numéro de carte bancaire, un IBAN ou
+          une clé API, cette donnée reste accessible à n'importe quelle application jusqu'à ce que
+          vous copiez autre chose.
+        </p>
+        <p>
+          Des logiciels malveillants dits "clipboard stealers" surveillent en permanence le contenu
+          du presse-papiers pour voler les données sensibles qui y transitent. Certains remplacent
+          même les adresses de portefeuilles crypto copiées par les leurs.
+        </p>
+        <p>
+          Par ailleurs, coller une donnée sensible dans le mauvais champ — par exemple dans un champ
+          de recherche ou un chat — peut exposer ces informations involontairement.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-mechanism">
+        <h2 id="section-mechanism">Mécanisme du module</h2>
+        <p>
+          M17 surveille les événements <code>paste</code> sur les formulaires web. Lorsqu'une donnée
+          collée correspond à l'un des patterns suivants, une alerte s'affiche :
+        </p>
+        <ul>
+          <li>
+            <strong>Numéro de carte bancaire</strong> — Format 13 à 19 chiffres avec validation
+            Luhn.
+          </li>
+          <li>
+            <strong>IBAN</strong> — Format international de compte bancaire (jusqu'à 34 caractères).
+          </li>
+          <li>
+            <strong>Clé API</strong> — Patterns typiques de tokens (longueur, entropie, préfixes
+            courants).
+          </li>
+        </ul>
+        <p>
+          La valeur détectée n'est jamais stockée ni transmise — seul le <em>type</em> de donnée est
+          utilisé pour l'affichage de l'alerte. M17 propose de vider immédiatement le presse-papiers
+          via l'API <code>navigator.clipboard.writeText('')</code>.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-advice">
+        <h2 id="section-advice">Conseils pratiques</h2>
+        <div class="tip-box">
+          <strong>Bonnes pratiques pour les données sensibles :</strong>
+          <ul>
+            <li>Videz votre presse-papiers immédiatement après avoir collé une donnée sensible.</li>
+            <li>
+              N'utilisez pas le copier-coller pour des données bancaires sur des réseaux Wi-Fi
+              publics.
+            </li>
+            <li>
+              Méfiez-vous des sites qui vous demandent de coller votre numéro de carte dans un chat
+              ou un email.
+            </li>
+            <li>
+              Utilisez un gestionnaire de mots de passe qui efface le presse-papiers automatiquement
+              après 30 secondes.
+            </li>
+            <li>
+              Sur Windows : Win + V permet de consulter et vider l'historique du presse-papiers.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section aria-labelledby="section-refs">
+        <h2 id="section-refs">Sources scientifiques</h2>
+        <ul class="ref-list">
+          <li>
+            Luo, X. et al. (2011). "Clickjacking: Attacks and Defenses."
+            <em>Proc. USENIX Security 2012</em>. Analyse des vecteurs d'exfiltration de données via
+            les interactions utilisateur, incluant les événements clipboard.
+          </li>
+          <li>
+            MITRE ATT&amp;CK T1115 — Clipboard Data. Technique d'attaque documentée : collecte de
+            données depuis le presse-papiers par des logiciels malveillants.
+          </li>
+          <li>
+            Acquisti, A., Brandimarte, L. &amp; Loewenstein, G. (2015). "Privacy and human behavior
+            in the age of information." <em>Science</em>, 347(6221), 509–514. Dissonance cognitive
+            dans la gestion des données personnelles en contexte numérique.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Sentinel Nudge — Extension open-source de cyber-hygiène comportementale — Licence GPL v3
+      </p>
+    </footer>
+  </body>
+</html>

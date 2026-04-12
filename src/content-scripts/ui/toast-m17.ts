@@ -40,8 +40,15 @@ export type ToastM17Action =
 /** Types de données sensibles détectables par M17 */
 export type SensitiveDataType = 'credit_card' | 'iban' | 'api_key';
 
-/** Libellés des types de données pour l'affichage */
-const DATA_TYPE_LABELS: Record<SensitiveDataType, string> = {
+/** Clés i18n pour les libellés des types de données */
+const DATA_TYPE_LABEL_KEYS: Record<SensitiveDataType, string> = {
+  credit_card: 'm17_data_type_credit_card',
+  iban: 'm17_data_type_iban',
+  api_key: 'm17_data_type_api_key',
+};
+
+/** Fallbacks pour les libellés des types de données */
+const DATA_TYPE_FALLBACKS: Record<SensitiveDataType, string> = {
   credit_card: 'numéro de carte bancaire',
   iban: 'IBAN',
   api_key: 'clé API',
@@ -93,12 +100,15 @@ export class ToastM17 extends BaseNudge {
 
     const title = document.createElement('strong');
     title.setAttribute('id', 'sn-m17-title');
-    title.textContent = 'Donnée sensible détectée';
+    title.textContent = browser.i18n.getMessage('m17_toast_title') || 'Donnée sensible détectée';
 
     const closeBtn = document.createElement('button');
     closeBtn.setAttribute('id', 'sn-m17-close');
     closeBtn.setAttribute('type', 'button');
-    closeBtn.setAttribute('aria-label', 'Fermer cette notification');
+    closeBtn.setAttribute(
+      'aria-label',
+      browser.i18n.getMessage('m17_toast_btn_close_label') || 'Fermer cette notification',
+    );
     closeBtn.textContent = '×';
     closeBtn.addEventListener('click', () => {
       this.closeToast('acknowledged');
@@ -112,7 +122,9 @@ export class ToastM17 extends BaseNudge {
     // --- Corps (mis à jour dans open()) ---
     const body = document.createElement('p');
     body.setAttribute('id', 'sn-m17-body');
-    body.textContent = 'Vous venez de coller une donnée sensible dans un champ.';
+    body.textContent =
+      browser.i18n.getMessage('m17_toast_body_generic') ||
+      'Vous venez de coller une donnée sensible dans un champ.';
     this.toastContainer.appendChild(body);
 
     // --- Zone des boutons d'action ---
@@ -134,7 +146,8 @@ export class ToastM17 extends BaseNudge {
     const btnClear = document.createElement('button');
     btnClear.setAttribute('id', 'sn-m17-btn-clear');
     btnClear.setAttribute('type', 'button');
-    btnClear.textContent = 'Vider le presse-papiers';
+    btnClear.textContent =
+      browser.i18n.getMessage('m17_toast_btn_clear') || 'Vider le presse-papiers';
     btnClear.addEventListener('click', () => {
       void this.clearClipboard();
     });
@@ -143,7 +156,7 @@ export class ToastM17 extends BaseNudge {
     const btnOk = document.createElement('button');
     btnOk.setAttribute('id', 'sn-m17-btn-ok');
     btnOk.setAttribute('type', 'button');
-    btnOk.textContent = 'OK, merci';
+    btnOk.textContent = browser.i18n.getMessage('m17_toast_btn_ok') || 'OK, merci';
     btnOk.addEventListener('click', () => {
       this.closeToast('acknowledged');
     });
@@ -152,7 +165,7 @@ export class ToastM17 extends BaseNudge {
     const btnLearnMore = document.createElement('button');
     btnLearnMore.setAttribute('id', 'sn-m17-btn-learn');
     btnLearnMore.setAttribute('type', 'button');
-    btnLearnMore.textContent = 'En savoir plus';
+    btnLearnMore.textContent = browser.i18n.getMessage('m17_toast_btn_learn') || 'En savoir plus';
     btnLearnMore.addEventListener('click', () => {
       this.closeToast('learn_more');
     });
@@ -176,11 +189,16 @@ export class ToastM17 extends BaseNudge {
     // Mettre à jour le message du corps avec le type (pas la valeur — D-SEC-003)
     const body = this.shadow.getElementById('sn-m17-body');
     if (body) {
-      const typeLabel = DATA_TYPE_LABELS[dataType] ?? 'donnée sensible';
-      body.textContent =
+      const labelKey = DATA_TYPE_LABEL_KEYS[dataType];
+      const labelFallback = DATA_TYPE_FALLBACKS[dataType] ?? 'donnée sensible';
+      const typeLabel = browser.i18n.getMessage(labelKey) || labelFallback;
+
+      const bodyTemplate =
+        browser.i18n.getMessage('m17_toast_body', typeLabel) ||
         `Un ${typeLabel} vient d'être collé dans un champ. ` +
-        'Assurez-vous que ce site est bien celui attendu et que ' +
-        'votre presse-papiers ne reste pas accessible.';
+          'Assurez-vous que ce site est bien celui attendu et que ' +
+          'votre presse-papiers ne reste pas accessible.';
+      body.textContent = bodyTemplate;
     }
 
     // Afficher le toast
@@ -230,6 +248,7 @@ export class ToastM17 extends BaseNudge {
     fallbackMsg.setAttribute('id', 'sn-m17-fallback');
     fallbackMsg.setAttribute('role', 'alert');
     fallbackMsg.textContent =
+      browser.i18n.getMessage('m17_toast_clipboard_fallback') ||
       'Videz manuellement votre presse-papiers (copiez un texte vide ou appuyez Ctrl+C sur un espace vide).';
     this.actionsArea.appendChild(fallbackMsg);
 
@@ -237,7 +256,7 @@ export class ToastM17 extends BaseNudge {
     const btnClose = document.createElement('button');
     btnClose.setAttribute('id', 'sn-m17-btn-fallback-close');
     btnClose.setAttribute('type', 'button');
-    btnClose.textContent = 'Compris';
+    btnClose.textContent = browser.i18n.getMessage('m17_toast_btn_understood') || 'Compris';
     btnClose.addEventListener('click', () => {
       this.closeToast('acknowledged');
     });

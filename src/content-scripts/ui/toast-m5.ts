@@ -72,12 +72,15 @@ export class ToastM5 extends BaseNudge {
 
     const title = document.createElement('strong');
     title.setAttribute('id', 'sn-m5-title');
-    title.textContent = 'Mise à jour disponible';
+    title.textContent = browser.i18n.getMessage('m5_toast_title') || 'Mise à jour disponible';
 
     const closeBtn = document.createElement('button');
     closeBtn.setAttribute('id', 'sn-m5-close');
     closeBtn.setAttribute('type', 'button');
-    closeBtn.setAttribute('aria-label', 'Fermer cette notification');
+    closeBtn.setAttribute(
+      'aria-label',
+      browser.i18n.getMessage('m5_toast_btn_close_label') || 'Fermer cette notification',
+    );
     closeBtn.textContent = '×';
     closeBtn.addEventListener('click', () => {
       this.closeToast('closed');
@@ -92,8 +95,9 @@ export class ToastM5 extends BaseNudge {
     const body = document.createElement('p');
     body.setAttribute('id', 'sn-m5-body');
     body.textContent =
+      browser.i18n.getMessage('m5_toast_body') ||
       'Une mise à jour de votre navigateur est disponible. ' +
-      'Les mises à jour corrigent des failles de sécurité importantes.';
+        'Les mises à jour corrigent des failles de sécurité importantes.';
     this.toastContainer.appendChild(body);
 
     // --- Zone des boutons d'action ---
@@ -142,7 +146,8 @@ export class ToastM5 extends BaseNudge {
     const btnUpdate = document.createElement('button');
     btnUpdate.setAttribute('id', 'sn-m5-btn-update');
     btnUpdate.setAttribute('type', 'button');
-    btnUpdate.textContent = 'Mettre à jour maintenant';
+    btnUpdate.textContent =
+      browser.i18n.getMessage('m5_toast_btn_update') || 'Mettre à jour maintenant';
     btnUpdate.addEventListener('click', () => {
       this.closeToast('update_now');
     });
@@ -152,7 +157,8 @@ export class ToastM5 extends BaseNudge {
       const btnSnooze = document.createElement('button');
       btnSnooze.setAttribute('id', 'sn-m5-btn-snooze');
       btnSnooze.setAttribute('type', 'button');
-      btnSnooze.textContent = 'Me rappeler dans 4 heures';
+      btnSnooze.textContent =
+        browser.i18n.getMessage('m5_toast_btn_snooze') || 'Me rappeler dans 4 heures';
       btnSnooze.addEventListener('click', () => {
         this.closeToast('remind_4h');
       });
@@ -167,7 +173,8 @@ export class ToastM5 extends BaseNudge {
     const btnWhy = document.createElement('button');
     btnWhy.setAttribute('id', 'sn-m5-btn-why');
     btnWhy.setAttribute('type', 'button');
-    btnWhy.textContent = "Pourquoi c'est important ?";
+    btnWhy.textContent =
+      browser.i18n.getMessage('m5_toast_btn_why') || "Pourquoi c'est important ?";
     btnWhy.addEventListener('click', () => {
       this.closeToast('why');
     });

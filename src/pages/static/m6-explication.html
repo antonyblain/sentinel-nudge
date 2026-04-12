@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M6 — Quiz phishing : apprendre à reconnaître les tentatives — Sentinel Nudge</title>
+    <style>
+      :root {
+        --sn-color-bg: #ffffff;
+        --sn-color-fg: #111827;
+        --sn-color-accent: #2563eb;
+        --sn-color-muted: #6b7280;
+        --sn-color-border: #e5e7eb;
+        --sn-font-size-body: 1rem;
+        --sn-font-size-small: 0.875rem;
+        --sn-line-height: 1.6;
+        --sn-radius: 8px;
+        --sn-space-sm: 0.5rem;
+        --sn-space-md: 1rem;
+        --sn-space-lg: 1.5rem;
+        --sn-space-xl: 2rem;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --sn-color-bg: #1f2937;
+          --sn-color-fg: #f9fafb;
+          --sn-color-accent: #60a5fa;
+          --sn-color-border: #374151;
+          --sn-color-muted: #9ca3af;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: var(--sn-font-size-body);
+        line-height: var(--sn-line-height);
+        color: var(--sn-color-fg);
+        background: var(--sn-color-bg);
+        margin: 0;
+        padding: var(--sn-space-lg);
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      header {
+        margin-bottom: var(--sn-space-xl);
+        border-bottom: 2px solid var(--sn-color-accent);
+        padding-bottom: var(--sn-space-md);
+      }
+      .badge {
+        display: inline-block;
+        background: var(--sn-color-accent);
+        color: #fff;
+        font-size: var(--sn-font-size-small);
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        margin-bottom: var(--sn-space-sm);
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-sm);
+        color: var(--sn-color-accent);
+      }
+      .subtitle {
+        color: var(--sn-color-muted);
+        font-size: var(--sn-font-size-small);
+        margin: 0;
+      }
+      section {
+        margin-bottom: var(--sn-space-xl);
+      }
+      h2 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-md);
+        border-left: 4px solid var(--sn-color-accent);
+        padding-left: var(--sn-space-sm);
+      }
+      p {
+        margin: 0 0 var(--sn-space-md);
+      }
+      ul,
+      ol {
+        margin: 0 0 var(--sn-space-md);
+        padding-left: 1.5rem;
+      }
+      li {
+        margin-bottom: var(--sn-space-sm);
+      }
+      .tip-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+      @media (prefers-color-scheme: dark) {
+        .tip-box {
+          background: #1e3a5f;
+          border-color: #2563eb;
+        }
+      }
+      .ref-list {
+        list-style: none;
+        padding: 0;
+      }
+      .ref-list li {
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        margin-bottom: var(--sn-space-sm);
+        padding-left: var(--sn-space-md);
+        border-left: 2px solid var(--sn-color-border);
+      }
+      footer {
+        margin-top: var(--sn-space-xl);
+        padding-top: var(--sn-space-md);
+        border-top: 1px solid var(--sn-color-border);
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: var(--sn-space-md);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="badge" aria-label="Module M6">M6</span>
+      <h1>Quiz phishing — apprendre à reconnaître les tentatives</h1>
+      <p class="subtitle">Sentinel Nudge — Documentation du module M6</p>
+    </header>
+
+    <main>
+      <section aria-labelledby="section-risk">
+        <h2 id="section-risk">Description du risque</h2>
+        <p>
+          Le phishing est la première cause de compromission de comptes en ligne. Il repose sur la
+          manipulation psychologique : créer une urgence, imiter une interface connue, provoquer une
+          réaction automatique avant que l'esprit critique n'intervienne.
+        </p>
+        <p>
+          Les emails, SMS et pages web de phishing sont de plus en plus sophistiqués. La résistance
+          au phishing est une compétence qui s'acquiert par la pratique répétée, et non par une
+          simple lecture de conseils.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-mechanism">
+        <h2 id="section-mechanism">Mécanisme du module</h2>
+        <p>
+          M6 propose un mini-quiz de 3 questions à intervalles croissants selon le principe de la
+          répétition espacée (<em>spaced repetition</em>), issu de la recherche en sciences
+          cognitives sur la mémorisation à long terme.
+        </p>
+        <p>Les intervalles entre sessions suivent la progression suivante :</p>
+        <ol>
+          <li>Immédiatement après l'installation</li>
+          <li>Après 7 jours</li>
+          <li>Après 21 jours</li>
+          <li>Après 42 jours</li>
+          <li>Après 70 jours, puis tous les 30 jours</li>
+        </ol>
+        <p>
+          Les intervalles sont ajustés selon vos performances : un score inférieur à 50 % raccourcit
+          l'intervalle (×0,7), un score parfait l'allonge (×1,2). Les questions sont sélectionnées
+          de façon adaptative selon les catégories où vous avez échoué.
+        </p>
+        <p>
+          Le contenu des questions est adapté à votre profil (Débutant / Intermédiaire / Avancé)
+          défini lors de l'onboarding. Le corpus embarqué couvre l'analyse d'URL, l'ingénierie
+          sociale, les pièces jointes malveillantes et les faux formulaires.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-advice">
+        <h2 id="section-advice">Conseils pratiques</h2>
+        <div class="tip-box">
+          <strong>Indices d'un email ou d'une page de phishing :</strong>
+          <ul>
+            <li>Urgence artificielle : "Votre compte sera suspendu dans 24h".</li>
+            <li>Expéditeur qui imite un domaine connu avec un caractère de différence.</li>
+            <li>Lien qui pointe vers un domaine différent de celui affiché.</li>
+            <li>Demande d'identifiants sur une page non HTTPS.</li>
+            <li>Fautes d'orthographe ou formulations inhabituelles.</li>
+          </ul>
+        </div>
+        <p>
+          En cas de doute sur un email, accédez directement au site concerné en tapant l'URL dans
+          votre navigateur, sans cliquer sur le lien.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-refs">
+        <h2 id="section-refs">Sources scientifiques</h2>
+        <ul class="ref-list">
+          <li>
+            Cain, A.A., Edwards, M.E. &amp; Still, J.D. (2018). "An exploratory study of cyber
+            hygiene behaviors and knowledge."
+            <em>Journal of Information Security and Applications</em>, 42, 36–45. Efficacité de la
+            pratique répétée sur la résistance au phishing.
+          </li>
+          <li>
+            Ebbinghaus, H. (1885). <em>Über das Gedächtnis</em>. Fondement scientifique de la courbe
+            de l'oubli et de la répétition espacée.
+          </li>
+          <li>
+            Kumaraguru, P. et al. (2010). "Teaching Johnny not to fall for phish."
+            <em>ACM Transactions on Internet Technology</em>, 10(2). Démonstration de l'efficacité
+            des quiz contextuels post-clic.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Sentinel Nudge — Extension open-source de cyber-hygiène comportementale — Licence GPL v3
+      </p>
+    </footer>
+  </body>
+</html>

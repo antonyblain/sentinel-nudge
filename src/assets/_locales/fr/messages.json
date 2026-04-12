@@ -11,9 +11,321 @@
     "message": "Ce domaine présente des signaux inhabituels",
     "description": "Titre de l'overlay M2"
   },
+  "m2_overlay_description": {
+    "message": "Sentinel Nudge a détecté des signaux de risque sur ce site.",
+    "description": "Description de l'overlay M2"
+  },
+  "m2_overlay_signals_label": {
+    "message": "Signaux de risque détectés",
+    "description": "Aria-label de la liste de signaux M2"
+  },
+  "m2_overlay_btn_abandon": {
+    "message": "Abandonner la saisie",
+    "description": "Bouton abandon M2 (action sécurité principale)"
+  },
   "m2_overlay_btn_dismiss": {
     "message": "Continuer quand même",
     "description": "Bouton de fermeture M2"
+  },
+  "m2_overlay_btn_trust": {
+    "message": "Marquer comme de confiance",
+    "description": "Bouton whitelist M2"
+  },
+  "m2_overlay_btn_why": {
+    "message": "Pourquoi ce message ?",
+    "description": "Bouton explication inline M2"
+  },
+  "m2_overlay_btn_learn": {
+    "message": "En savoir plus sur les risques",
+    "description": "Bouton lien page explication M2"
+  },
+  "m2_explanation_title": {
+    "message": "Pourquoi cette alerte ?",
+    "description": "Titre section explication M2"
+  },
+  "m2_explanation_para1": {
+    "message": "Les signaux détectés indiquent que ce site présente des caractéristiques couramment associées aux attaques de phishing et d'usurpation d'identité.",
+    "description": "Premier paragraphe explication M2"
+  },
+  "m2_explanation_para2": {
+    "message": "Saisir un mot de passe sur un site non sécurisé ou imitant un site connu expose vos identifiants à des tiers malveillants.",
+    "description": "Deuxième paragraphe explication M2"
+  },
+  "m2_signal_http": {
+    "message": "Ce site utilise HTTP (non chiffré)",
+    "description": "Signal HTTP M2"
+  },
+  "m2_signal_hsts_miss": {
+    "message": "Ce site n'est pas dans la liste HSTS preload",
+    "description": "Signal HSTS miss M2"
+  },
+  "m2_signal_levenshtein": {
+    "message": "Ce domaine ressemble à un site connu (typosquatting possible)",
+    "description": "Signal Levenshtein M2"
+  },
+  "m2_signal_cert_invalid": {
+    "message": "Le certificat TLS n'est pas valide",
+    "description": "Signal certificat invalide M2"
+  },
+  "m5_toast_title": {
+    "message": "Mise à jour disponible",
+    "description": "Titre du toast M5"
+  },
+  "m5_toast_body": {
+    "message": "Une mise à jour de votre navigateur est disponible. Les mises à jour corrigent des failles de sécurité importantes.",
+    "description": "Corps du toast M5"
+  },
+  "m5_toast_btn_close_label": {
+    "message": "Fermer cette notification",
+    "description": "Aria-label du bouton fermer M5"
+  },
+  "m5_toast_btn_update": {
+    "message": "Mettre à jour maintenant",
+    "description": "Bouton mise à jour M5"
+  },
+  "m5_toast_btn_snooze": {
+    "message": "Me rappeler dans 4 heures",
+    "description": "Bouton snooze M5"
+  },
+  "m5_toast_btn_why": {
+    "message": "Pourquoi c'est important ?",
+    "description": "Bouton explication M5"
+  },
+  "m6_overlay_title": {
+    "message": "Quiz phishing",
+    "description": "Titre de l'overlay quiz M6"
+  },
+  "m6_overlay_progress": {
+    "message": "Question $1 sur $2",
+    "description": "Progression du quiz M6",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "3" }
+    }
+  },
+  "m6_overlay_btn_close": {
+    "message": "Fermer le quiz",
+    "description": "Aria-label bouton fermer quiz M6"
+  },
+  "m6_overlay_btn_validate": {
+    "message": "Valider",
+    "description": "Bouton valider réponse M6"
+  },
+  "m6_overlay_btn_next": {
+    "message": "Question suivante",
+    "description": "Bouton question suivante M6"
+  },
+  "m6_overlay_btn_finish": {
+    "message": "Voir mon score",
+    "description": "Bouton voir score final M6"
+  },
+  "m6_overlay_btn_close_final": {
+    "message": "Fermer",
+    "description": "Bouton fermer résultats M6"
+  },
+  "m6_overlay_no_selection": {
+    "message": "Veuillez sélectionner une réponse avant de valider.",
+    "description": "Message absence de sélection M6"
+  },
+  "m6_overlay_feedback_label": {
+    "message": "Explication",
+    "description": "Aria-label zone feedback M6"
+  },
+  "m6_overlay_feedback_correct": {
+    "message": "Bonne réponse !",
+    "description": "Feedback réponse correcte M6"
+  },
+  "m6_overlay_feedback_wrong": {
+    "message": "Réponse incorrecte.",
+    "description": "Feedback réponse incorrecte M6"
+  },
+  "m6_overlay_results_title": {
+    "message": "Résultats du quiz",
+    "description": "Titre section résultats M6"
+  },
+  "m6_overlay_score": {
+    "message": "$1 / $2 bonnes réponses ($3 %)",
+    "description": "Score final M6",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "3" },
+      "3": { "content": "$3", "example": "67" }
+    }
+  },
+  "m6_overlay_score_excellent": {
+    "message": "Excellent ! Vous avez tout bon.",
+    "description": "Commentaire score parfait M6"
+  },
+  "m6_overlay_score_good": {
+    "message": "Bien joué ! Continuez à vous entraîner.",
+    "description": "Commentaire bon score M6"
+  },
+  "m6_overlay_score_improve": {
+    "message": "Continuez à pratiquer — la vigilance s'améliore avec l'entraînement.",
+    "description": "Commentaire score à améliorer M6"
+  },
+  "m7_toast_title": {
+    "message": "Mot de passe déjà utilisé",
+    "description": "Titre du toast M7"
+  },
+  "m7_toast_body": {
+    "message": "Ce mot de passe est utilisé sur un autre site. La réutilisation augmente le risque si l'un de vos comptes est compromis.",
+    "description": "Corps du toast M7"
+  },
+  "m7_toast_btn_close_label": {
+    "message": "Fermer cette notification",
+    "description": "Aria-label bouton fermer M7"
+  },
+  "m7_toast_btn_learn": {
+    "message": "Voir comment",
+    "description": "Bouton en savoir plus M7"
+  },
+  "m7_toast_btn_ok": {
+    "message": "OK, compris",
+    "description": "Bouton acquittement M7"
+  },
+  "m7_toast_btn_suppress": {
+    "message": "Ne plus ce site",
+    "description": "Bouton suppression domaine M7"
+  },
+  "m9_meter_label": {
+    "message": "Force du mot de passe",
+    "description": "Aria-label du meter M9"
+  },
+  "m9_score_very_weak": {
+    "message": "Très faible",
+    "description": "Label score 0 M9"
+  },
+  "m9_score_weak": {
+    "message": "Faible",
+    "description": "Label score 1 M9"
+  },
+  "m9_score_medium": {
+    "message": "Moyen",
+    "description": "Label score 2 M9"
+  },
+  "m9_score_strong": {
+    "message": "Fort",
+    "description": "Label score 3 M9"
+  },
+  "m9_score_very_strong": {
+    "message": "Très fort",
+    "description": "Label score 4 M9"
+  },
+  "m9_anssi_not_recommended": {
+    "message": "Déconseillé par l'ANSSI",
+    "description": "Marqueur ANSSI scores 0-1 M9"
+  },
+  "m9_anssi_acceptable": {
+    "message": "Acceptable",
+    "description": "Marqueur ANSSI score 2 M9"
+  },
+  "m9_anssi_recommended": {
+    "message": "Recommandé",
+    "description": "Marqueur ANSSI scores 3-4 M9"
+  },
+  "m9_suggestion_pw_excellent": {
+    "message": "Excellent ! Ce mot de passe est très solide.",
+    "description": "Suggestion mot de passe score 4 M9"
+  },
+  "m9_suggestion_pw_good": {
+    "message": "Bon mot de passe ! Pensez aussi à la phrase de passe : plus longue, plus facile à retenir.",
+    "description": "Suggestion mot de passe score 3 M9"
+  },
+  "m9_suggestion_pw_sequence": {
+    "message": "Évitez les séquences prévisibles (123, abc, azerty…).",
+    "description": "Suggestion séquence détectée M9"
+  },
+  "m9_suggestion_pw_too_short": {
+    "message": "Ajoutez des caractères — visez au moins 12.",
+    "description": "Suggestion mot de passe trop court M9"
+  },
+  "m9_suggestion_pw_no_special": {
+    "message": "Ajoutez un chiffre ou un caractère spécial pour renforcer la force.",
+    "description": "Suggestion absence chiffre/spécial M9"
+  },
+  "m9_suggestion_pw_add_symbol": {
+    "message": "Un caractère spécial (@, #, !) vous ferait passer à Fort.",
+    "description": "Suggestion ajouter symbole M9"
+  },
+  "m9_suggestion_pw_keep_going": {
+    "message": "Continuez à améliorer votre mot de passe.",
+    "description": "Suggestion générique amélioration M9"
+  },
+  "m9_suggestion_pp_excellent": {
+    "message": "Excellente phrase de passe ! Longue et imprévisible.",
+    "description": "Suggestion passphrase score 4 M9"
+  },
+  "m9_suggestion_pp_good": {
+    "message": "Bonne phrase de passe ! Facile à retenir, difficile à deviner.",
+    "description": "Suggestion passphrase score 3 M9"
+  },
+  "m9_suggestion_pp_too_short": {
+    "message": "Ajoutez un ou deux mots pour renforcer votre phrase de passe.",
+    "description": "Suggestion passphrase trop courte M9"
+  },
+  "m9_suggestion_pp_common_words": {
+    "message": "Remplacez les mots très courants par des mots plus originaux.",
+    "description": "Suggestion mots courants passphrase M9"
+  },
+  "m9_suggestion_pp_unusual_words": {
+    "message": "Essayez des mots moins courants ou sans lien logique entre eux.",
+    "description": "Suggestion mots inhabituels passphrase M9"
+  },
+  "m9_suggestion_pp_keep_going": {
+    "message": "Bonne phrase de passe ! Continuez.",
+    "description": "Suggestion générique passphrase M9"
+  },
+  "m17_toast_title": {
+    "message": "Donnée sensible détectée",
+    "description": "Titre du toast M17"
+  },
+  "m17_toast_body_generic": {
+    "message": "Vous venez de coller une donnée sensible dans un champ.",
+    "description": "Corps générique du toast M17"
+  },
+  "m17_toast_body": {
+    "message": "Un $1 vient d'être collé dans un champ. Assurez-vous que ce site est bien celui attendu et que votre presse-papiers ne reste pas accessible.",
+    "description": "Corps du toast M17 avec type de donnée",
+    "placeholders": {
+      "1": { "content": "$1", "example": "numéro de carte bancaire" }
+    }
+  },
+  "m17_toast_btn_close_label": {
+    "message": "Fermer cette notification",
+    "description": "Aria-label bouton fermer M17"
+  },
+  "m17_toast_btn_clear": {
+    "message": "Vider le presse-papiers",
+    "description": "Bouton vider presse-papiers M17"
+  },
+  "m17_toast_btn_ok": {
+    "message": "OK, merci",
+    "description": "Bouton acquittement M17"
+  },
+  "m17_toast_btn_learn": {
+    "message": "En savoir plus",
+    "description": "Bouton en savoir plus M17"
+  },
+  "m17_toast_clipboard_fallback": {
+    "message": "Videz manuellement votre presse-papiers (copiez un texte vide ou appuyez Ctrl+C sur un espace vide).",
+    "description": "Message fallback vidage presse-papiers M17"
+  },
+  "m17_toast_btn_understood": {
+    "message": "Compris",
+    "description": "Bouton compris fallback M17"
+  },
+  "m17_data_type_credit_card": {
+    "message": "numéro de carte bancaire",
+    "description": "Label type donnée carte bancaire M17"
+  },
+  "m17_data_type_iban": {
+    "message": "IBAN",
+    "description": "Label type donnée IBAN M17"
+  },
+  "m17_data_type_api_key": {
+    "message": "clé API",
+    "description": "Label type donnée clé API M17"
   },
   "quota_remaining": {
     "message": "$1 nudge(s) restant(s) aujourd'hui",
@@ -180,6 +492,22 @@
   "options_delete_confirm": {
     "message": "Êtes-vous sûr de vouloir supprimer toutes vos données ? Cette action est irréversible.",
     "description": "Confirmation suppression données"
+  },
+  "options_delete_confirm_title": {
+    "message": "Supprimer toutes vos données ?",
+    "description": "Titre dialogue confirmation suppression"
+  },
+  "options_delete_confirm_desc": {
+    "message": "Cette action est irréversible. Toutes vos données locales seront définitivement supprimées.",
+    "description": "Description dialogue confirmation suppression"
+  },
+  "options_delete_confirm_btn": {
+    "message": "Confirmer la suppression",
+    "description": "Bouton confirmation suppression dans le dialogue"
+  },
+  "options_delete_cancel_btn": {
+    "message": "Annuler",
+    "description": "Bouton annulation dans le dialogue de suppression"
   },
   "options_delete_success": {
     "message": "Toutes vos données ont été supprimées.",

@@ -25,6 +25,7 @@
  */
 
 import { BaseNudge } from './base-nudge';
+import { browser } from '@/shared/browser/browser-adapter';
 
 /**
  * Couleurs de la barre de progression par score zxcvbn (0-4).
@@ -38,10 +39,17 @@ const SCORE_COLORS: readonly string[] = [
   '#166534', // 4 — Très fort  — Vert foncé (ratio 7.6:1)
 ] as const;
 
-/**
- * Labels ANSSI par score zxcvbn (0-4).
- */
-const SCORE_LABELS: readonly string[] = [
+/** Clés i18n pour les labels ANSSI par score zxcvbn (0-4) */
+const SCORE_LABEL_KEYS: readonly string[] = [
+  'm9_score_very_weak',
+  'm9_score_weak',
+  'm9_score_medium',
+  'm9_score_strong',
+  'm9_score_very_strong',
+] as const;
+
+/** Fallbacks pour les labels ANSSI */
+const SCORE_LABEL_FALLBACKS: readonly string[] = [
   'Très faible',
   'Faible',
   'Moyen',
@@ -49,10 +57,17 @@ const SCORE_LABELS: readonly string[] = [
   'Très fort',
 ] as const;
 
-/**
- * Marqueurs ANSSI par score zxcvbn (0-4).
- */
-const ANSSI_MARKERS: readonly string[] = [
+/** Clés i18n pour les marqueurs ANSSI par score zxcvbn (0-4) */
+const ANSSI_MARKER_KEYS: readonly string[] = [
+  'm9_anssi_not_recommended',
+  'm9_anssi_not_recommended',
+  'm9_anssi_acceptable',
+  'm9_anssi_recommended',
+  'm9_anssi_recommended',
+] as const;
+
+/** Fallbacks pour les marqueurs ANSSI */
+const ANSSI_MARKER_FALLBACKS: readonly string[] = [
   "Déconseillé par l'ANSSI",
   "Déconseillé par l'ANSSI",
   'Acceptable',
@@ -121,11 +136,17 @@ export class OverlayM9 extends BaseNudge {
     // Barre de progression — role meter pour accessibilité
     this.meter = document.createElement('div');
     this.meter.setAttribute('role', 'meter');
-    this.meter.setAttribute('aria-label', 'Force du mot de passe');
+    this.meter.setAttribute(
+      'aria-label',
+      browser.i18n.getMessage('m9_meter_label') || 'Force du mot de passe',
+    );
     this.meter.setAttribute('aria-valuenow', '0');
     this.meter.setAttribute('aria-valuemin', '0');
     this.meter.setAttribute('aria-valuemax', '4');
-    this.meter.setAttribute('aria-valuetext', 'Très faible');
+    this.meter.setAttribute(
+      'aria-valuetext',
+      browser.i18n.getMessage(SCORE_LABEL_KEYS[0]!) || SCORE_LABEL_FALLBACKS[0]!,
+    );
     this.meter.setAttribute('id', 'sn-m9-meter');
 
     this.barContainer = document.createElement('div');
@@ -176,9 +197,9 @@ export class OverlayM9 extends BaseNudge {
    * Met à jour l'overlay avec le nouveau score et la valeur du mot de passe.
    * Appelé à chaque événement input (debounce 150ms géré par le détecteur).
    *
-   * @param score     - Score zxcvbn (0-4)
-   * @param value     - Valeur courante du champ (pour les suggestions contextuelles)
-   * @param mode      - 'password' ou 'passphrase' (détecté par le détecteur)
+   * @param score       - Score zxcvbn (0-4)
+   * @param value       - Valeur courante du champ (pour les suggestions contextuelles)
+   * @param mode        - 'password' ou 'passphrase' (détecté par le détecteur)
    * @param parentWidth - Largeur du champ parent en pixels
    */
   update(score: number, value: string, mode: 'password' | 'passphrase', parentWidth: number): void {
@@ -188,8 +209,14 @@ export class OverlayM9 extends BaseNudge {
 
     const clampedScore = Math.max(0, Math.min(4, score));
     const color = SCORE_COLORS[clampedScore]!;
-    const label = SCORE_LABELS[clampedScore]!;
-    const anssi = ANSSI_MARKERS[clampedScore]!;
+
+    const labelKey = SCORE_LABEL_KEYS[clampedScore]!;
+    const labelFallback = SCORE_LABEL_FALLBACKS[clampedScore]!;
+    const label = browser.i18n.getMessage(labelKey) || labelFallback;
+
+    const anssiKey = ANSSI_MARKER_KEYS[clampedScore]!;
+    const anssiFallback = ANSSI_MARKER_FALLBACKS[clampedScore]!;
+    const anssi = browser.i18n.getMessage(anssiKey) || anssiFallback;
 
     // Mise à jour de la barre
     const percent = ((clampedScore + 1) / 5) * 100;
@@ -249,10 +276,16 @@ export class OverlayM9 extends BaseNudge {
    */
   private getPasswordSuggestion(score: number, value: string): string {
     if (score >= 4) {
-      return 'Excellent ! Ce mot de passe est très solide.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pw_excellent') ||
+        'Excellent ! Ce mot de passe est très solide.'
+      );
     }
     if (score >= 3) {
-      return 'Bon mot de passe ! Pensez aussi à la phrase de passe : plus longue, plus facile à retenir.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pw_good') ||
+        'Bon mot de passe ! Pensez aussi à la phrase de passe : plus longue, plus facile à retenir.'
+      );
     }
 
     // Analyse contextuelle pour les scores faibles
@@ -263,18 +296,33 @@ export class OverlayM9 extends BaseNudge {
     );
 
     if (hasSequence) {
-      return 'Évitez les séquences prévisibles (123, abc, azerty…).';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pw_sequence') ||
+        'Évitez les séquences prévisibles (123, abc, azerty…).'
+      );
     }
     if (value.length < 12) {
-      return 'Ajoutez des caractères — visez au moins 12.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pw_too_short') ||
+        'Ajoutez des caractères — visez au moins 12.'
+      );
     }
     if (!hasDigit && !hasSymbol) {
-      return 'Ajoutez un chiffre ou un caractère spécial pour renforcer la force.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pw_no_special') ||
+        'Ajoutez un chiffre ou un caractère spécial pour renforcer la force.'
+      );
     }
     if (!hasSymbol && value.length >= 12) {
-      return 'Un caractère spécial (@, #, !) vous ferait passer à Fort.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pw_add_symbol') ||
+        'Un caractère spécial (@, #, !) vous ferait passer à Fort.'
+      );
     }
-    return 'Continuez à améliorer votre mot de passe.';
+    return (
+      browser.i18n.getMessage('m9_suggestion_pw_keep_going') ||
+      'Continuez à améliorer votre mot de passe.'
+    );
   }
 
   /**
@@ -286,10 +334,16 @@ export class OverlayM9 extends BaseNudge {
    */
   private getPassphraseSuggestion(score: number, value: string): string {
     if (score >= 4) {
-      return 'Excellente phrase de passe ! Longue et imprévisible.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_excellent') ||
+        'Excellente phrase de passe ! Longue et imprévisible.'
+      );
     }
     if (score >= 3) {
-      return 'Bonne phrase de passe ! Facile à retenir, difficile à deviner.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_good') ||
+        'Bonne phrase de passe ! Facile à retenir, difficile à deviner.'
+      );
     }
 
     const words = value
@@ -302,15 +356,26 @@ export class OverlayM9 extends BaseNudge {
     const hasCommonWords = words.some((w) => COMMON_FRENCH_WORDS.has(w.toLowerCase()));
 
     if (wordCount < 4) {
-      return 'Ajoutez un ou deux mots pour renforcer votre phrase de passe.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_too_short') ||
+        'Ajoutez un ou deux mots pour renforcer votre phrase de passe.'
+      );
     }
     if (hasCommonWords) {
-      return 'Remplacez les mots très courants par des mots plus originaux.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_common_words') ||
+        'Remplacez les mots très courants par des mots plus originaux.'
+      );
     }
     if (wordCount >= 4 && score < 3) {
-      return 'Essayez des mots moins courants ou sans lien logique entre eux.';
+      return (
+        browser.i18n.getMessage('m9_suggestion_pp_unusual_words') ||
+        'Essayez des mots moins courants ou sans lien logique entre eux.'
+      );
     }
-    return 'Bonne phrase de passe ! Continuez.';
+    return (
+      browser.i18n.getMessage('m9_suggestion_pp_keep_going') || 'Bonne phrase de passe ! Continuez.'
+    );
   }
 
   /**

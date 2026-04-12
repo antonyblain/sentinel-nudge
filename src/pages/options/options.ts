@@ -15,21 +15,31 @@
  * Technique :
  * - Charge la config depuis chrome.storage.local au démarrage
  * - Sauvegarde chaque changement immédiatement via browser.storage.local.set
- * - Export : construit ExportPayload, télécharge via URL.createObjectURL + <a download>
- * - Suppression : indexedDB.deleteDatabase + chrome.storage.local.clear après confirmation
+ * - Export : récupère les données réelles via le service worker, télécharge via
+ *   URL.createObjectURL + <a download>
+ * - Suppression : dialogue HTML accessible (alertdialog) au lieu de window.confirm(),
+ *   puis indexedDB.deleteDatabase + chrome.storage.local.clear
  *
  * Accessibilité :
  * - Labels associés à chaque input, fieldsets par section
  * - Cibles 44×44px, contraste 4.5:1
+ * - Dialogue de suppression avec role="alertdialog", aria-modal, focus trap, Escape
  *
  * Sécurité :
  * - D-SEC-003 : Aucun innerHTML. Tout DOM via createElement/textContent/appendChild.
+ * - Aucun window.confirm() — dialogue accessible à la place.
  *
  * Référence : DAT §3.1 (Options), §8.3 (RGPD), §9.4 (D-SEC), SFD §3.4
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
-import type { ExportPayload } from '@/shared/types/storage';
+import type {
+  ExportPayload,
+  EventPayload,
+  QuizSession,
+  WeeklyScore,
+  WhitelistEntry,
+} from '@/shared/types/storage';
 import type { ModuleId } from '@/shared/types/modules';
 
 /** Version de l'extension (lue depuis le manifest) */
@@ -52,43 +62,43 @@ const MODULE_INFOS: Array<{
     id: 'M2',
     nameKey: 'module_m2_name',
     descKey: 'module_m2_desc',
-    explainPage: 'explain-m2.html',
+    explainPage: 'm2-explication.html',
   },
   {
     id: 'M3',
     nameKey: 'module_m3_name',
     descKey: 'module_m3_desc',
-    explainPage: 'explain-m3.html',
+    explainPage: 'm3-explication.html',
   },
   {
     id: 'M5',
     nameKey: 'module_m5_name',
     descKey: 'module_m5_desc',
-    explainPage: 'explain-m5.html',
+    explainPage: 'm5-explication.html',
   },
   {
     id: 'M6',
     nameKey: 'module_m6_name',
     descKey: 'module_m6_desc',
-    explainPage: 'explain-m6.html',
+    explainPage: 'm6-explication.html',
   },
   {
     id: 'M7',
     nameKey: 'module_m7_name',
     descKey: 'module_m7_desc',
-    explainPage: 'explain-m7.html',
+    explainPage: 'm7-explication.html',
   },
   {
     id: 'M9',
     nameKey: 'module_m9_name',
     descKey: 'module_m9_desc',
-    explainPage: 'explain-m9.html',
+    explainPage: 'm9-explication.html',
   },
   {
     id: 'M17',
     nameKey: 'module_m17_name',
     descKey: 'module_m17_desc',
-    explainPage: 'explain-m17.html',
+    explainPage: 'm17-explication.html',
   },
 ];
 
@@ -102,6 +112,53 @@ interface StoredConfig {
   language: 'fr' | 'en';
   onboarding_complete: boolean;
   toast_auto_dismiss?: boolean;
+}
+
+/**
+ * Réponse du SW pour l'export des scores hebdomadaires.
+ */
+interface GetAllScoresResponse {
+  success: boolean;
+  scores?: WeeklyScore[];
+  error?: string;
+}
+
+/**
+ * Réponse du SW pour l'export des événements.
+ */
+interface GetAllEventsResponse {
+  success: boolean;
+  events?: EventPayload[];
+  error?: string;
+}
+
+/**
+ * Réponse du SW pour l'export des sessions quiz.
+ */
+interface GetAllQuizSessionsResponse {
+  success: boolean;
+  sessions?: QuizSession[];
+  error?: string;
+}
+
+/**
+ * Réponse du SW pour l'export des entrées whitelist.
+ */
+interface GetWhitelistResponse {
+  success: boolean;
+  whitelist?: WhitelistEntry[];
+  error?: string;
+}
+
+/**
+ * Réponse du SW pour les métadonnées des hashes de mots de passe.
+ */
+interface GetPasswordHashMetaResponse {
+  success: boolean;
+  count?: number;
+  oldest?: string;
+  newest?: string;
+  error?: string;
 }
 
 /**
@@ -505,13 +562,72 @@ function renderAccessibilitySection(
 /**
  * Lance le téléchargement du fichier d'export RGPD.
  *
- * Construit un ExportPayload minimal (données non chiffrées disponibles depuis storage)
- * et déclenche un téléchargement local via URL.createObjectURL + <a download>.
+ * Récupère les données réelles depuis le service worker via des messages structurés,
+ * construit le ExportPayload complet, et déclenche un téléchargement local.
+ * Les hashes de mots de passe ne sont PAS inclus — seulement count/oldest/newest (NC-DPO-01).
  *
  * @param config - Configuration courante
  */
 async function handleExport(config: StoredConfig): Promise<void> {
   try {
+    // Récupération des weekly_scores via le SW
+    const scoresResponse = (await browser.runtime.sendMessage({
+      module: 'M3',
+      action: 'get_all_scores',
+      payload: {},
+      timestamp: Date.now(),
+    })) as GetAllScoresResponse | undefined;
+
+    const weeklyScores: WeeklyScore[] = scoresResponse?.success
+      ? (scoresResponse.scores ?? [])
+      : [];
+
+    // Récupération des events via le SW
+    const eventsResponse = (await browser.runtime.sendMessage({
+      module: 'EXPORT',
+      action: 'get_all_events',
+      payload: {},
+      timestamp: Date.now(),
+    })) as GetAllEventsResponse | undefined;
+
+    const events: EventPayload[] = eventsResponse?.success ? (eventsResponse.events ?? []) : [];
+
+    // Récupération des sessions quiz via le SW
+    const quizResponse = (await browser.runtime.sendMessage({
+      module: 'EXPORT',
+      action: 'get_all_quiz_sessions',
+      payload: {},
+      timestamp: Date.now(),
+    })) as GetAllQuizSessionsResponse | undefined;
+
+    const quizSessions: QuizSession[] = quizResponse?.success ? (quizResponse.sessions ?? []) : [];
+
+    // Récupération de la whitelist via le SW
+    const whitelistResponse = (await browser.runtime.sendMessage({
+      module: 'EXPORT',
+      action: 'get_whitelist',
+      payload: {},
+      timestamp: Date.now(),
+    })) as GetWhitelistResponse | undefined;
+
+    const whitelist: WhitelistEntry[] = whitelistResponse?.success
+      ? (whitelistResponse.whitelist ?? [])
+      : [];
+
+    // Métadonnées hashes mots de passe (pas les hashes eux-mêmes — NC-DPO-01)
+    const pwHashResponse = (await browser.runtime.sendMessage({
+      module: 'EXPORT',
+      action: 'get_password_hash_meta',
+      payload: {},
+      timestamp: Date.now(),
+    })) as GetPasswordHashMetaResponse | undefined;
+
+    const passwordHashesMeta = {
+      count: pwHashResponse?.count ?? 0,
+      oldest: pwHashResponse?.oldest ?? '',
+      newest: pwHashResponse?.newest ?? '',
+    };
+
     const exportPayload: ExportPayload = {
       version: '1.0',
       exported_at: new Date().toISOString(),
@@ -524,15 +640,11 @@ async function handleExport(config: StoredConfig): Promise<void> {
         language: config.language,
       },
       data: {
-        events: [],
-        password_hashes: {
-          count: 0,
-          oldest: '',
-          newest: '',
-        },
-        quiz_sessions: [],
-        weekly_scores: [],
-        whitelist: [],
+        events,
+        password_hashes: passwordHashesMeta,
+        quiz_sessions: quizSessions,
+        weekly_scores: weeklyScores,
+        whitelist,
       },
     };
 
@@ -561,22 +673,155 @@ async function handleExport(config: StoredConfig): Promise<void> {
 }
 
 /**
+ * Affiche un dialogue de confirmation accessible (WCAG 2.1 AA) pour les actions destructives.
+ *
+ * - role="alertdialog", aria-modal="true", aria-labelledby, aria-describedby
+ * - Focus trap actif (Tab / Shift+Tab circulent entre les 2 boutons)
+ * - Premier focus sur "Annuler" (action sûre)
+ * - Escape = annuler
+ * - D-SEC-003 : aucun innerHTML
+ *
+ * @param titleText  - Texte du titre du dialogue
+ * @param descText   - Texte de description (conséquence de l'action)
+ * @param confirmText - Texte du bouton de confirmation (action danger)
+ * @param cancelText  - Texte du bouton d'annulation
+ * @returns Promise<boolean> — true si confirmé, false si annulé
+ */
+function showConfirmDialog(
+  titleText: string,
+  descText: string,
+  confirmText: string,
+  cancelText: string,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    // Fond semi-transparent (backdrop)
+    const backdrop = document.createElement('div');
+    backdrop.className = 'confirm-dialog-backdrop';
+    backdrop.setAttribute('aria-hidden', 'true');
+
+    // Dialogue
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'alertdialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'confirm-dialog-title');
+    dialog.setAttribute('aria-describedby', 'confirm-dialog-desc');
+    dialog.className = 'confirm-dialog';
+
+    // Titre
+    const title = document.createElement('h2');
+    title.id = 'confirm-dialog-title';
+    title.className = 'confirm-dialog-title';
+    title.textContent = titleText;
+    dialog.appendChild(title);
+
+    // Description
+    const desc = document.createElement('p');
+    desc.id = 'confirm-dialog-desc';
+    desc.className = 'confirm-dialog-desc';
+    desc.textContent = descText;
+    dialog.appendChild(desc);
+
+    // Zone des boutons
+    const actions = document.createElement('div');
+    actions.className = 'confirm-dialog-actions';
+
+    // Bouton Annuler — premier focus (action sûre)
+    const btnCancel = document.createElement('button');
+    btnCancel.type = 'button';
+    btnCancel.className = 'btn btn-secondary';
+    btnCancel.textContent = cancelText;
+
+    // Bouton Confirmer (action danger)
+    const btnConfirm = document.createElement('button');
+    btnConfirm.type = 'button';
+    btnConfirm.className = 'btn btn-danger';
+    btnConfirm.textContent = confirmText;
+
+    actions.appendChild(btnCancel);
+    actions.appendChild(btnConfirm);
+    dialog.appendChild(actions);
+
+    backdrop.appendChild(dialog);
+    document.body.appendChild(backdrop);
+
+    /**
+     * Ferme le dialogue et résout la promesse.
+     *
+     * @param result - true si confirmé, false si annulé
+     */
+    function close(result: boolean): void {
+      document.removeEventListener('keydown', handleKeydown);
+      document.body.removeChild(backdrop);
+      resolve(result);
+    }
+
+    /**
+     * Gestion du focus trap et de la touche Escape.
+     *
+     * @param e - Événement clavier
+     */
+    function handleKeydown(e: KeyboardEvent): void {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close(false);
+        return;
+      }
+
+      // Focus trap : Tab / Shift+Tab circulent entre btnCancel et btnConfirm
+      if (e.key === 'Tab') {
+        const focused = document.activeElement;
+        if (e.shiftKey) {
+          // Shift+Tab : si focus sur Annuler → aller vers Confirmer
+          if (focused === btnCancel) {
+            e.preventDefault();
+            btnConfirm.focus();
+          }
+        } else {
+          // Tab : si focus sur Confirmer → aller vers Annuler
+          if (focused === btnConfirm) {
+            e.preventDefault();
+            btnCancel.focus();
+          }
+        }
+      }
+    }
+
+    btnCancel.addEventListener('click', () => close(false));
+    btnConfirm.addEventListener('click', () => close(true));
+    backdrop.addEventListener('click', (e) => {
+      // Clic hors du dialogue = annuler
+      if (e.target === backdrop) close(false);
+    });
+
+    document.addEventListener('keydown', handleKeydown);
+
+    // Premier focus sur "Annuler" (action sûre — TACHE-015)
+    requestAnimationFrame(() => {
+      btnCancel.focus();
+    });
+  });
+}
+
+/**
  * Supprime toutes les données de l'utilisateur (RGPD Art. 17).
  *
+ * Affiche un dialogue HTML accessible (alertdialog) avant d'agir.
  * Effectue :
  * - indexedDB.deleteDatabase('sentinel-nudge-db')
  * - chrome.storage.local.clear()
  *
- * Affiche une confirmation avant d'agir.
- *
  * @param statusEl - Élément où afficher le résultat
  */
 async function handleDeleteAllData(statusEl: HTMLElement): Promise<void> {
-  const confirmMessage =
-    browser.i18n.getMessage('options_delete_confirm') ||
-    'Êtes-vous sûr de vouloir supprimer toutes vos données ? Cette action est irréversible.';
+  const confirmed = await showConfirmDialog(
+    browser.i18n.getMessage('options_delete_confirm_title') || 'Supprimer toutes vos données ?',
+    browser.i18n.getMessage('options_delete_confirm_desc') ||
+      'Cette action est irréversible. Toutes vos données locales seront définitivement supprimées.',
+    browser.i18n.getMessage('options_delete_confirm_btn') || 'Confirmer la suppression',
+    browser.i18n.getMessage('options_delete_cancel_btn') || 'Annuler',
+  );
 
-  if (!window.confirm(confirmMessage)) return;
+  if (!confirmed) return;
 
   try {
     // Supprimer IndexedDB

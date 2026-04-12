@@ -86,12 +86,15 @@ export class ToastM7 extends BaseNudge {
 
     const title = document.createElement('strong');
     title.setAttribute('id', 'sn-m7-title');
-    title.textContent = 'Mot de passe déjà utilisé';
+    title.textContent = browser.i18n.getMessage('m7_toast_title') || 'Mot de passe déjà utilisé';
 
     const closeBtn = document.createElement('button');
     closeBtn.setAttribute('id', 'sn-m7-close');
     closeBtn.setAttribute('type', 'button');
-    closeBtn.setAttribute('aria-label', 'Fermer cette notification');
+    closeBtn.setAttribute(
+      'aria-label',
+      browser.i18n.getMessage('m7_toast_btn_close_label') || 'Fermer cette notification',
+    );
     closeBtn.textContent = '×';
     closeBtn.addEventListener('click', () => {
       this.closeToast('acknowledged');
@@ -106,8 +109,9 @@ export class ToastM7 extends BaseNudge {
     const body = document.createElement('p');
     body.setAttribute('id', 'sn-m7-body');
     body.textContent =
+      browser.i18n.getMessage('m7_toast_body') ||
       'Ce mot de passe est utilisé sur un autre site. ' +
-      "La réutilisation augmente le risque si l'un de vos comptes est compromis.";
+        "La réutilisation augmente le risque si l'un de vos comptes est compromis.";
     this.toastContainer.appendChild(body);
 
     // --- Boutons d'action ---
@@ -117,7 +121,7 @@ export class ToastM7 extends BaseNudge {
     const btnLearnMore = document.createElement('button');
     btnLearnMore.setAttribute('id', 'sn-m7-btn-learn');
     btnLearnMore.setAttribute('type', 'button');
-    btnLearnMore.textContent = 'Voir comment';
+    btnLearnMore.textContent = browser.i18n.getMessage('m7_toast_btn_learn') || 'Voir comment';
     btnLearnMore.addEventListener('click', () => {
       this.closeToast('learn_more');
     });
@@ -125,7 +129,7 @@ export class ToastM7 extends BaseNudge {
     const btnOk = document.createElement('button');
     btnOk.setAttribute('id', 'sn-m7-btn-ok');
     btnOk.setAttribute('type', 'button');
-    btnOk.textContent = 'OK, compris';
+    btnOk.textContent = browser.i18n.getMessage('m7_toast_btn_ok') || 'OK, compris';
     btnOk.addEventListener('click', () => {
       this.closeToast('acknowledged');
     });
@@ -133,7 +137,7 @@ export class ToastM7 extends BaseNudge {
     const btnSuppress = document.createElement('button');
     btnSuppress.setAttribute('id', 'sn-m7-btn-suppress');
     btnSuppress.setAttribute('type', 'button');
-    btnSuppress.textContent = 'Ne plus ce site';
+    btnSuppress.textContent = browser.i18n.getMessage('m7_toast_btn_suppress') || 'Ne plus ce site';
     btnSuppress.addEventListener('click', () => {
       this.closeToast('suppress_domain');
     });

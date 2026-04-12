@@ -11,9 +11,321 @@
     "message": "This domain shows unusual signals",
     "description": "M2 overlay title"
   },
+  "m2_overlay_description": {
+    "message": "Sentinel Nudge has detected risk signals on this site.",
+    "description": "M2 overlay description"
+  },
+  "m2_overlay_signals_label": {
+    "message": "Detected risk signals",
+    "description": "M2 signals list aria-label"
+  },
+  "m2_overlay_btn_abandon": {
+    "message": "Abandon entry",
+    "description": "M2 abandon button (primary safety action)"
+  },
   "m2_overlay_btn_dismiss": {
     "message": "Continue anyway",
     "description": "M2 dismiss button"
+  },
+  "m2_overlay_btn_trust": {
+    "message": "Mark as trusted",
+    "description": "M2 whitelist button"
+  },
+  "m2_overlay_btn_why": {
+    "message": "Why this message?",
+    "description": "M2 inline explanation button"
+  },
+  "m2_overlay_btn_learn": {
+    "message": "Learn more about the risks",
+    "description": "M2 explanation page link button"
+  },
+  "m2_explanation_title": {
+    "message": "Why this alert?",
+    "description": "M2 explanation section title"
+  },
+  "m2_explanation_para1": {
+    "message": "The detected signals indicate that this site shows characteristics commonly associated with phishing and identity theft attacks.",
+    "description": "M2 explanation first paragraph"
+  },
+  "m2_explanation_para2": {
+    "message": "Entering a password on an unsecured site or one imitating a known site exposes your credentials to malicious third parties.",
+    "description": "M2 explanation second paragraph"
+  },
+  "m2_signal_http": {
+    "message": "This site uses HTTP (unencrypted)",
+    "description": "HTTP signal M2"
+  },
+  "m2_signal_hsts_miss": {
+    "message": "This site is not in the HSTS preload list",
+    "description": "HSTS miss signal M2"
+  },
+  "m2_signal_levenshtein": {
+    "message": "This domain resembles a known site (possible typosquatting)",
+    "description": "Levenshtein signal M2"
+  },
+  "m2_signal_cert_invalid": {
+    "message": "The TLS certificate is not valid",
+    "description": "Invalid certificate signal M2"
+  },
+  "m5_toast_title": {
+    "message": "Update available",
+    "description": "M5 toast title"
+  },
+  "m5_toast_body": {
+    "message": "A browser update is available. Updates fix important security vulnerabilities.",
+    "description": "M5 toast body"
+  },
+  "m5_toast_btn_close_label": {
+    "message": "Close this notification",
+    "description": "M5 close button aria-label"
+  },
+  "m5_toast_btn_update": {
+    "message": "Update now",
+    "description": "M5 update button"
+  },
+  "m5_toast_btn_snooze": {
+    "message": "Remind me in 4 hours",
+    "description": "M5 snooze button"
+  },
+  "m5_toast_btn_why": {
+    "message": "Why is this important?",
+    "description": "M5 explanation button"
+  },
+  "m6_overlay_title": {
+    "message": "Phishing quiz",
+    "description": "M6 quiz overlay title"
+  },
+  "m6_overlay_progress": {
+    "message": "Question $1 of $2",
+    "description": "M6 quiz progress",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "3" }
+    }
+  },
+  "m6_overlay_btn_close": {
+    "message": "Close quiz",
+    "description": "M6 close quiz button aria-label"
+  },
+  "m6_overlay_btn_validate": {
+    "message": "Submit",
+    "description": "M6 validate answer button"
+  },
+  "m6_overlay_btn_next": {
+    "message": "Next question",
+    "description": "M6 next question button"
+  },
+  "m6_overlay_btn_finish": {
+    "message": "See my score",
+    "description": "M6 see final score button"
+  },
+  "m6_overlay_btn_close_final": {
+    "message": "Close",
+    "description": "M6 close results button"
+  },
+  "m6_overlay_no_selection": {
+    "message": "Please select an answer before submitting.",
+    "description": "M6 no selection message"
+  },
+  "m6_overlay_feedback_label": {
+    "message": "Explanation",
+    "description": "M6 feedback region aria-label"
+  },
+  "m6_overlay_feedback_correct": {
+    "message": "Correct answer!",
+    "description": "M6 correct answer feedback"
+  },
+  "m6_overlay_feedback_wrong": {
+    "message": "Incorrect answer.",
+    "description": "M6 wrong answer feedback"
+  },
+  "m6_overlay_results_title": {
+    "message": "Quiz results",
+    "description": "M6 results section title"
+  },
+  "m6_overlay_score": {
+    "message": "$1 / $2 correct answers ($3%)",
+    "description": "M6 final score",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "3" },
+      "3": { "content": "$3", "example": "67" }
+    }
+  },
+  "m6_overlay_score_excellent": {
+    "message": "Excellent! You got everything right.",
+    "description": "M6 perfect score comment"
+  },
+  "m6_overlay_score_good": {
+    "message": "Well done! Keep practicing.",
+    "description": "M6 good score comment"
+  },
+  "m6_overlay_score_improve": {
+    "message": "Keep practicing — vigilance improves with training.",
+    "description": "M6 score to improve comment"
+  },
+  "m7_toast_title": {
+    "message": "Password already used",
+    "description": "M7 toast title"
+  },
+  "m7_toast_body": {
+    "message": "This password is used on another site. Reuse increases the risk if one of your accounts is compromised.",
+    "description": "M7 toast body"
+  },
+  "m7_toast_btn_close_label": {
+    "message": "Close this notification",
+    "description": "M7 close button aria-label"
+  },
+  "m7_toast_btn_learn": {
+    "message": "See how",
+    "description": "M7 learn more button"
+  },
+  "m7_toast_btn_ok": {
+    "message": "OK, got it",
+    "description": "M7 acknowledge button"
+  },
+  "m7_toast_btn_suppress": {
+    "message": "Not this site",
+    "description": "M7 suppress domain button"
+  },
+  "m9_meter_label": {
+    "message": "Password strength",
+    "description": "M9 meter aria-label"
+  },
+  "m9_score_very_weak": {
+    "message": "Very weak",
+    "description": "M9 score 0 label"
+  },
+  "m9_score_weak": {
+    "message": "Weak",
+    "description": "M9 score 1 label"
+  },
+  "m9_score_medium": {
+    "message": "Fair",
+    "description": "M9 score 2 label"
+  },
+  "m9_score_strong": {
+    "message": "Strong",
+    "description": "M9 score 3 label"
+  },
+  "m9_score_very_strong": {
+    "message": "Very strong",
+    "description": "M9 score 4 label"
+  },
+  "m9_anssi_not_recommended": {
+    "message": "Not recommended (ANSSI)",
+    "description": "ANSSI marker scores 0-1 M9"
+  },
+  "m9_anssi_acceptable": {
+    "message": "Acceptable",
+    "description": "ANSSI marker score 2 M9"
+  },
+  "m9_anssi_recommended": {
+    "message": "Recommended",
+    "description": "ANSSI marker scores 3-4 M9"
+  },
+  "m9_suggestion_pw_excellent": {
+    "message": "Excellent! This password is very strong.",
+    "description": "M9 password score 4 suggestion"
+  },
+  "m9_suggestion_pw_good": {
+    "message": "Good password! Also consider a passphrase: longer and easier to remember.",
+    "description": "M9 password score 3 suggestion"
+  },
+  "m9_suggestion_pw_sequence": {
+    "message": "Avoid predictable sequences (123, abc, qwerty…).",
+    "description": "M9 sequence detected suggestion"
+  },
+  "m9_suggestion_pw_too_short": {
+    "message": "Add more characters — aim for at least 12.",
+    "description": "M9 password too short suggestion"
+  },
+  "m9_suggestion_pw_no_special": {
+    "message": "Add a digit or special character to increase strength.",
+    "description": "M9 no digit/special suggestion"
+  },
+  "m9_suggestion_pw_add_symbol": {
+    "message": "A special character (@, #, !) would bring you to Strong.",
+    "description": "M9 add symbol suggestion"
+  },
+  "m9_suggestion_pw_keep_going": {
+    "message": "Keep improving your password.",
+    "description": "M9 generic improvement suggestion"
+  },
+  "m9_suggestion_pp_excellent": {
+    "message": "Excellent passphrase! Long and unpredictable.",
+    "description": "M9 passphrase score 4 suggestion"
+  },
+  "m9_suggestion_pp_good": {
+    "message": "Good passphrase! Easy to remember, hard to guess.",
+    "description": "M9 passphrase score 3 suggestion"
+  },
+  "m9_suggestion_pp_too_short": {
+    "message": "Add one or two words to strengthen your passphrase.",
+    "description": "M9 passphrase too short suggestion"
+  },
+  "m9_suggestion_pp_common_words": {
+    "message": "Replace very common words with more unusual ones.",
+    "description": "M9 common words passphrase suggestion"
+  },
+  "m9_suggestion_pp_unusual_words": {
+    "message": "Try less common words or ones with no logical connection.",
+    "description": "M9 unusual words passphrase suggestion"
+  },
+  "m9_suggestion_pp_keep_going": {
+    "message": "Good passphrase! Keep going.",
+    "description": "M9 generic passphrase suggestion"
+  },
+  "m17_toast_title": {
+    "message": "Sensitive data detected",
+    "description": "M17 toast title"
+  },
+  "m17_toast_body_generic": {
+    "message": "You just pasted sensitive data into a field.",
+    "description": "M17 generic toast body"
+  },
+  "m17_toast_body": {
+    "message": "A $1 was just pasted into a field. Make sure this site is the intended one and that your clipboard does not remain accessible.",
+    "description": "M17 toast body with data type",
+    "placeholders": {
+      "1": { "content": "$1", "example": "credit card number" }
+    }
+  },
+  "m17_toast_btn_close_label": {
+    "message": "Close this notification",
+    "description": "M17 close button aria-label"
+  },
+  "m17_toast_btn_clear": {
+    "message": "Clear clipboard",
+    "description": "M17 clear clipboard button"
+  },
+  "m17_toast_btn_ok": {
+    "message": "OK, thanks",
+    "description": "M17 acknowledge button"
+  },
+  "m17_toast_btn_learn": {
+    "message": "Learn more",
+    "description": "M17 learn more button"
+  },
+  "m17_toast_clipboard_fallback": {
+    "message": "Manually clear your clipboard (copy an empty text or press Ctrl+C on an empty space).",
+    "description": "M17 clipboard fallback message"
+  },
+  "m17_toast_btn_understood": {
+    "message": "Understood",
+    "description": "M17 understood fallback button"
+  },
+  "m17_data_type_credit_card": {
+    "message": "credit card number",
+    "description": "M17 credit card data type label"
+  },
+  "m17_data_type_iban": {
+    "message": "IBAN",
+    "description": "M17 IBAN data type label"
+  },
+  "m17_data_type_api_key": {
+    "message": "API key",
+    "description": "M17 API key data type label"
   },
   "quota_remaining": {
     "message": "$1 nudge(s) remaining today",
@@ -180,6 +492,22 @@
   "options_delete_confirm": {
     "message": "Are you sure you want to delete all your data? This action is irreversible.",
     "description": "Delete confirmation"
+  },
+  "options_delete_confirm_title": {
+    "message": "Delete all your data?",
+    "description": "Delete confirmation dialog title"
+  },
+  "options_delete_confirm_desc": {
+    "message": "This action is irreversible. All your local data will be permanently deleted.",
+    "description": "Delete confirmation dialog description"
+  },
+  "options_delete_confirm_btn": {
+    "message": "Confirm deletion",
+    "description": "Confirm button in delete dialog"
+  },
+  "options_delete_cancel_btn": {
+    "message": "Cancel",
+    "description": "Cancel button in delete dialog"
   },
   "options_delete_success": {
     "message": "All your data has been deleted.",

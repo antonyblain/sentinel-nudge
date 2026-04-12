@@ -158,17 +158,26 @@ export class OverlayM6 extends BaseNudge {
 
     const title = document.createElement('h2');
     title.setAttribute('id', 'sn-m6-dialog-title');
-    title.textContent = 'Quiz phishing';
+    title.textContent = browser.i18n.getMessage('m6_overlay_title') || 'Quiz phishing';
+
+    const progressLabel =
+      browser.i18n.getMessage('m6_overlay_progress', [
+        String(index + 1),
+        String(this.state.questions.length),
+      ]) || `${index + 1} / ${this.state.questions.length}`;
 
     const progress = document.createElement('span');
     progress.setAttribute('id', 'sn-m6-progress');
-    progress.setAttribute('aria-label', `Question ${index + 1} sur ${this.state.questions.length}`);
+    progress.setAttribute('aria-label', progressLabel);
     progress.textContent = `${index + 1} / ${this.state.questions.length}`;
 
     const closeBtn = document.createElement('button');
     closeBtn.setAttribute('id', 'sn-m6-dialog-close');
     closeBtn.setAttribute('type', 'button');
-    closeBtn.setAttribute('aria-label', 'Fermer le quiz');
+    closeBtn.setAttribute(
+      'aria-label',
+      browser.i18n.getMessage('m6_overlay_btn_close') || 'Fermer le quiz',
+    );
     closeBtn.textContent = '×';
     closeBtn.addEventListener('click', () => {
       this.closeQuiz(false);
@@ -213,7 +222,7 @@ export class OverlayM6 extends BaseNudge {
     const validateBtn = document.createElement('button');
     validateBtn.setAttribute('id', 'sn-m6-btn-validate');
     validateBtn.setAttribute('type', 'button');
-    validateBtn.textContent = 'Valider';
+    validateBtn.textContent = browser.i18n.getMessage('m6_overlay_btn_validate') || 'Valider';
     validateBtn.addEventListener('click', () => {
       this.handleValidation(index);
     });
@@ -248,7 +257,9 @@ export class OverlayM6 extends BaseNudge {
           hint.setAttribute('role', 'alert');
           (hint as HTMLElement).style.color = 'var(--sn-color-danger)';
           (hint as HTMLElement).style.fontSize = 'var(--sn-font-size-small)';
-          hint.textContent = 'Veuillez sélectionner une réponse avant de valider.';
+          hint.textContent =
+            browser.i18n.getMessage('m6_overlay_no_selection') ||
+            'Veuillez sélectionner une réponse avant de valider.';
           fieldset.appendChild(hint);
         }
       }
@@ -302,11 +313,16 @@ export class OverlayM6 extends BaseNudge {
     const feedback = document.createElement('div');
     feedback.setAttribute('id', 'sn-m6-feedback');
     feedback.setAttribute('role', 'region');
-    feedback.setAttribute('aria-label', 'Explication');
+    feedback.setAttribute(
+      'aria-label',
+      browser.i18n.getMessage('m6_overlay_feedback_label') || 'Explication',
+    );
 
     const feedbackResult = document.createElement('p');
     feedbackResult.setAttribute('id', 'sn-m6-feedback-result');
-    feedbackResult.textContent = isCorrect ? 'Bonne réponse !' : 'Réponse incorrecte.';
+    feedbackResult.textContent = isCorrect
+      ? browser.i18n.getMessage('m6_overlay_feedback_correct') || 'Bonne réponse !'
+      : browser.i18n.getMessage('m6_overlay_feedback_wrong') || 'Réponse incorrecte.';
     (feedbackResult as HTMLElement).setAttribute(
       'style',
       `color: ${isCorrect ? 'var(--sn-color-success)' : 'var(--sn-color-danger)'}; font-weight: var(--sn-font-weight-bold);`,
@@ -330,7 +346,9 @@ export class OverlayM6 extends BaseNudge {
     const nextBtn = document.createElement('button');
     nextBtn.setAttribute('id', 'sn-m6-btn-next');
     nextBtn.setAttribute('type', 'button');
-    nextBtn.textContent = isLastQuestion ? 'Voir mon score' : 'Question suivante';
+    nextBtn.textContent = isLastQuestion
+      ? browser.i18n.getMessage('m6_overlay_btn_finish') || 'Voir mon score'
+      : browser.i18n.getMessage('m6_overlay_btn_next') || 'Question suivante';
     nextBtn.addEventListener('click', () => {
       if (isLastQuestion) {
         this.renderSummary();
@@ -364,7 +382,7 @@ export class OverlayM6 extends BaseNudge {
 
     const title = document.createElement('h2');
     title.setAttribute('id', 'sn-m6-dialog-title');
-    title.textContent = 'Résultats du quiz';
+    title.textContent = browser.i18n.getMessage('m6_overlay_results_title') || 'Résultats du quiz';
     header.appendChild(title);
     this.dialogPanel.appendChild(header);
 
@@ -374,16 +392,26 @@ export class OverlayM6 extends BaseNudge {
 
     const scoreText = document.createElement('p');
     scoreText.setAttribute('id', 'sn-m6-score-text');
-    scoreText.textContent = `${correctCount} / ${totalCount} bonnes réponses (${scorePct}%)`;
+    const scoreStr =
+      browser.i18n.getMessage('m6_overlay_score', [
+        String(correctCount),
+        String(totalCount),
+        String(scorePct),
+      ]) || `${correctCount} / ${totalCount} bonnes réponses (${scorePct}%)`;
+    scoreText.textContent = scoreStr;
 
     const scoreComment = document.createElement('p');
     scoreComment.setAttribute('id', 'sn-m6-score-comment');
     if (scorePct === 100) {
-      scoreComment.textContent = 'Excellent ! Vous avez tout bon.';
+      scoreComment.textContent =
+        browser.i18n.getMessage('m6_overlay_score_excellent') || 'Excellent ! Vous avez tout bon.';
     } else if (scorePct >= 66) {
-      scoreComment.textContent = 'Bien joué ! Continuez à vous entraîner.';
+      scoreComment.textContent =
+        browser.i18n.getMessage('m6_overlay_score_good') ||
+        'Bien joué ! Continuez à vous entraîner.';
     } else {
       scoreComment.textContent =
+        browser.i18n.getMessage('m6_overlay_score_improve') ||
         "Continuez à pratiquer — la vigilance s'améliore avec l'entraînement.";
     }
 
@@ -395,48 +423,33 @@ export class OverlayM6 extends BaseNudge {
     const closeBtn = document.createElement('button');
     closeBtn.setAttribute('id', 'sn-m6-btn-finish');
     closeBtn.setAttribute('type', 'button');
-    closeBtn.textContent = 'Fermer';
+    closeBtn.textContent = browser.i18n.getMessage('m6_overlay_btn_close_final') || 'Fermer';
     closeBtn.addEventListener('click', () => {
       this.closeQuiz(true);
     });
     this.dialogPanel.appendChild(closeBtn);
 
-    // Focus sur le bouton de fermeture
+    // Donner le focus au bouton de fermeture
     closeBtn.focus();
   }
 
   /**
-   * Ferme le quiz, envoie les résultats au service worker, et supprime l'élément.
+   * Ferme le quiz et envoie les résultats.
    *
-   * @param completed - true si le quiz a été complété jusqu'au résumé final
+   * @param completed - true si le quiz a été complété normalement
    */
   private closeQuiz(completed: boolean): void {
     const correctCount = this.state.answers.filter((a) => a.correct).length;
-    const totalAnswered = this.state.answers.length;
-    const totalQuestions = this.state.questions.length;
-    const scorePct = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+    const totalCount = this.state.questions.length;
+    const scorePct = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
 
     const results: QuizResults = {
-      score_pct: completed ? scorePct : Math.round((correctCount / totalQuestions) * 100),
+      score_pct: scorePct,
       question_ids: this.state.questions.map((q) => q.id),
       categories_failed: [],
       completed,
-      answers_given: totalAnswered,
+      answers_given: this.state.answers.length,
     };
-
-    // Envoyer les résultats au service worker
-    void browser.runtime.sendMessage({
-      module: 'M6',
-      action: 'quiz_completed',
-      payload: {
-        score_pct: results.score_pct,
-        question_ids: results.question_ids,
-        categories_failed: results.categories_failed,
-        completed: results.completed,
-        answers_given: results.answers_given,
-      },
-      timestamp: Date.now(),
-    });
 
     this.onComplete?.(results);
     this.remove();
@@ -449,18 +462,23 @@ export class OverlayM6 extends BaseNudge {
     return `
       :host {
         position: fixed;
-        inset: 0;
-        z-index: 2147483646;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 2147483647;
       }
 
       #sn-m6-backdrop {
         display: none;
         position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.50);
         align-items: center;
         justify-content: center;
-        padding: var(--sn-space-md);
       }
 
       #sn-m6-dialog {
@@ -468,33 +486,33 @@ export class OverlayM6 extends BaseNudge {
         border-radius: var(--sn-radius);
         box-shadow: var(--sn-shadow);
         padding: var(--sn-space-lg);
-        max-width: 480px;
         width: 100%;
+        max-width: 480px;
         max-height: 90vh;
         overflow-y: auto;
         font-family: system-ui, sans-serif;
         font-size: var(--sn-font-size-body);
         color: var(--sn-color-fg);
+        box-sizing: border-box;
       }
 
       #sn-m6-dialog-header {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: var(--sn-space-sm);
         margin-bottom: var(--sn-space-md);
       }
 
       #sn-m6-dialog-title {
-        margin: 0;
+        flex: 1;
         font-size: var(--sn-font-size-title);
         font-weight: var(--sn-font-weight-bold);
-        color: var(--sn-color-fg);
+        margin: 0;
       }
 
       #sn-m6-progress {
         font-size: var(--sn-font-size-small);
         color: var(--sn-color-muted);
-        margin: 0 var(--sn-space-sm);
       }
 
       #sn-m6-dialog-close {
@@ -505,11 +523,10 @@ export class OverlayM6 extends BaseNudge {
         color: var(--sn-color-muted);
         min-height: var(--sn-min-target);
         min-width: var(--sn-min-target);
+        border-radius: var(--sn-radius);
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: var(--sn-radius);
-        padding: 0;
       }
 
       #sn-m6-dialog-close:hover {
@@ -518,13 +535,12 @@ export class OverlayM6 extends BaseNudge {
       }
 
       #sn-m6-fieldset {
-        border: 1px solid #E5E7EB;
-        border-radius: var(--sn-radius);
-        padding: var(--sn-space-md);
+        border: none;
+        padding: 0;
         margin: 0 0 var(--sn-space-md) 0;
       }
 
-      #sn-m6-question-text {
+      #sn-m6-fieldset legend {
         font-weight: var(--sn-font-weight-bold);
         font-size: var(--sn-font-size-body);
         margin-bottom: var(--sn-space-md);
@@ -533,12 +549,12 @@ export class OverlayM6 extends BaseNudge {
 
       .sn-m6-option-label {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: var(--sn-space-sm);
         padding: var(--sn-space-sm) var(--sn-space-md);
-        margin-bottom: var(--sn-space-xs);
-        border: 1px solid #E5E7EB;
+        border: 1px solid #D1D5DB;
         border-radius: var(--sn-radius);
+        margin-bottom: var(--sn-space-xs);
         cursor: pointer;
         min-height: var(--sn-min-target);
         font-size: var(--sn-font-size-body);
@@ -549,42 +565,14 @@ export class OverlayM6 extends BaseNudge {
         background: #F9FAFB;
       }
 
-      .sn-m6-option-label input[type="radio"] {
-        margin-top: 3px;
-        flex-shrink: 0;
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-      }
-
       .sn-m6-option-correct {
-        background: #F0FDF4 !important;
-        border-color: var(--sn-color-success) !important;
+        background: #F0FDF4;
+        border-color: var(--sn-color-success);
       }
 
       .sn-m6-option-wrong {
-        background: #FEF2F2 !important;
-        border-color: var(--sn-color-danger) !important;
-      }
-
-      #sn-m6-feedback {
-        background: #F9FAFB;
-        border: 1px solid #E5E7EB;
-        border-radius: var(--sn-radius);
-        padding: var(--sn-space-md);
-        margin-bottom: var(--sn-space-md);
-      }
-
-      #sn-m6-feedback-result {
-        margin: 0 0 var(--sn-space-sm) 0;
-        font-size: var(--sn-font-size-body);
-      }
-
-      #sn-m6-feedback-explanation {
-        margin: 0;
-        font-size: var(--sn-font-size-small);
-        line-height: var(--sn-line-height);
-        color: var(--sn-color-fg);
+        background: #FEF2F2;
+        border-color: var(--sn-color-danger);
       }
 
       #sn-m6-btn-validate,
@@ -592,7 +580,6 @@ export class OverlayM6 extends BaseNudge {
       #sn-m6-btn-finish {
         width: 100%;
         min-height: var(--sn-min-target);
-        padding: var(--sn-space-sm) var(--sn-space-md);
         background: var(--sn-color-accent);
         color: #ffffff;
         border: none;
@@ -609,26 +596,40 @@ export class OverlayM6 extends BaseNudge {
         opacity: 0.9;
       }
 
+      #sn-m6-feedback {
+        background: #F9FAFB;
+        border: 1px solid #E5E7EB;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+
+      #sn-m6-feedback p {
+        margin: 0 0 var(--sn-space-xs) 0;
+        font-size: var(--sn-font-size-small);
+        line-height: var(--sn-line-height);
+      }
+
+      #sn-m6-feedback p:last-child {
+        margin-bottom: 0;
+      }
+
       #sn-m6-score-section {
         text-align: center;
         padding: var(--sn-space-lg) 0;
       }
 
       #sn-m6-score-text {
-        font-size: 24px;
+        font-size: var(--sn-font-size-title);
         font-weight: var(--sn-font-weight-bold);
         margin: 0 0 var(--sn-space-sm) 0;
       }
 
       #sn-m6-score-comment {
-        font-size: var(--sn-font-size-body);
         color: var(--sn-color-muted);
-        margin: 0 0 var(--sn-space-lg) 0;
-      }
-
-      #sn-m6-no-selection-hint {
-        margin: var(--sn-space-xs) 0 0 0;
+        margin: 0 0 var(--sn-space-md) 0;
         font-size: var(--sn-font-size-small);
+        line-height: var(--sn-line-height);
       }
     `;
   }

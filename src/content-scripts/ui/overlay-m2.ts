@@ -30,8 +30,16 @@ import { browser } from '@/shared/browser/browser-adapter';
 /** Actions utilisateur possibles sur l'overlay M2 */
 export type OverlayM2Action = 'dismissed' | 'trusted' | 'abandoned' | 'why';
 
-/** Libellés des signaux de risque pour l'affichage (sans innerHTML) */
-const SIGNAL_LABELS: Record<string, string> = {
+/** Clés i18n pour les libellés des signaux de risque */
+const SIGNAL_LABEL_KEYS: Record<string, string> = {
+  http: 'm2_signal_http',
+  hsts_miss: 'm2_signal_hsts_miss',
+  levenshtein: 'm2_signal_levenshtein',
+  cert_invalid: 'm2_signal_cert_invalid',
+};
+
+/** Fallbacks en dur pour les libellés des signaux (si i18n indisponible) */
+const SIGNAL_FALLBACKS: Record<string, string> = {
   http: 'Ce site utilise HTTP (non chiffré)',
   hsts_miss: "Ce site n'est pas dans la liste HSTS preload",
   levenshtein: 'Ce domaine ressemble à un site connu (typosquatting possible)',
@@ -99,19 +107,24 @@ export class OverlayM2 extends BaseNudge {
     // --- Titre ---
     const title = document.createElement('h2');
     title.setAttribute('id', 'sn-m2-title');
-    title.textContent = 'Site à risque détecté';
+    title.textContent = browser.i18n.getMessage('m2_overlay_title') || 'Site à risque détecté';
     this.panelContainer.appendChild(title);
 
     // --- Description ---
     const description = document.createElement('p');
     description.setAttribute('id', 'sn-m2-description');
-    description.textContent = 'Sentinel Nudge a détecté des signaux de risque sur ce site.';
+    description.textContent =
+      browser.i18n.getMessage('m2_overlay_description') ||
+      'Sentinel Nudge a détecté des signaux de risque sur ce site.';
     this.panelContainer.appendChild(description);
 
     // --- Liste des signaux (construite dynamiquement dans open()) ---
     const signalsList = document.createElement('ul');
     signalsList.setAttribute('id', 'sn-m2-signals');
-    signalsList.setAttribute('aria-label', 'Signaux de risque détectés');
+    signalsList.setAttribute(
+      'aria-label',
+      browser.i18n.getMessage('m2_overlay_signals_label') || 'Signaux de risque détectés',
+    );
     this.panelContainer.appendChild(signalsList);
 
     // --- Section d'explication inline (masquée par défaut) ---
@@ -129,21 +142,24 @@ export class OverlayM2 extends BaseNudge {
     const btnAbandon = document.createElement('button');
     btnAbandon.setAttribute('id', 'sn-m2-btn-abandon');
     btnAbandon.setAttribute('type', 'button');
-    btnAbandon.textContent = 'Abandonner la saisie';
+    btnAbandon.textContent =
+      browser.i18n.getMessage('m2_overlay_btn_abandon') || 'Abandonner la saisie';
     btnAbandon.addEventListener('click', () => this.closeOverlay('abandoned'));
 
     // Bouton 2 : Continuer quand même
     const btnContinue = document.createElement('button');
     btnContinue.setAttribute('id', 'sn-m2-btn-continue');
     btnContinue.setAttribute('type', 'button');
-    btnContinue.textContent = 'Continuer quand même';
+    btnContinue.textContent =
+      browser.i18n.getMessage('m2_overlay_btn_dismiss') || 'Continuer quand même';
     btnContinue.addEventListener('click', () => this.closeOverlay('dismissed'));
 
     // Bouton 3 : Marquer comme de confiance
     const btnTrust = document.createElement('button');
     btnTrust.setAttribute('id', 'sn-m2-btn-trust');
     btnTrust.setAttribute('type', 'button');
-    btnTrust.textContent = 'Marquer comme de confiance';
+    btnTrust.textContent =
+      browser.i18n.getMessage('m2_overlay_btn_trust') || 'Marquer comme de confiance';
     btnTrust.addEventListener('click', () => this.closeOverlay('trusted'));
 
     // Bouton 4 : Pourquoi ce message ?
@@ -152,7 +168,7 @@ export class OverlayM2 extends BaseNudge {
     btnWhy.setAttribute('type', 'button');
     btnWhy.setAttribute('aria-expanded', 'false');
     btnWhy.setAttribute('aria-controls', 'sn-m2-explanation');
-    btnWhy.textContent = 'Pourquoi ce message ?';
+    btnWhy.textContent = browser.i18n.getMessage('m2_overlay_btn_why') || 'Pourquoi ce message ?';
     btnWhy.addEventListener('click', () => this.toggleExplanation(btnWhy));
 
     actions.appendChild(btnAbandon);
@@ -214,8 +230,10 @@ export class OverlayM2 extends BaseNudge {
     for (const signal of signals) {
       const item = document.createElement('li');
       item.setAttribute('class', 'sn-m2-signal-item');
-      // Libellé humain ou fallback sur le code brut — jamais interpolation non-sécurisée
-      item.textContent = SIGNAL_LABELS[signal] ?? `Signal : ${signal}`;
+      // Libellé i18n ou fallback en dur — jamais interpolation non-sécurisée
+      const i18nKey = SIGNAL_LABEL_KEYS[signal];
+      const fallback = SIGNAL_FALLBACKS[signal] ?? `Signal : ${signal}`;
+      item.textContent = i18nKey ? browser.i18n.getMessage(i18nKey) || fallback : fallback;
       list.appendChild(item);
     }
   }
@@ -228,26 +246,30 @@ export class OverlayM2 extends BaseNudge {
    */
   private buildExplanation(section: HTMLDivElement): void {
     const titleEl = document.createElement('h3');
-    titleEl.textContent = 'Pourquoi cette alerte ?';
+    titleEl.textContent =
+      browser.i18n.getMessage('m2_explanation_title') || 'Pourquoi cette alerte ?';
     section.appendChild(titleEl);
 
     const para1 = document.createElement('p');
     para1.textContent =
+      browser.i18n.getMessage('m2_explanation_para1') ||
       'Les signaux détectés indiquent que ce site présente des caractéristiques ' +
-      "couramment associées aux attaques de phishing et d'usurpation d'identité.";
+        "couramment associées aux attaques de phishing et d'usurpation d'identité.";
     section.appendChild(para1);
 
     const para2 = document.createElement('p');
     para2.textContent =
+      browser.i18n.getMessage('m2_explanation_para2') ||
       'Saisir un mot de passe sur un site non sécurisé ou imitant un site connu ' +
-      'expose vos identifiants à des tiers malveillants.';
+        'expose vos identifiants à des tiers malveillants.';
     section.appendChild(para2);
 
     // Bouton "En savoir plus" — ouvre la page d'explication statique
     const btnLearnMore = document.createElement('button');
     btnLearnMore.setAttribute('id', 'sn-m2-btn-learn');
     btnLearnMore.setAttribute('type', 'button');
-    btnLearnMore.textContent = 'En savoir plus sur les risques';
+    btnLearnMore.textContent =
+      browser.i18n.getMessage('m2_overlay_btn_learn') || 'En savoir plus sur les risques';
     btnLearnMore.addEventListener('click', () => {
       void browser.runtime.sendMessage({
         module: 'M2',
