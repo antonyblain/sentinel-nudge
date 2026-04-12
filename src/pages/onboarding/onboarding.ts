@@ -337,12 +337,6 @@ function renderStep3(stepContainer: HTMLElement): void {
         `${browser.i18n.getMessage(mod.nameKey)} (consentement requis à l'étape suivante)`,
       );
 
-      // Indicateur visuel sous le toggle M7
-      const m7Note = document.createElement('p');
-      m7Note.className = 'module-row-m7-note';
-      m7Note.textContent =
-        "Ce module nécessite votre consentement explicite. Il sera proposé à l'étape suivante.";
-      wrapper.appendChild(m7Note);
     }
 
     input.addEventListener('change', () => {
@@ -358,6 +352,15 @@ function renderStep3(stepContainer: HTMLElement): void {
     wrapper.appendChild(switchWrapper);
 
     fieldset.appendChild(wrapper);
+
+    // Note M7 : ajoutée APRÈS le wrapper dans le fieldset (pas dedans)
+    if (mod.id === 'M7') {
+      const m7Note = document.createElement('p');
+      m7Note.className = 'module-row-m7-note';
+      m7Note.textContent =
+        "Ce module nécessite votre consentement explicite. Il sera proposé à l'étape suivante.";
+      fieldset.appendChild(m7Note);
+    }
   }
 
   stepContainer.appendChild(fieldset);
