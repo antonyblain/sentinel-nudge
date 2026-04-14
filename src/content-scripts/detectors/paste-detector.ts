@@ -341,21 +341,21 @@ function showToastM17(dataType: SensitiveDataType): void {
   // Styles
   const style = document.createElement('style');
   style.textContent = `
-    .toast { background:#1A1A1A; color:#fff; border-radius:8px; padding:16px 20px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.3); max-width:380px; font:15px/1.5 system-ui,sans-serif;
+    .toast { background:#1E3A5F; color:#E0E8F0; border-radius:8px; padding:16px 20px;
+      box-shadow:0 4px 12px rgba(30,58,95,0.3); max-width:380px; font:15px/1.5 system-ui,sans-serif;
       animation:slideUp .2s ease-out; }
     @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
     .title { font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
     .icon { font-size:20px; }
-    .desc { font-size:13px; color:#D1D5DB; margin-bottom:12px; }
+    .desc { font-size:13px; color:#A8C8E8; margin-bottom:12px; }
     .actions { display:flex; gap:8px; flex-wrap:wrap; }
     button { border:none; border-radius:6px; padding:8px 16px; font:14px system-ui,sans-serif;
       cursor:pointer; min-height:44px; }
-    .btn-danger { background:#DC2626; color:#fff; }
-    .btn-danger:hover { background:#B91C1C; }
-    .btn-secondary { background:#374151; color:#fff; }
-    .btn-secondary:hover { background:#4B5563; }
-    .btn-link { background:none; color:#93C5FD; text-decoration:underline; padding:8px; }
+    .btn-danger { background:#C0392B; color:#fff; }
+    .btn-danger:hover { background:#A33025; }
+    .btn-secondary { background:#2E6DA4; color:#fff; }
+    .btn-secondary:hover { background:#245A87; }
+    .btn-link { background:none; color:#8CC5E8; text-decoration:underline; padding:8px; }
     @media(prefers-reduced-motion:reduce){ .toast{animation:none} }
   `;
   shadow.appendChild(style);

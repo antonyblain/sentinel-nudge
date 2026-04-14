@@ -89,15 +89,24 @@ function scoreColorToken(score: number): string {
 }
 
 /**
+ * Couleurs hex Aegis Blue pour les attributs SVG (setAttribute ne supporte pas var()).
+ * Ces valeurs dupliquent les tokens de tokens.css — les maintenir synchronisees.
+ */
+const SVG_COLOR_SUCCESS = '#1A7A4A';
+const SVG_COLOR_WARNING = '#E67E22';
+const SVG_COLOR_DANGER = '#C0392B';
+const SVG_COLOR_MUTED = '#5D7A8A';
+
+/**
  * Détermine la couleur hexadécimale (pour les attributs SVG) selon le score.
  *
  * @param score - Score 0-100
  * @returns Couleur hexadécimale
  */
 function scoreColorHex(score: number): string {
-  if (score >= SCORE_GREEN) return '#16a34a';
-  if (score >= SCORE_ORANGE) return '#d97706';
-  return '#dc2626';
+  if (score >= SCORE_GREEN) return SVG_COLOR_SUCCESS;
+  if (score >= SCORE_ORANGE) return SVG_COLOR_WARNING;
+  return SVG_COLOR_DANGER;
 }
 
 /**
@@ -287,7 +296,7 @@ function renderChart(container: HTMLElement, scores: WeeklyScoreData[]): void {
   refLine.setAttribute('y1', String(refY));
   refLine.setAttribute('x2', String(svgWidth));
   refLine.setAttribute('y2', String(refY));
-  refLine.setAttribute('stroke', '#16a34a');
+  refLine.setAttribute('stroke', SVG_COLOR_SUCCESS);
   refLine.setAttribute('stroke-width', '1');
   refLine.setAttribute('stroke-dasharray', '4 4');
   refLine.setAttribute('opacity', '0.5');
@@ -318,7 +327,7 @@ function renderChart(container: HTMLElement, scores: WeeklyScoreData[]): void {
       label.setAttribute('y', String(CHART_HEIGHT + 14));
       label.setAttribute('text-anchor', 'middle');
       label.setAttribute('font-size', '9');
-      label.setAttribute('fill', '#6b7280');
+      label.setAttribute('fill', SVG_COLOR_MUTED);
       label.setAttribute('aria-hidden', 'true');
       label.textContent = formatWeekLabel(scoreData.week_key);
       svg.appendChild(label);

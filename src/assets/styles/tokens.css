@@ -1,0 +1,101 @@
+/**
+ * tokens.css — Design tokens centralises Sentinel Nudge
+ * Palette : Aegis Blue (Brand Book v1.0 §6, Proposition 1)
+ * Source unique de verite pour les 4 CSS de pages.
+ * Les Shadow DOM (toasts/overlays) dupliquent ces valeurs en inline.
+ */
+
+:root {
+  /* ── Couleurs semantiques ─────────────────────────────── */
+  --sn-color-fg: #1a2733; /* Texte principal       — 16.4:1 sur bg  */
+  --sn-color-bg: #f8fafc; /* Fond principal                         */
+  --sn-color-primary: #1e3a5f; /* Identite, titres      — 12.8:1 sur bg */
+  --sn-color-accent: #2e6da4; /* Interactif, boutons   — 5.2:1 sur bg  */
+  --sn-color-accent-hover: #245a87; /* Hover boutons accent                   */
+  --sn-color-accent-muted: #4da8da; /* Accents secondaires   — 3.2:1 (grand) */
+  --sn-color-danger: #c0392b; /* Erreur                — 5.6:1 sur bg  */
+  --sn-color-success: #1a7a4a; /* Succes                — 5.8:1 sur bg  */
+  --sn-color-warning: #e67e22; /* Avertissement         — 3.1:1 (grand) */
+  --sn-color-muted: #5d7a8a; /* Texte secondaire      — 4.6:1 sur bg  */
+  --sn-color-surface: #eff4f8; /* Fond cartes/sections                   */
+  --sn-color-border: #c8d8e8; /* Separateurs, bordures                  */
+  --sn-color-danger-bg: #fdecea; /* Fond composants danger                 */
+  --sn-color-success-bg: #e8f5ee; /* Fond composants succes                 */
+  --sn-color-warning-bg: #fef3e2; /* Fond composants warning                */
+  --sn-color-info-bg: #e8f0fa; /* Fond composants info / accent clair    */
+  --sn-color-info-border: #a8c8e8; /* Bordure composants info                */
+
+  /* ── Typographie ──────────────────────────────────────── */
+  --sn-font-body:
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    'Helvetica Neue', Arial, sans-serif;
+  --sn-font-mono:
+    ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+
+  --sn-font-size-display: 26px;
+  --sn-font-size-h1: 22px;
+  --sn-font-size-h2: 18px;
+  --sn-font-size-body: 15px;
+  --sn-font-size-small: 13px;
+  --sn-font-size-micro: 11px;
+
+  --sn-font-weight-normal: 400;
+  --sn-font-weight-medium: 500;
+  --sn-font-weight-bold: 600;
+  --sn-font-weight-extrabold: 700;
+
+  --sn-line-height: 1.5;
+  --sn-line-height-tight: 1.3;
+
+  /* ── Espacement (base 4px) ────────────────────────────── */
+  --sn-space-xs: 4px;
+  --sn-space-sm: 8px;
+  --sn-space-md: 16px;
+  --sn-space-lg: 24px;
+  --sn-space-xl: 32px;
+  --sn-space-2xl: 48px;
+
+  /* ── Bordures et ombres ───────────────────────────────── */
+  --sn-radius-sm: 4px;
+  --sn-radius: 8px;
+  --sn-radius-lg: 12px;
+
+  --sn-shadow-sm: 0 1px 4px rgba(30, 58, 95, 0.1);
+  --sn-shadow: 0 4px 12px rgba(30, 58, 95, 0.15);
+  --sn-shadow-lg: 0 8px 24px rgba(30, 58, 95, 0.2);
+
+  /* ── Cibles WCAG 2.5.5 ───────────────────────────────── */
+  --sn-min-target: 44px;
+}
+
+/* ════════════════════════════════════════════════════════════
+ * DARK MODE — @media (prefers-color-scheme: dark)
+ * Aegis Blue dark : fond bleu-noir, texte clair, contrastes
+ * verifies WCAG AA sur fond #0F1A26.
+ * ════════════════════════════════════════════════════════════ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sn-color-fg: #e0e8f0;
+    --sn-color-bg: #0f1a26;
+    --sn-color-primary: #6ba3d6;
+    --sn-color-accent: #4da8da;
+    --sn-color-accent-hover: #6bbae4;
+    --sn-color-accent-muted: #8cc5e8;
+    --sn-color-danger: #e8685e;
+    --sn-color-success: #4caf7a;
+    --sn-color-warning: #f0a050;
+    --sn-color-muted: #8a9caa;
+    --sn-color-surface: #162533;
+    --sn-color-border: #1e3a4f;
+    --sn-color-danger-bg: #2a1515;
+    --sn-color-success-bg: #152a1e;
+    --sn-color-warning-bg: #2a2215;
+    --sn-color-info-bg: #152230;
+    --sn-color-info-border: #1e3a5f;
+
+    --sn-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.3);
+    --sn-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --sn-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+}

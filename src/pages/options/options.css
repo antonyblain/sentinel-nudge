@@ -1,30 +1,7 @@
 /**
  * options.css — Styles de la page Options Sentinel Nudge
- * Design system tokens CSS (DAT §11.4) — 25 tokens
+ * Tokens centralises dans tokens.css (importe via HTML)
  */
-
-:root {
-  --sn-color-fg: #1a1a1a;
-  --sn-color-bg: #ffffff;
-  --sn-color-accent: #2563eb;
-  --sn-color-danger: #dc2626;
-  --sn-color-success: #16a34a;
-  --sn-color-warning: #d97706;
-  --sn-color-muted: #6b7280;
-  --sn-font-size-body: 15px;
-  --sn-font-size-small: 13px;
-  --sn-font-size-title: 18px;
-  --sn-font-weight-normal: 400;
-  --sn-font-weight-bold: 600;
-  --sn-line-height: 1.5;
-  --sn-space-xs: 4px;
-  --sn-space-sm: 8px;
-  --sn-space-md: 16px;
-  --sn-space-lg: 24px;
-  --sn-space-xl: 32px;
-  --sn-radius: 8px;
-  --sn-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
 
 *,
 *::before,
@@ -35,10 +12,7 @@
 }
 
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--sn-font-body);
   font-size: var(--sn-font-size-body);
   line-height: var(--sn-line-height);
   color: var(--sn-color-fg);
@@ -62,9 +36,9 @@ body {
 
 /* Titre page */
 .page-title {
-  font-size: 24px;
+  font-size: var(--sn-font-size-h1);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-accent);
+  color: var(--sn-color-primary);
   margin-bottom: var(--sn-space-xl);
 }
 
@@ -78,7 +52,7 @@ body {
   bottom: 24px;
   right: 24px;
   background: var(--sn-color-success);
-  color: #ffffff;
+  color: #fff;
   padding: var(--sn-space-sm) var(--sn-space-lg);
   border-radius: var(--sn-radius);
   font-size: var(--sn-font-size-body);
@@ -104,13 +78,13 @@ body {
 }
 
 .options-fieldset {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sn-color-border);
   border-radius: var(--sn-radius);
   padding: var(--sn-space-md) var(--sn-space-lg);
 }
 
 .options-legend {
-  font-size: var(--sn-font-size-title);
+  font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
   color: var(--sn-color-fg);
   padding: 0 var(--sn-space-sm);
@@ -129,7 +103,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: var(--sn-space-sm) 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--sn-color-surface);
 }
 
 .module-toggle:last-of-type {
@@ -165,7 +139,7 @@ body {
   display: block;
   width: 44px;
   height: 24px;
-  background-color: #d1d5db;
+  background-color: var(--sn-color-border);
   border-radius: 12px;
   position: relative;
   transition: background-color 150ms ease;
@@ -179,7 +153,7 @@ body {
   left: 2px;
   width: 20px;
   height: 20px;
-  background-color: #ffffff;
+  background-color: #fff;
   border-radius: 50%;
   transition: transform 150ms ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -211,11 +185,11 @@ body {
   max-width: 300px;
   padding: var(--sn-space-sm) var(--sn-space-md);
   min-height: 44px; /* WCAG 2.5.5 */
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--sn-color-border);
   border-radius: var(--sn-radius);
   font-size: var(--sn-font-size-body);
   color: var(--sn-color-fg);
-  background-color: #ffffff;
+  background-color: var(--sn-color-bg);
   cursor: pointer;
 }
 
@@ -228,17 +202,17 @@ body {
 .quota-warning {
   margin-top: var(--sn-space-sm);
   padding: var(--sn-space-sm) var(--sn-space-md);
-  background-color: #fef3c7;
+  background-color: var(--sn-color-warning-bg);
   border: 1px solid var(--sn-color-warning);
   border-radius: var(--sn-radius);
   font-size: var(--sn-font-size-small);
-  color: #92400e;
+  color: var(--sn-color-warning);
 }
 
 /* Radio profil */
 .radio-option {
   padding: var(--sn-space-sm) 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--sn-color-surface);
 }
 
 .radio-option:last-of-type {
@@ -317,20 +291,17 @@ body {
   cursor: pointer;
   text-align: center;
   transition: background-color 150ms ease;
-}
-
-.btn {
   border: none;
 }
 
 .btn-secondary {
-  background-color: #f3f4f6;
+  background-color: var(--sn-color-surface);
   color: var(--sn-color-fg);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sn-color-border);
 }
 
 .btn-secondary:hover {
-  background-color: #e5e7eb;
+  background-color: var(--sn-color-border);
 }
 
 .btn-secondary:focus-visible {
@@ -339,13 +310,13 @@ body {
 }
 
 .btn-danger {
-  background-color: #fef2f2;
+  background-color: var(--sn-color-danger-bg);
   color: var(--sn-color-danger);
   border: 1px solid var(--sn-color-danger);
 }
 
 .btn-danger:hover {
-  background-color: #fee2e2;
+  background-color: var(--sn-color-danger-bg);
 }
 
 .btn-danger:focus-visible {
@@ -363,7 +334,7 @@ body {
 }
 
 .data-status-success {
-  background-color: #f0fdf4;
+  background-color: var(--sn-color-success-bg);
   color: var(--sn-color-success);
   border: 1px solid var(--sn-color-success);
 }
@@ -398,14 +369,13 @@ body {
 }
 
 .about-link {
-  display: block;
+  display: flex;
+  align-items: center;
   color: var(--sn-color-accent);
   font-size: var(--sn-font-size-small);
   text-decoration: underline;
   margin-bottom: var(--sn-space-sm);
   min-height: 44px;
-  display: flex;
-  align-items: center;
 }
 
 .about-link:focus-visible {
@@ -423,7 +393,7 @@ body {
 .error-text {
   color: var(--sn-color-danger);
   padding: var(--sn-space-md);
-  background-color: #fef2f2;
+  background-color: var(--sn-color-danger-bg);
   border-radius: var(--sn-radius);
 }
 

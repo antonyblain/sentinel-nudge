@@ -1,38 +1,8 @@
 /**
  * popup.css — Styles de la popup Sentinel Nudge
- * Design system tokens CSS (DAT §11.4) — 25 tokens
- * Taille fixe : 320px × ~400px (MV3 popup)
+ * Tokens centralises dans tokens.css (importe via HTML)
+ * Taille fixe : 320px x ~400px (MV3 popup)
  */
-
-:root {
-  /* Couleurs sémantiques */
-  --sn-color-fg: #1a1a1a; /* Texte principal — ratio 18.1:1 sur bg blanc */
-  --sn-color-bg: #ffffff; /* Fond */
-  --sn-color-accent: #2563eb; /* Interactif (boutons, liens) — ratio 5.9:1 sur bg */
-  --sn-color-danger: #dc2626; /* Danger / erreur — ratio 5.9:1 sur bg */
-  --sn-color-success: #16a34a; /* Succès — ratio 5.1:1 sur bg */
-  --sn-color-warning: #d97706; /* Avertissement — ratio 4.6:1 sur bg */
-  --sn-color-muted: #6b7280; /* Texte secondaire — ratio 4.6:1 sur bg */
-
-  /* Typographie */
-  --sn-font-size-body: 15px;
-  --sn-font-size-small: 13px;
-  --sn-font-size-title: 18px;
-  --sn-font-weight-normal: 400;
-  --sn-font-weight-bold: 600;
-  --sn-line-height: 1.5;
-
-  /* Espacement (base 4px) */
-  --sn-space-xs: 4px;
-  --sn-space-sm: 8px;
-  --sn-space-md: 16px;
-  --sn-space-lg: 24px;
-  --sn-space-xl: 32px;
-
-  /* Bordures et ombres */
-  --sn-radius: 8px;
-  --sn-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
 
 /* Reset minimal */
 *,
@@ -44,10 +14,7 @@
 }
 
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--sn-font-body);
   font-size: var(--sn-font-size-body);
   font-weight: var(--sn-font-weight-normal);
   line-height: var(--sn-line-height);
@@ -55,6 +22,8 @@ body {
   background-color: var(--sn-color-bg);
   width: 320px;
   min-height: 360px;
+  max-height: 480px;
+  overflow-y: auto;
   padding: var(--sn-space-md);
 }
 
@@ -74,14 +43,14 @@ body {
 /* En-tête popup */
 header {
   margin-bottom: var(--sn-space-md);
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--sn-color-border);
   padding-bottom: var(--sn-space-sm);
 }
 
 .popup-title {
-  font-size: var(--sn-font-size-title);
+  font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-accent);
+  color: var(--sn-color-primary);
   text-align: center;
 }
 
@@ -122,7 +91,7 @@ header {
 }
 
 .score-no-data-label {
-  font-size: var(--sn-font-size-title);
+  font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
   color: var(--sn-color-muted);
   margin-bottom: var(--sn-space-xs);
@@ -135,7 +104,7 @@ header {
 
 /* Section statut */
 .status-section {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sn-color-border);
   border-radius: var(--sn-radius);
   padding: var(--sn-space-sm) var(--sn-space-md);
 }
@@ -148,7 +117,7 @@ header {
 }
 
 .status-row + .status-row {
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--sn-color-surface);
 }
 
 .status-label {
@@ -193,21 +162,21 @@ header {
 
 .btn-primary {
   background-color: var(--sn-color-accent);
-  color: #ffffff;
+  color: #fff;
 }
 
 .btn-primary:hover {
-  background-color: #1d4ed8;
+  background-color: var(--sn-color-accent-hover);
 }
 
 .btn-secondary {
-  background-color: #f3f4f6;
+  background-color: var(--sn-color-surface);
   color: var(--sn-color-fg);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sn-color-border);
 }
 
 .btn-secondary:hover {
-  background-color: #e5e7eb;
+  background-color: var(--sn-color-border);
 }
 
 /* États de chargement et erreur */

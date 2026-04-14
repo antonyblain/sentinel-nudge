@@ -11,9 +11,9 @@
  * 4. Persister le score dans IndexedDB (déjà fait par ScoreCalculator)
  *
  * Couleur du badge (SFD §2.2) :
- * - Vert (#16A34A)  : score >= 70
- * - Orange (#D97706) : score 40-69
- * - Rouge (#DC2626)  : score < 40
+ * - Vert (#1A7A4A)  : score >= 70
+ * - Orange (#E67E22) : score 40-69
+ * - Rouge (#C0392B)  : score < 40
  *
  * Cas limites (SFD §2.2.4) :
  * - Tous les modules désactivés : score = 0, message spécial
@@ -35,16 +35,16 @@ const BADGE_GREEN_THRESHOLD = 70;
 const BADGE_ORANGE_THRESHOLD = 40;
 
 /** Couleur hex badge vert */
-const BADGE_COLOR_GREEN = '#16A34A';
+const BADGE_COLOR_GREEN = '#1A7A4A';
 
 /** Couleur hex badge orange */
-const BADGE_COLOR_ORANGE = '#D97706';
+const BADGE_COLOR_ORANGE = '#E67E22';
 
 /** Couleur hex badge rouge */
-const BADGE_COLOR_RED = '#DC2626';
+const BADGE_COLOR_RED = '#C0392B';
 
 /** Couleur hex badge bleu (notification avec chiffre) */
-const BADGE_COLOR_BLUE = '#2563EB';
+const BADGE_COLOR_BLUE = '#2E6DA4';
 
 /**
  * Met à jour le badge de l'extension selon le score calculé.

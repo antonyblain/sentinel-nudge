@@ -1,31 +1,8 @@
 /**
  * dashboard.css — Styles du tableau de bord Sentinel Nudge
- * Design system tokens CSS (DAT §11.4) — 25 tokens
+ * Tokens centralises dans tokens.css (importe via HTML)
  * Responsive : min-width 600px, max-width 900px
  */
-
-:root {
-  --sn-color-fg: #1a1a1a;
-  --sn-color-bg: #ffffff;
-  --sn-color-accent: #2563eb;
-  --sn-color-danger: #dc2626;
-  --sn-color-success: #16a34a;
-  --sn-color-warning: #d97706;
-  --sn-color-muted: #6b7280;
-  --sn-font-size-body: 15px;
-  --sn-font-size-small: 13px;
-  --sn-font-size-title: 18px;
-  --sn-font-weight-normal: 400;
-  --sn-font-weight-bold: 600;
-  --sn-line-height: 1.5;
-  --sn-space-xs: 4px;
-  --sn-space-sm: 8px;
-  --sn-space-md: 16px;
-  --sn-space-lg: 24px;
-  --sn-space-xl: 32px;
-  --sn-radius: 8px;
-  --sn-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
 
 *,
 *::before,
@@ -36,10 +13,7 @@
 }
 
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--sn-font-body);
   font-size: var(--sn-font-size-body);
   line-height: var(--sn-line-height);
   color: var(--sn-color-fg);
@@ -65,9 +39,9 @@ body {
 
 /* Titre page */
 .page-title {
-  font-size: 26px;
+  font-size: var(--sn-font-size-display);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-accent);
+  color: var(--sn-color-primary);
   margin-bottom: var(--sn-space-xl);
 }
 
@@ -80,14 +54,14 @@ body {
 
 /* Sections */
 .dashboard-section {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background-color: var(--sn-color-surface);
+  border: 1px solid var(--sn-color-border);
   border-radius: var(--sn-radius);
   padding: var(--sn-space-lg);
 }
 
 .section-title {
-  font-size: var(--sn-font-size-title);
+  font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
   margin-bottom: var(--sn-space-md);
   color: var(--sn-color-fg);
@@ -116,7 +90,7 @@ body {
 }
 
 .score-suffix {
-  font-size: var(--sn-font-size-title);
+  font-size: var(--sn-font-size-h2);
   color: var(--sn-color-muted);
 }
 
@@ -148,7 +122,7 @@ body {
   align-items: center;
   gap: var(--sn-space-md);
   padding: var(--sn-space-sm) 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--sn-color-surface);
 }
 
 .component-row:last-of-type {
@@ -163,7 +137,7 @@ body {
 
 .component-bar-wrapper {
   height: 12px;
-  background-color: #e5e7eb;
+  background-color: var(--sn-color-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -185,8 +159,8 @@ body {
 .action-recommended {
   margin-top: var(--sn-space-lg);
   padding: var(--sn-space-md);
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background-color: var(--sn-color-info-bg);
+  border: 1px solid var(--sn-color-info-border);
   border-radius: var(--sn-radius);
 }
 
@@ -211,7 +185,7 @@ body {
 
 /* Quiz M6 */
 .quiz-section .stat-line + .stat-line {
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--sn-color-surface);
 }
 
 /* Données manquantes */
@@ -243,13 +217,13 @@ body {
 }
 
 .btn-secondary {
-  background-color: #f3f4f6;
+  background-color: var(--sn-color-surface);
   color: var(--sn-color-fg);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sn-color-border);
 }
 
 .btn-secondary:hover {
-  background-color: #e5e7eb;
+  background-color: var(--sn-color-border);
 }
 
 .btn-secondary:focus-visible {
@@ -267,7 +241,7 @@ body {
 .error-text {
   color: var(--sn-color-danger);
   padding: var(--sn-space-md);
-  background-color: #fef2f2;
+  background-color: var(--sn-color-danger-bg);
   border-radius: var(--sn-radius);
 }
 

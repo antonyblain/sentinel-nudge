@@ -132,7 +132,7 @@ function renderScoreSection(container: HTMLElement, score: number | null): void 
     bgCircle.setAttribute('cy', '60');
     bgCircle.setAttribute('r', '50');
     bgCircle.setAttribute('fill', 'none');
-    bgCircle.setAttribute('stroke', '#E5E7EB');
+    bgCircle.setAttribute('stroke', 'var(--sn-color-border)');
     bgCircle.setAttribute('stroke-width', '12');
     svg.appendChild(bgCircle);
 
@@ -171,7 +171,7 @@ function renderScoreSection(container: HTMLElement, score: number | null): void 
     maxText.setAttribute('y', '82');
     maxText.setAttribute('text-anchor', 'middle');
     maxText.setAttribute('font-size', '12');
-    maxText.setAttribute('fill', '#6B7280');
+    maxText.setAttribute('fill', 'var(--sn-color-muted)');
     maxText.setAttribute('aria-hidden', 'true');
     maxText.textContent = '/100';
     svg.appendChild(maxText);

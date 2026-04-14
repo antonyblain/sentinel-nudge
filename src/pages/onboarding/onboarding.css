@@ -1,30 +1,7 @@
 /**
  * onboarding.css — Styles de la page d'onboarding Sentinel Nudge
- * Design system tokens CSS (DAT §11.4) — 25 tokens
+ * Tokens centralises dans tokens.css (importe via HTML)
  */
-
-:root {
-  --sn-color-fg: #1a1a1a;
-  --sn-color-bg: #ffffff;
-  --sn-color-accent: #2563eb;
-  --sn-color-danger: #dc2626;
-  --sn-color-success: #16a34a;
-  --sn-color-warning: #d97706;
-  --sn-color-muted: #6b7280;
-  --sn-font-size-body: 15px;
-  --sn-font-size-small: 13px;
-  --sn-font-size-title: 18px;
-  --sn-font-weight-normal: 400;
-  --sn-font-weight-bold: 600;
-  --sn-line-height: 1.5;
-  --sn-space-xs: 4px;
-  --sn-space-sm: 8px;
-  --sn-space-md: 16px;
-  --sn-space-lg: 24px;
-  --sn-space-xl: 32px;
-  --sn-radius: 8px;
-  --sn-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
 
 *,
 *::before,
@@ -35,10 +12,7 @@
 }
 
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--sn-font-body);
   font-size: var(--sn-font-size-body);
   line-height: var(--sn-line-height);
   color: var(--sn-color-fg);
@@ -67,9 +41,9 @@ body {
 }
 
 .onboarding-main-title {
-  font-size: 22px;
+  font-size: var(--sn-font-size-h1);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-accent);
+  color: var(--sn-color-primary);
   margin-bottom: var(--sn-space-md);
 }
 
@@ -91,7 +65,7 @@ body {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #d1d5db;
+  background-color: var(--sn-color-border);
   transition: background-color 200ms ease;
 }
 
@@ -113,7 +87,7 @@ body {
 
 /* Titre d'étape */
 .step-title {
-  font-size: var(--sn-font-size-title);
+  font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
   margin-bottom: var(--sn-space-md);
 }
@@ -127,8 +101,8 @@ body {
 
 /* Privacy box (étape 1) */
 .privacy-box {
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background-color: var(--sn-color-info-bg);
+  border: 1px solid var(--sn-color-info-border);
   border-radius: var(--sn-radius);
   padding: var(--sn-space-md) var(--sn-space-lg);
   margin-top: var(--sn-space-lg);
@@ -162,7 +136,7 @@ body {
 
 .profile-option {
   padding: var(--sn-space-sm) 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--sn-color-surface);
 }
 
 .profile-option:last-of-type {
@@ -210,7 +184,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: var(--sn-space-sm) 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--sn-color-surface);
 }
 
 .module-row:last-of-type {
@@ -245,7 +219,7 @@ body {
   display: block;
   width: 44px;
   height: 24px;
-  background-color: #d1d5db;
+  background-color: var(--sn-color-border);
   border-radius: 12px;
   position: relative;
   transition: background-color 150ms ease;
@@ -259,7 +233,7 @@ body {
   left: 2px;
   width: 20px;
   height: 20px;
-  background-color: #ffffff;
+  background-color: #fff;
   border-radius: 50%;
   transition: transform 150ms ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -289,7 +263,7 @@ body {
   align-items: flex-start;
   gap: var(--sn-space-sm);
   padding: var(--sn-space-md);
-  background-color: #f0fdf4;
+  background-color: var(--sn-color-success-bg);
   border: 1px solid var(--sn-color-success);
   border-radius: var(--sn-radius);
   margin-bottom: var(--sn-space-md);
@@ -324,13 +298,13 @@ body {
 
 /* Note jaune d'avertissement M7 dans l'étape 3 (modules) */
 .module-row-m7-note {
-  background: #fef3c7;
+  background: var(--sn-color-warning-bg);
   border: 1px solid var(--sn-color-warning);
   border-radius: var(--sn-radius);
   padding: var(--sn-space-sm) var(--sn-space-md);
   margin-top: var(--sn-space-xs);
   font-size: var(--sn-font-size-small);
-  color: #92400e;
+  color: var(--sn-color-warning);
   line-height: 1.5;
 }
 
@@ -357,7 +331,7 @@ body {
 /* Erreur validation étape */
 .step-error {
   padding: var(--sn-space-sm) var(--sn-space-md);
-  background-color: #fef2f2;
+  background-color: var(--sn-color-danger-bg);
   border: 1px solid var(--sn-color-danger);
   border-radius: var(--sn-radius);
   color: var(--sn-color-danger);
@@ -371,7 +345,7 @@ body {
   justify-content: space-between;
   gap: var(--sn-space-sm);
   padding-top: var(--sn-space-md);
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--sn-color-border);
 }
 
 /* Boutons */
@@ -404,22 +378,22 @@ body {
 
 .btn-primary {
   background-color: var(--sn-color-accent);
-  color: #ffffff;
+  color: #fff;
   margin-left: auto;
 }
 
 .btn-primary:not(:disabled):hover {
-  background-color: #1d4ed8;
+  background-color: var(--sn-color-accent-hover);
 }
 
 .btn-secondary {
-  background-color: #f3f4f6;
+  background-color: var(--sn-color-surface);
   color: var(--sn-color-fg);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--sn-color-border);
 }
 
 .btn-secondary:not(:disabled):hover {
-  background-color: #e5e7eb;
+  background-color: var(--sn-color-border);
 }
 
 @media (prefers-reduced-motion: reduce) {
