@@ -31,16 +31,16 @@
 | TACHE-027 | TÂCHE | Tests E2E Playwright avec extension réelle (service-worker, onboarding) | Should | À faire | P6 | Testeur QA | TM-017 |
 | TACHE-028 | TÂCHE | Resserrer web_accessible_resources (remplacer <all_urls>) | Should | À faire | P5 | Architecte sécurité | MIN-002 |
 | TACHE-029 | TÂCHE | Prévoir migrations IndexedDB v2 dans MIGRATIONS | Should | À faire | P4 | Développeur | BACKLOG-MIGRATION-V2 |
-| TACHE-030 | TÂCHE | UX-01 — Créer les icônes réelles 16/48/128px (bloque Chrome Web Store) | Must | À faire | P4' | Expert UX/UI + Développeur | Brand Book §1.2 |
-| TACHE-031 | TÂCHE | UX-03 — Appliquer la palette Aegis Blue (tokens CSS validés) | Must | À faire | P4' | Développeur | Brand Book §3 — Arbitrage Commanditaire |
-| TACHE-032 | TÂCHE | UX-02 — Centraliser les tokens CSS dans src/assets/styles/tokens.css | Must | À faire | P4' | Développeur | Brand Book §1.2 |
-| TACHE-033 | TÂCHE | UX-04 — Tokeniser les couleurs hardcodées hors design system (surface, border, danger-bg, success-bg, warning-bg) | Must | À faire | P4' | Développeur | Brand Book §1.2 |
-| TACHE-034 | TÂCHE | UX-06 — Implémenter le dark mode (@media prefers-color-scheme: dark) dès v1 | Must | À faire | P4' | Développeur | Brand Book §7.2 — Décision Commanditaire |
-| TACHE-035 | TÂCHE | UX-05 — Corriger titre popup : utiliser --sn-color-fg ou primary au lieu de accent | Should | À faire | P4' | Développeur | Brand Book §1.2 |
-| TACHE-036 | TÂCHE | UX-07 — Supprimer double déclaration .about-link display dans options.css | Should | À faire | P4' | Développeur | Brand Book §1.2 |
-| TACHE-037 | TÂCHE | UX-08 — Fusionner règle border:none orpheline .btn dans options.css | Should | À faire | P4' | Développeur | Brand Book §1.2 |
-| TACHE-038 | TÂCHE | UX-09 — Remplacer emoji 🔄 par icône SVG inline dans toast-m5 | Should | À faire | P4' | Développeur | Brand Book §1.2 |
-| TACHE-039 | TÂCHE | UX-10 — Ajouter max-height:480px + overflow-y:auto sur popup body | Should | À faire | P4' | Développeur | Brand Book §1.2 |
+| TACHE-030 | TÂCHE | UX-01 — Créer les icônes réelles 16/48/128px (bloque Chrome Web Store) | Must | Terminé | P4' | Expert UX/UI + Développeur | Brand Book §1.2 |
+| TACHE-031 | TÂCHE | UX-03 — Appliquer la palette Aegis Blue (tokens CSS validés) | Must | Terminé | P4' | Développeur | Brand Book §3 — Arbitrage Commanditaire |
+| TACHE-032 | TÂCHE | UX-02 — Centraliser les tokens CSS dans src/assets/styles/tokens.css | Must | Terminé | P4' | Développeur | Brand Book §1.2 |
+| TACHE-033 | TÂCHE | UX-04 — Tokeniser les couleurs hardcodées hors design system (surface, border, danger-bg, success-bg, warning-bg) | Must | Terminé | P4' | Développeur | Brand Book §1.2 |
+| TACHE-034 | TÂCHE | UX-06 — Implémenter le dark mode (@media prefers-color-scheme: dark) dès v1 | Must | Terminé | P4' | Développeur | Brand Book §7.2 — Décision Commanditaire |
+| TACHE-035 | TÂCHE | UX-05 — Corriger titre popup : utiliser --sn-color-fg ou primary au lieu de accent | Should | Terminé | P4' | Développeur | Brand Book §1.2 |
+| TACHE-036 | TÂCHE | UX-07 — Supprimer double déclaration .about-link display dans options.css | Should | Terminé | P4' | Développeur | Brand Book §1.2 |
+| TACHE-037 | TÂCHE | UX-08 — Fusionner règle border:none orpheline .btn dans options.css | Should | Terminé | P4' | Développeur | Brand Book §1.2 |
+| TACHE-038 | TÂCHE | UX-09 — Remplacer emoji 🔄 par icône SVG inline dans toast-m5 | Should | Reporté P5 | P4' | Développeur | Brand Book §1.2 |
+| TACHE-039 | TÂCHE | UX-10 — Ajouter max-height:480px + overflow-y:auto sur popup body | Should | Terminé | P4' | Développeur | Brand Book §1.2 |
 | TACHE-040 | TÂCHE | Mettre à jour AIPD §1.3 — ajouter chrome.storage.local comme lieu de stockage whitelist M2 | Should | À faire | P5 | DPO | Revue DPO whitelist M2 |
 | TACHE-041 | TÂCHE | Documenter comportement HTTP/HTTPS hash (FNV-1a ≠ SHA-256 pour même domaine) dans DAT | Should | À faire | P5 | Architecte logiciel | R-SEC-02 / R-020 |
 | TACHE-042 | TÂCHE | Fusionner whitelist chrome.storage.local + IndexedDB dans l'export portabilité RGPD Art. 20 | Could | À faire | P5 | Développeur | Revue DPO |
@@ -58,17 +58,17 @@
 - TACHE-009 : politique de confidentialité (reporté P5)
 - TACHE-029 : migrations IndexedDB v2 (reporté P5)
 
-### P4' — Intégration design system (Brand Book)
-- TACHE-030 : Icônes réelles 16/48/128px (Critique — bloque Chrome Web Store)
-- TACHE-031 : Appliquer palette Aegis Blue (tokens validés par Commanditaire)
-- TACHE-032 : Centraliser tokens CSS dans fichier partagé
-- TACHE-033 : Tokeniser couleurs hardcodées hors système
-- TACHE-034 : Dark mode v1 (prefers-color-scheme: dark)
-- TACHE-035 : Titre popup — couleur sémantique correcte
-- TACHE-036 : Double déclaration .about-link
-- TACHE-037 : border:none orpheline .btn
-- TACHE-038 : Emoji → SVG toast-m5
-- TACHE-039 : max-height popup
+### P4' — Intégration design system (Brand Book) — Terminé
+- ~~TACHE-030~~ : Icônes réelles SVG→PNG ✅
+- ~~TACHE-031~~ : Palette Aegis Blue appliquée ✅
+- ~~TACHE-032~~ : Tokens CSS centralisés (tokens.css) ✅
+- ~~TACHE-033~~ : Couleurs hardcodées tokenisées ✅
+- ~~TACHE-034~~ : Dark mode v1 ✅
+- ~~TACHE-035~~ : Titre popup → primary ✅
+- ~~TACHE-036~~ : Double .about-link corrigé ✅
+- ~~TACHE-037~~ : .btn orphelin fusionné ✅
+- TACHE-038 : Emoji → SVG toast-m5 (reporté P5 — toast M5 pas encore implémenté côté content-script)
+- ~~TACHE-039~~ : max-height popup ✅
 
 ### P5 — Tests unitaires
 - TACHE-017 à TACHE-024 : tests manquants (handlers, storage, router, alarms)

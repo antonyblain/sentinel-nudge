@@ -7,9 +7,9 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P4 — Développement (fin de sprint)
-- **Dernière action** : Nettoyage P4 complet + bugs M2 corrigés (boucle overlay, whitelist persistée triple couche chrome.storage.local, liens "En savoir plus", comportements boutons abandonner/continuer/confiance). Revues techniques (archi sécu acceptable avec réserves, DPO conforme, archi logiciel écart justifié). DAT v1.2 fusionné (ADR-006, D-SEC-006, schéma triple couche). PDCA P-015 CI Prettier. TACHE-011/013 terminées. R-019/R-020/R-021 consignés. 200 tests OK, CI verte — 2026-04-13
-- **Prochaine action attendue** : P4' — Intégration design system Brand Book (palette Aegis Blue, 10 tâches TACHE-030 à TACHE-039 dont dark mode v1). Puis comité revue de code P4 et transition P5 (couverture 80%).
+- **Phase active** : P4' — Intégration design system (terminé, en attente validation Commanditaire)
+- **Dernière action** : P4' complet — tokens CSS centralisés (tokens.css), palette Aegis Blue appliquée, ~50 couleurs hardcodées tokenisées, dark mode (prefers-color-scheme: dark), icônes réelles SVG→PNG (16/48/128px), corrections CSS (titre popup, about-link, btn orphelin, max-height popup), Shadow DOM aligné Aegis Blue + dark mode, couleurs inline JS consolidées en constantes. Contrôle qualité : 4 anomalies bloquantes corrigées (font-body, font-size tokens, SVG constantes, SCORE_COLORS M9). TACHE-030 à TACHE-037/039 terminées, TACHE-038 reportée (toast M5 pas encore implémenté). 200 tests OK, CI verte — 2026-04-13. **Logo finalisé 2026-04-14** : vectorisation potrace multi-passes de icon-source-hd.png (1005×1148) fournie par le Commanditaire, avec classification dédiée de la zone ombragée `#418FB9` et floodfill du fond damier. icon.svg + icon128.png + icon48.png régénérés dans src/assets/icons/ (icon16.png conservé). Dossier logo-propositions/ nettoyé (44 fichiers obsolètes supprimés).
+- **Prochaine action attendue** : Validation Commanditaire P4'. Puis comité revue de code P4/P4' et transition P5 (couverture 80%).
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
@@ -62,6 +62,9 @@
 | P4 | tests/unit/modules/m6.test.ts | — | 23 tests OK | 2026-04-12 |
 | P4' | docs/p4-conception/brand-book-sentinel-nudge.md | v1.0 | Validé — palette Aegis Blue retenue | 2026-04-12 |
 | P4' | docs/p4-conception/brand-book-preview.html | — | Preview interactive 5 palettes | 2026-04-12 |
+| P4' | src/assets/styles/tokens.css | — | Tokens CSS centralisés Aegis Blue + dark mode | 2026-04-13 |
+| P4' | src/assets/icons/icon.svg | — | Logo SVG source (bouclier + S + nudge) | 2026-04-13 |
+| P4' | src/assets/icons/icon{16,48,128}.png | — | Icônes PNG réelles (générées depuis SVG) | 2026-04-13 |
 
 ## Actions manuelles en attente
 
