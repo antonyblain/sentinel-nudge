@@ -372,6 +372,26 @@
     "message": "Daily quota reached",
     "description": "Quota reached message"
   },
+  "popup_modules_label": {
+    "message": "Active modules",
+    "description": "Label for Modules row in status KPI card"
+  },
+  "popup_quota_reached_sub": {
+    "message": "limit reached",
+    "description": "Subtext under the 0 when daily quota is reached"
+  },
+  "popup_quota_unlimited_sub": {
+    "message": "unlimited",
+    "description": "Subtext under the infinity symbol when quota is unlimited"
+  },
+  "popup_quota_remaining_sub": {
+    "message": "nudges left",
+    "description": "Subtext under the remaining quota number"
+  },
+  "popup_status_aria_label": {
+    "message": "Quick status",
+    "description": "Aria-label of the popup status section"
+  },
   "popup_btn_dashboard": {
     "message": "View details",
     "description": "Dashboard button in popup"

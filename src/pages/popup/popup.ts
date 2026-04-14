@@ -26,6 +26,10 @@
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
+import { MODULE_IDS } from '@/shared/constants/modules';
+
+/** Nombre total de modules v1 (7). Rattache a MODULE_IDS pour eviter la desync en v2. */
+const TOTAL_MODULES_V1 = MODULE_IDS.length;
 
 /** Score seuil vert (>= 70) */
 const SCORE_GREEN_THRESHOLD = 70;
@@ -227,14 +231,6 @@ function renderScoreSection(container: HTMLElement, score: number | null): void 
 }
 
 /**
- * Construit la section statut modules et quota.
- *
- * @param container    - Élément parent
- * @param activeCount  - Nombre de modules actifs
- * @param quotaRemaining - Nudges restants (null si illimité, nombre si limité)
- * @param quotaReached   - true si le quota du jour est atteint
- */
-/**
  * Cree un label de statut avec icone SVG + texte (pattern KPI card).
  *
  * @param iconPath - SVG path de l'icone d'accompagnement (viewBox 24x24)
@@ -283,6 +279,15 @@ function createStatusValueGroup(
   return group;
 }
 
+/**
+ * Construit la section statut modules et quota (pattern KPI card).
+ * Chaque ligne contient : icone + label a gauche, valeur numerique + complement a droite.
+ *
+ * @param container      - Element parent
+ * @param activeCount    - Nombre de modules actifs
+ * @param quotaRemaining - Nudges restants (null si illimite, nombre si limite)
+ * @param quotaReached   - true si le quota du jour est atteint
+ */
 function renderStatusSection(
   container: HTMLElement,
   activeCount: number,
@@ -290,7 +295,10 @@ function renderStatusSection(
   quotaReached: boolean,
 ): void {
   const section = document.createElement('section');
-  section.setAttribute('aria-label', 'Statut rapide');
+  section.setAttribute(
+    'aria-label',
+    browser.i18n.getMessage('popup_status_aria_label') || 'Statut rapide',
+  );
   section.className = 'status-section';
 
   // Ligne Modules : KPI "N / 7" + complement si partiellement actifs
@@ -302,9 +310,11 @@ function renderStatusSection(
       browser.i18n.getMessage('popup_modules_label') || 'Modules actifs',
     ),
   );
-  const inactive = 7 - activeCount;
+  const inactive = TOTAL_MODULES_V1 - activeCount;
   const modulesSub = inactive > 0 ? `${inactive} inactif${inactive > 1 ? 's' : ''}` : null;
-  modulesRow.appendChild(createStatusValueGroup(`${activeCount} / 7`, modulesSub));
+  modulesRow.appendChild(
+    createStatusValueGroup(`${activeCount} / ${TOTAL_MODULES_V1}`, modulesSub),
+  );
   section.appendChild(modulesRow);
 
   // Ligne Quota : KPI chiffre + complement contextuel

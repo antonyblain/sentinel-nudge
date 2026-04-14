@@ -372,6 +372,26 @@
     "message": "Quota du jour atteint",
     "description": "Message quota atteint"
   },
+  "popup_modules_label": {
+    "message": "Modules actifs",
+    "description": "Label de la ligne Modules dans le bloc statut (KPI card)"
+  },
+  "popup_quota_reached_sub": {
+    "message": "limite atteinte",
+    "description": "Complement sous le chiffre 0 quand le quota est atteint"
+  },
+  "popup_quota_unlimited_sub": {
+    "message": "illimité",
+    "description": "Complement sous le symbole infini quand le quota est illimité"
+  },
+  "popup_quota_remaining_sub": {
+    "message": "nudges restants",
+    "description": "Complement sous le chiffre du quota restant"
+  },
+  "popup_status_aria_label": {
+    "message": "Statut rapide",
+    "description": "Aria-label de la section statut de la popup"
+  },
   "popup_btn_dashboard": {
     "message": "Voir le détail",
     "description": "Bouton d'accès au dashboard depuis la popup"
