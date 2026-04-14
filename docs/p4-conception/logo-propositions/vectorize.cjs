@@ -161,6 +161,26 @@ function trace(pngBuf, opts = {}) {
   });
 }
 
+// Calcule la bounding box du bouclier (pixels navy/sky/shadow) dans la classMap.
+function computeShieldBbox() {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const c = classMap[y * width + x];
+      if (c === 'navy' || c === 'sky' || c === 'shadow') {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  return { minX, minY, maxX, maxY };
+}
+
 async function main() {
   const whiteClusters = clusterWhites();
   const reflectCluster = whiteClusters[0];
@@ -198,8 +218,28 @@ async function main() {
   const pathsShadow = await trace(bin4, { turdSize: 1 });
   console.log(`Pass 4 (shadow #418FB9) : ${pathsShadow.length} path(s)`);
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-  <!-- Sentinel Nudge logo (potrace multi-passes, source HD) -->
+  // Ajustement viewBox pour maximiser la taille du bouclier dans la toolbar.
+  // Marge 3% de chaque cote -> densite ~88%, aligne sur Bitwarden/LastPass.
+  // ViewBox carre (ratio 1:1) centre sur le bouclier. Les coordonnees peuvent etre
+  // negatives ou deborder du PNG source : c'est OK en SVG, les zones hors contenu
+  // sont simplement transparentes.
+  const bbox = computeShieldBbox();
+  const bboxW = bbox.maxX - bbox.minX + 1;
+  const bboxH = bbox.maxY - bbox.minY + 1;
+  const marginPct = 0.03;
+  const vbSize = Math.round(Math.max(bboxW, bboxH) * (1 + 2 * marginPct));
+  const cxBbox = (bbox.minX + bbox.maxX) / 2;
+  const cyBbox = (bbox.minY + bbox.maxY) / 2;
+  const vbXFinal = Math.round(cxBbox - vbSize / 2);
+  const vbYFinal = Math.round(cyBbox - vbSize / 2);
+  const density = ((Math.max(bboxW, bboxH) / vbSize) * 100).toFixed(1);
+  console.log(
+    `Bouclier bbox (${bbox.minX},${bbox.minY})->(${bbox.maxX},${bbox.maxY}) = ${bboxW}x${bboxH}`
+  );
+  console.log(`ViewBox ajuste : ${vbXFinal} ${vbYFinal} ${vbSize} ${vbSize} (densite ${density}%)`);
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vbXFinal} ${vbYFinal} ${vbSize} ${vbSize}" width="${vbSize}" height="${vbSize}">
+  <!-- Sentinel Nudge logo (potrace multi-passes, source HD, viewBox maximise ~88%) -->
   <!-- Pass 1 : silhouette navy #1E3A5F -->
   ${pathsSilhouette.map((d) => `<path d="${d}" fill="#1E3A5F"/>`).join('\n  ')}
   <!-- Pass 2 : interieur sky #4DA8DA -->
