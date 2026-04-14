@@ -45,6 +45,18 @@
 | TACHE-041 | TÂCHE | Documenter comportement HTTP/HTTPS hash (FNV-1a ≠ SHA-256 pour même domaine) dans DAT | Should | À faire | P5 | Architecte logiciel | R-SEC-02 / R-020 |
 | TACHE-042 | TÂCHE | Fusionner whitelist chrome.storage.local + IndexedDB dans l'export portabilité RGPD Art. 20 | Could | À faire | P5 | Développeur | Revue DPO |
 | TACHE-043 | TÂCHE | Plafonner taille whitelist M2 chrome.storage.local (10 000 entrées max) | Could | À faire | P5 | Développeur | R-SEC-04 |
+| TACHE-044 | TÂCHE | Corriger double JSDoc orphelin renderStatusSection (popup.ts) | Must | Terminé | P4' | Développeur | Comité revue code P4' |
+| TACHE-045 | TÂCHE | Ajouter 5 clés i18n manquantes (popup_modules_label, popup_quota_*_sub, popup_status_aria_label) | Must | Terminé | P4' | Développeur | Comité revue code P4' |
+| TACHE-046 | TÂCHE | Remplacer magic number `7` par MODULE_IDS.length dans popup.ts | Should | Terminé | P4' | Développeur | Comité revue code P4' |
+| TACHE-047 | TÂCHE | Traduire aria-label de la section statut popup via browser.i18n | Should | Terminé | P4' | Développeur | Comité revue code P4' |
+| TACHE-048 | TÂCHE | Tests unitaires popup.ts fonctions pures (scoreColor, scoreLevelLabel, getNextMonday) | Must | À faire | P5 | Testeur QA | Comité revue code P4' |
+| TACHE-049 | TÂCHE | Tests unitaires popup.ts constructeurs DOM (createInlineIcon, createStatusLabel, createStatusValueGroup) | Must | À faire | P5 | Testeur QA | Comité revue code P4' |
+| TACHE-050 | TÂCHE | Tests unitaires popup.ts sections de rendu (renderScoreSection, renderStatusSection, renderActionsSection) | Must | À faire | P5 | Testeur QA | Comité revue code P4' |
+| TACHE-051 | TÂCHE | Tests unitaires popup.ts chemin catch initPopup (role=alert) | Should | À faire | P5 | Testeur QA | Comité revue code P4' |
+| TACHE-052 | TÂCHE | Finaliser TACHE-025 — script test:coverage + section coverage dans vite.config.ts (seuils 80%) | Must | À faire | P5 | Développeur | Comité revue code P4' |
+| TACHE-053 | TÂCHE | Remplacer 2 fichiers intégration squelettes par des tests réels (storage-service, service-worker) | Must | À faire | P5 | Testeur QA | Comité revue code P4' |
+| TACHE-054 | TÂCHE | Documenter ou ajouter en devDependencies explicites `pngjs` et `potrace` (reproductibilité vectorisation logo) | Should | À faire | P5 | DevSecOps | R-022 |
+| TACHE-055 | TÂCHE | Déplacer .claude/launch.json vers .vscode/launch.json ou documenter le placement actuel | Could | À faire | P5 | Dev | R-023 |
 
 ## Actions résiduelles par phase
 

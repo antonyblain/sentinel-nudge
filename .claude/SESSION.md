@@ -7,9 +7,9 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P4' — Intégration design system (terminé, en attente validation Commanditaire)
-- **Dernière action** : P4' complet — tokens CSS centralisés (tokens.css), palette Aegis Blue appliquée, ~50 couleurs hardcodées tokenisées, dark mode (prefers-color-scheme: dark), icônes réelles SVG→PNG (16/48/128px), corrections CSS (titre popup, about-link, btn orphelin, max-height popup), Shadow DOM aligné Aegis Blue + dark mode, couleurs inline JS consolidées en constantes. Contrôle qualité : 4 anomalies bloquantes corrigées (font-body, font-size tokens, SVG constantes, SCORE_COLORS M9). TACHE-030 à TACHE-037/039 terminées, TACHE-038 reportée (toast M5 pas encore implémenté). 200 tests OK, CI verte — 2026-04-13. **Logo finalisé 2026-04-14** : vectorisation potrace multi-passes de icon-source-hd.png (1005×1148) fournie par le Commanditaire, avec classification dédiée de la zone ombragée `#418FB9` et floodfill du fond damier. icon.svg + icon128.png + icon48.png régénérés dans src/assets/icons/ (icon16.png conservé). Dossier logo-propositions/ nettoyé (44 fichiers obsolètes supprimés).
-- **Prochaine action attendue** : Validation Commanditaire P4'. Puis comité revue de code P4/P4' et transition P5 (couverture 80%).
+- **Phase active** : P4' — Intégration design system (terminé, revue de code effectuée)
+- **Dernière action** : P4' complet — tokens CSS centralisés, palette Aegis Blue, dark mode, 4 CSS tokenisées, Shadow DOM aligné, logo HD vectorisé (potrace multi-passes + classification `#418FB9` + floodfill + viewBox maximisé 94.4%), popup refondue (header avec icône bouclier SVG, bloc statut KPI card avec icônes grille/horloge, 5 clés i18n ajoutées). 5 commits sur feature/p4-developpement poussés vers origin (`8989ef0`, `81077a2`, `5ad8210`, `5d89a12`, `fe9d653`). Comité revue de code P4' terminé 2026-04-14 : PV `gouvernance-pv-revue-code-p4prime-v1.0.md`. 3 corrections bloquantes appliquées (TACHE-044 JSDoc, TACHE-045 i18n, TACHE-046 magic number, TACHE-047 aria-label). 2 risques consignés (R-022 pngjs/potrace --no-save, R-023 launch.json exposition). 7 TACHES P5 créées (TACHE-048 à 053 tests popup.ts + coverage-v8, TACHE-054/055 gouvernance). 200 tests OK, CI verte — 2026-04-14.
+- **Prochaine action attendue** : **P5 — Tests unitaires couche présentation** (TACHE-048 à 053) et atteinte couverture 80% (TACHE-026). Puis tests manuels M5/M6/M7/M3 via commandes DevTools documentées dans le PV.
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
@@ -65,6 +65,8 @@
 | P4' | src/assets/styles/tokens.css | — | Tokens CSS centralisés Aegis Blue + dark mode | 2026-04-13 |
 | P4' | src/assets/icons/icon.svg | — | Logo SVG source (bouclier + S + nudge) | 2026-04-13 |
 | P4' | src/assets/icons/icon{16,48,128}.png | — | Icônes PNG réelles (générées depuis SVG) | 2026-04-13 |
+| P4' | src/assets/icons/icon.svg + icon{16,48,128}.png | — | Logo HD vectorisé via potrace, viewBox maximisé (94.4% densité) | 2026-04-14 |
+| P4' | docs/gouvernance/gouvernance-pv-revue-code-p4prime-v1.0.md | v1.0 | PV comité revue code P4' — 3 revues consolidées | 2026-04-14 |
 
 ## Actions manuelles en attente
 

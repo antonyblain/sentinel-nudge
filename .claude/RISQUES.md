@@ -24,6 +24,8 @@
 | R-019 | Divergence chrome.storage.local / IndexedDB sur whitelist M2 si SW tué pendant écriture | Technique | 2 | 2 | 4 | R-SEC-01 : synchronisation bidirectionnelle au démarrage du SW (plan B). En l'état, le content script est la source de vérité pour M2. | Architecte sécurité | Ouvert |
 | R-020 | FNV-1a (HTTP) produit un hash différent de SHA-256 (HTTPS) pour un même domaine — whitelist HTTP ne protège pas en HTTPS | Technique | 2 | 1 | 2 | Comportement voulu : un site passant de HTTP à HTTPS change de profil de risque. Documenter dans le DAT. | Architecte sécurité | Accepté |
 | R-021 | domain_hash whitelist M2 dans chrome.storage.local sans chiffrement ni purge automatique — données pseudonymisées persistantes | RGPD | 1 | 1 | 1 | chrome.storage.local.clear() couvre le droit à l'effacement. Durée de conservation = jusqu'à suppression manuelle ou désinstallation. Documenter dans AIPD. | DPO | Ouvert |
+| R-022 | Outils de build logo (pngjs, potrace) installés en --no-save, non reproductibles par un contributeur externe | Technique | 2 | 1 | 2 | Documenter la commande d'installation dans docs/p4-conception/logo-propositions/README.md OU ajouter en devDependencies explicites (TACHE-054) | Intégrateur DevSecOps | Ouvert |
+| R-023 | .claude/launch.json expose http-server . à la racine du repo (port 8765) — si utilisé hors contexte, peut leaker des fichiers locaux non publics vers localhost | Sécurité | 1 | 2 | 2 | Usage réservé au Commanditaire sur machine dev, localhost uniquement, .env gitignoré. Ne jamais étendre avec bind 0.0.0.0. À documenter dans FICHIERS.md (TACHE-055) | Architecte sécurité | Accepté |
 
 ## Échelle
 - **Probabilité** : 1 = Rare, 2 = Possible, 3 = Probable, 4 = Quasi certain
