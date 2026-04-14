@@ -36,23 +36,90 @@
 
 **Alternative** pour inspecter une content script : DevTools d'une page ouverte → onglet Console → changer le contexte en haut à gauche pour sélectionner le Shadow DOM de l'extension.
 
-### 3. Reset complet entre deux sessions de test
+### 3. Reset ciblé entre deux sessions de test
+
+**⚠️ NE JAMAIS utiliser `chrome.storage.local.clear()`** — cette commande efface `installation_salt` et `encryption_key_material`, rendant M7/M9/M2 silencieusement inopérants (cf. P-016 dans PROBLEMES.md).
 
 ```javascript
-// Réinitialise tout l'état (modules, quota, scores, hashes) — à exécuter dans la console SW
-await chrome.storage.local.clear();
-await new Promise(r => chrome.runtime.reload());
-// Puis recharger la page si nécessaire
+// RESET CIBLÉ — à exécuter dans la console SW
+// Préserve installation_salt et encryption_key_material (indispensables)
+await chrome.storage.local.remove([
+  'm2_session_domains',
+  'm2_trusted_domains',
+  'm3_current_score',
+  'm3_last_calculation',
+  'm5_last_nudge_date',
+  'm5_snooze_count',
+  'm5_is_up_to_date',
+  'm6_state',
+  'm6_quiz_history',
+  'm7_hashes_meta',
+  'm7_suppressed_domains',
+  'm7_cooldown',
+  'quota_state',
+]);
+
+// Purge IndexedDB (events, scores, password_hashes, quiz_sessions) via reload
+await chrome.runtime.reload();
 ```
+
+### 4. Régénération des pré-requis si `installation_salt` absent
+
+Si vous avez fait `chrome.storage.local.clear()` par erreur, ou si l'onboarding n'a jamais été complété, regénérez les pré-requis avant de tester :
+
+```javascript
+// Console SW — régénère installation_salt et la config par défaut
+const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+const installationSalt = Array.from(saltBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+
+await chrome.storage.local.set({
+  installation_salt: installationSalt,
+  config: {
+    modules: { M2: true, M3: true, M5: true, M6: true, M7: true, M9: true, M17: true },
+    quota_limit: 3,
+    profile: 'beginner',
+    onboarding_complete: true,
+    language: 'fr',
+  },
+  quota_state: { date: new Date().toISOString().split('T')[0], count: 0 },
+});
+
+console.log('Sel regénéré + config complète avec M7 activé');
+await chrome.runtime.reload();
+```
+
+**Note importante** : cette commande active M7 **sans consentement explicite**, uniquement pour les besoins de test. En production, M7 requiert un opt-in via l'onboarding (RGPD).
 
 ---
 
 ## Module M7 — Réutilisation de mot de passe
 
-### Pré-requis
+### Pré-requis OBLIGATOIRES (cf. P-016)
 
-- M7 doit être activé dans les paramètres de l'extension (consentement coché lors de l'onboarding)
-- Deux sites distincts avec un formulaire de login (type `<input type="password">` + bouton submit)
+**M7 est désactivé par défaut** (opt-in RGPD). Deux options :
+
+**Option 1 — Via l'onboarding (recommandée)**
+1. Ouvrir `chrome://extensions` → carte Sentinel Nudge → bouton "Détails"
+2. Dans les options de l'extension, activer M7 en cochant explicitement le consentement
+3. Alternative : si une page d'onboarding s'ouvre automatiquement au premier install, compléter les étapes 1 à 4
+
+**Option 2 — Activation directe via DevTools** (plus rapide pour les tests)
+```javascript
+// Console SW — active M7 sans passer par l'onboarding
+const { config } = await chrome.storage.local.get(['config']);
+config.modules.M7 = true;
+config.onboarding_complete = true;
+await chrome.storage.local.set({ config });
+console.log('M7 activé. Config:', config);
+```
+
+**Vérifier que `installation_salt` est présent** (sinon M7 ne fonctionnera pas) :
+```javascript
+const { installation_salt } = await chrome.storage.local.get(['installation_salt']);
+console.log('installation_salt:', installation_salt ? 'OK (' + installation_salt.length + ' chars)' : 'ABSENT — utiliser la commande de régénération ci-dessus');
+```
+
+**Sites de test** : deux sites distincts avec un formulaire de login (type `<input type="password">` + bouton submit).
 
 ### Option A — Test avec sites réels (recommandé, 10 min)
 

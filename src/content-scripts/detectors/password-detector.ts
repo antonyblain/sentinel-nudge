@@ -1070,7 +1070,19 @@ async function handleFormSubmit(
 
   const salt = await getInstallationSalt();
   if (!salt) {
-    // Sel absent — ne pas traiter (cas premier lancement ou storage effacé)
+    // Sel absent — ne pas traiter (cas premier lancement ou storage effacé).
+    // Log structuré pour diagnostic : sans ce log, le silent fail de M7 est
+    // invisible (cf. P-016 dans PROBLEMES.md).
+    console.warn(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'warn',
+        message: 'M7/M9: installation_salt absent dans chrome.storage.local',
+        context: {
+          hint: "L'extension n'a pas été correctement initialisée. Recharger l'extension ou compléter l'onboarding.",
+        },
+      }),
+    );
     return;
   }
 
