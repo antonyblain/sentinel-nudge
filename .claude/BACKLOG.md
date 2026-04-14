@@ -59,6 +59,16 @@
 | TACHE-055 | TÂCHE | Déplacer .claude/launch.json vers .vscode/launch.json ou documenter le placement actuel | Could | À faire | P5 | Dev | R-023 |
 | TACHE-056 | TÂCHE | Pattern pending_toast M7 — survit à la navigation post-submit (storage.local + storage.onChanged) | Should | Terminé | P4' | Développeur | Test manuel M7 site herokuapp |
 | TACHE-057 | TÂCHE | Promouvoir M7 en module critique (bypass quota) — le cooldown 30j + suppression_list suffisent au rate-limit | Must | Terminé | P4' | Développeur | Test manuel M7 quota_exceeded bloquant |
+| TACHE-058 | TÂCHE | Rédiger ADR `SW-BOOT-CONTRACT` et `CROSS-LIFECYCLE-INTENT` + audit M2/M3/M5/M6/M9/M17 | Must | À faire | P5 | Architecte logiciel | Post-mortem M7 D-PM-01 |
+| TACHE-059 | TÂCHE | Implémenter 12 scénarios TC-M7-01 à TC-M7-12 (tests unitaires + intégration SW/storage/DOM) | Must | À faire | P5 | Testeur QA | Post-mortem M7 D-PM-02 |
+| TACHE-060 | TÂCHE | Wrapper mock chrome.storage.local JSON-strict + simulation quota + cycle vie SW | Must | À faire | P5 | Testeur QA + Développeur | Post-mortem M7 D-PM-03 |
+| TACHE-061 | TÂCHE | Heartbeat M7 (diagnostics.m7) + canary hash au boot SW + registre d'incidents IndexedDB circulaire | Must | À faire | P5 | Développeur + Architecte sécurité | Post-mortem M7 D-PM-04 |
+| TACHE-062 | TÂCHE | Badge popup "dégradé" si diagnostics.m7.ready=false depuis >1h | Should | À faire | P5 | Développeur + Expert UX/UI | Post-mortem M7 D-PM-04 |
+| TACHE-063 | TÂCHE | Protocole recette manuelle formalisé (Given/When/Then, pré-conditions, PV daté, P0/P1/P2) + scénarios UC-01 à UC-06 | Must | À faire | P5 | Testeur QA | Post-mortem M7 D-PM-05 |
+| TACHE-064 | TÂCHE | Filtrer champs password avec autocomplete="new-password" dans M7 (UC-07/UC-08 signup vs login) | Should | À faire | P5 | Développeur | Post-mortem M7 D-PM-06 |
+| TACHE-065 | TÂCHE | Ajouter R-M7-03 (toast éphémère résiduel) et R-M7-04 (régénération intempestive clé AES) dans RISQUES.md | Should | À faire | P5 | Architecte sécurité | Post-mortem M7 D-PM-07 |
+| TACHE-066 | TÂCHE | Étendre content scripts `"all_frames": true` pour iframes same-origin (UC-03) — avec revue impact surface d'attaque | Should | À faire | P5 | Développeur + Architecte sécurité | Post-mortem M7 UC-03 |
+| TACHE-067 | TÂCHE | MutationObserver sur changements type des inputs password (UC-05 toggle show/hide) | Could | À faire | P5 | Développeur | Post-mortem M7 UC-05 |
 
 ## Actions résiduelles par phase
 
