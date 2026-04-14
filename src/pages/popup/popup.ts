@@ -33,6 +33,40 @@ const SCORE_GREEN_THRESHOLD = 70;
 /** Score seuil orange (>= 40) */
 const SCORE_ORANGE_THRESHOLD = 40;
 
+/** SVG path du bouclier affiche dans le header (Material Design "security", viewBox 24x24) */
+const ICON_HEADER_SHIELD = 'M12 2L4 5v6c0 5.25 3.5 10.15 8 11.35C16.5 21.15 20 16.25 20 11V5L12 2z';
+
+/** SVG path de l'icone Modules (grille 2x2, viewBox 24x24) */
+const ICON_STATUS_MODULES = 'M3 3h8v8H3zm0 10h8v8H3zm10-10h8v8h-8zm0 10h8v8h-8z';
+
+/** SVG path de l'icone Quota (horloge, viewBox 24x24) */
+const ICON_STATUS_QUOTA =
+  'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z';
+
+/**
+ * Cree un SVG inline decoratif aria-hidden.
+ * La couleur est heritee du parent via currentColor (fill="currentColor"),
+ * ce qui permet la coherence automatique avec le dark/light mode.
+ *
+ * @param pathData - Donnee du path SVG (viewBox 0 0 24 24)
+ * @param size     - Taille en px (defaut 16)
+ * @returns Element SVGElement pret a inserer
+ */
+function createInlineIcon(pathData: string, size: number = 16): SVGElement {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'currentColor');
+  const p = document.createElementNS(svgNS, 'path');
+  p.setAttribute('d', pathData);
+  svg.appendChild(p);
+  return svg;
+}
+
 /**
  * Calcule la date du prochain lundi à partir d'aujourd'hui.
  *
@@ -200,6 +234,55 @@ function renderScoreSection(container: HTMLElement, score: number | null): void 
  * @param quotaRemaining - Nudges restants (null si illimité, nombre si limité)
  * @param quotaReached   - true si le quota du jour est atteint
  */
+/**
+ * Cree un label de statut avec icone SVG + texte (pattern KPI card).
+ *
+ * @param iconPath - SVG path de l'icone d'accompagnement (viewBox 24x24)
+ * @param text     - Texte du label
+ * @returns Element span.status-label
+ */
+function createStatusLabel(iconPath: string, text: string): HTMLSpanElement {
+  const label = document.createElement('span');
+  label.className = 'status-label';
+  label.appendChild(createInlineIcon(iconPath));
+  const textEl = document.createElement('span');
+  textEl.textContent = text;
+  label.appendChild(textEl);
+  return label;
+}
+
+/**
+ * Cree un groupe de valeur KPI : chiffre principal + complement optionnel.
+ *
+ * @param mainValue - Valeur principale (chiffre ou symbole, proeminente)
+ * @param subText   - Complement textuel optionnel (11px, muted)
+ * @param warning   - Si true, valeur et complement colores en warning
+ * @returns Element div.status-value-group
+ */
+function createStatusValueGroup(
+  mainValue: string,
+  subText: string | null,
+  warning: boolean = false,
+): HTMLDivElement {
+  const group = document.createElement('div');
+  group.className = 'status-value-group';
+
+  const main = document.createElement('span');
+  main.className = 'status-value';
+  main.textContent = mainValue;
+  if (warning) main.style.color = 'var(--sn-color-warning)';
+  group.appendChild(main);
+
+  if (subText !== null) {
+    const sub = document.createElement('span');
+    sub.className = 'status-value-sub';
+    sub.textContent = subText;
+    if (warning) sub.style.color = 'var(--sn-color-warning)';
+    group.appendChild(sub);
+  }
+  return group;
+}
+
 function renderStatusSection(
   container: HTMLElement,
   activeCount: number,
@@ -210,48 +293,45 @@ function renderStatusSection(
   section.setAttribute('aria-label', 'Statut rapide');
   section.className = 'status-section';
 
-  // Modules actifs
+  // Ligne Modules : KPI "N / 7" + complement si partiellement actifs
   const modulesRow = document.createElement('div');
   modulesRow.className = 'status-row';
-
-  const modulesLabel = document.createElement('span');
-  modulesLabel.className = 'status-label';
-  modulesLabel.textContent = 'Modules';
-  modulesRow.appendChild(modulesLabel);
-
-  const modulesValue = document.createElement('span');
-  modulesValue.className = 'status-value';
-  modulesValue.textContent =
-    browser.i18n.getMessage('popup_modules_active', String(activeCount)) ||
-    `${activeCount} modules actifs sur 7`;
-  modulesRow.appendChild(modulesValue);
+  modulesRow.appendChild(
+    createStatusLabel(
+      ICON_STATUS_MODULES,
+      browser.i18n.getMessage('popup_modules_label') || 'Modules actifs',
+    ),
+  );
+  const inactive = 7 - activeCount;
+  const modulesSub = inactive > 0 ? `${inactive} inactif${inactive > 1 ? 's' : ''}` : null;
+  modulesRow.appendChild(createStatusValueGroup(`${activeCount} / 7`, modulesSub));
   section.appendChild(modulesRow);
 
-  // Quota du jour
+  // Ligne Quota : KPI chiffre + complement contextuel
   const quotaRow = document.createElement('div');
   quotaRow.className = 'status-row';
+  quotaRow.appendChild(
+    createStatusLabel(
+      ICON_STATUS_QUOTA,
+      browser.i18n.getMessage('popup_quota_label') || 'Quota du jour',
+    ),
+  );
 
-  const quotaLabel = document.createElement('span');
-  quotaLabel.className = 'status-label';
-  quotaLabel.textContent = browser.i18n.getMessage('popup_quota_label') || 'Quota du jour';
-  quotaRow.appendChild(quotaLabel);
-
-  const quotaValue = document.createElement('span');
-  quotaValue.className = 'status-value';
-
+  let mainValue: string;
+  let subText: string | null;
+  let warning = false;
   if (quotaReached) {
-    quotaValue.textContent =
-      browser.i18n.getMessage('popup_quota_reached') || 'Quota du jour atteint';
-    quotaValue.style.color = 'var(--sn-color-warning)';
+    mainValue = '0';
+    subText = browser.i18n.getMessage('popup_quota_reached_sub') || 'limite atteinte';
+    warning = true;
   } else if (quotaRemaining === null) {
-    quotaValue.textContent =
-      browser.i18n.getMessage('popup_quota_unlimited') || 'Quota illimité activé';
+    mainValue = '∞';
+    subText = browser.i18n.getMessage('popup_quota_unlimited_sub') || 'illimite';
   } else {
-    quotaValue.textContent =
-      browser.i18n.getMessage('popup_quota_remaining', String(quotaRemaining)) ||
-      `${quotaRemaining} nudges restants aujourd'hui`;
+    mainValue = String(quotaRemaining);
+    subText = browser.i18n.getMessage('popup_quota_remaining_sub') || 'nudges restants';
   }
-  quotaRow.appendChild(quotaValue);
+  quotaRow.appendChild(createStatusValueGroup(mainValue, subText, warning));
   section.appendChild(quotaRow);
 
   container.appendChild(section);
@@ -314,12 +394,21 @@ async function initPopup(): Promise<void> {
   const root = document.getElementById('popup-root');
   if (!root) return;
 
-  // En-tête
+  // En-tête : icone bouclier + titre sur la meme ligne (branding)
   const header = document.createElement('header');
+  const headerInner = document.createElement('div');
+  headerInner.className = 'popup-header-inner';
+
+  const headerIcon = createInlineIcon(ICON_HEADER_SHIELD, 24);
+  headerIcon.classList.add('header-shield');
+  headerInner.appendChild(headerIcon);
+
   const h1 = document.createElement('h1');
   h1.className = 'popup-title';
   h1.textContent = browser.i18n.getMessage('popup_title') || 'Sentinel Nudge';
-  header.appendChild(h1);
+  headerInner.appendChild(h1);
+
+  header.appendChild(headerInner);
   root.appendChild(header);
 
   // État de chargement

@@ -47,6 +47,18 @@ header {
   padding-bottom: var(--sn-space-sm);
 }
 
+.popup-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sn-space-sm);
+}
+
+.header-shield {
+  color: var(--sn-color-primary);
+  flex-shrink: 0;
+}
+
 .popup-title {
   font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
@@ -113,7 +125,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--sn-space-xs) 0;
+  padding: var(--sn-space-sm) 0;
+  gap: var(--sn-space-sm);
 }
 
 .status-row + .status-row {
@@ -123,12 +136,31 @@ header {
 .status-label {
   font-size: var(--sn-font-size-small);
   color: var(--sn-color-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--sn-space-xs);
+  flex-shrink: 0;
+}
+
+/* Groupe valeur KPI : chiffre principal + complement optionnel */
+.status-value-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: var(--sn-line-height-tight);
 }
 
 .status-value {
-  font-size: var(--sn-font-size-small);
+  font-size: var(--sn-font-size-body);
   font-weight: var(--sn-font-weight-bold);
   color: var(--sn-color-fg);
+  white-space: nowrap;
+}
+
+.status-value-sub {
+  font-size: var(--sn-font-size-micro);
+  color: var(--sn-color-muted);
+  white-space: nowrap;
 }
 
 /* Boutons d'action */
