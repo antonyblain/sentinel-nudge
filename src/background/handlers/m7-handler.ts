@@ -23,6 +23,9 @@
  * - Le hash de mot de passe est chiffré AES-256-GCM avant stockage
  * - Le tag en clair (8 chars hex) est acceptable (collision > 1/4 milliards)
  *
+ * M7 est un module critique (CRITICAL_MODULES) : bypass quota automatique par MessageRouter.
+ * Le rate-limit est assuré par le cooldown 30j par domaine + suppression_list.
+ *
  * Référence : SFD §2.5 (M7), DAT §8.1 (store password_hashes), §9.4 (D-SEC-001)
  */
 

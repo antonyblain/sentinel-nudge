@@ -58,6 +58,7 @@
 | TACHE-054 | TÂCHE | Documenter ou ajouter en devDependencies explicites `pngjs` et `potrace` (reproductibilité vectorisation logo) | Should | À faire | P5 | DevSecOps | R-022 |
 | TACHE-055 | TÂCHE | Déplacer .claude/launch.json vers .vscode/launch.json ou documenter le placement actuel | Could | À faire | P5 | Dev | R-023 |
 | TACHE-056 | TÂCHE | Pattern pending_toast M7 — survit à la navigation post-submit (storage.local + storage.onChanged) | Should | Terminé | P4' | Développeur | Test manuel M7 site herokuapp |
+| TACHE-057 | TÂCHE | Promouvoir M7 en module critique (bypass quota) — le cooldown 30j + suppression_list suffisent au rate-limit | Must | Terminé | P4' | Développeur | Test manuel M7 quota_exceeded bloquant |
 
 ## Actions résiduelles par phase
 
