@@ -1352,6 +1352,94 @@ function showToastM7(domainHash: string): void {
 // ---------------------------------------------------------------------------
 
 /**
+ * Fallback pour les cas ou un input[type="password"] n'est pas dans un <form>.
+ * Pattern tres courant sur WordPress, React SPA, Vue, etc. — le bouton submit
+ * est un <button> avec un handler JS qui fait un appel AJAX, sans form natif.
+ * Cf. P-017 dans PROBLEMES.md.
+ *
+ * Strategie :
+ *  - keydown Enter dans un input password orphelin avec valeur non vide -> trigger
+ *  - click sur un bouton proche d'un input password orphelin -> trigger
+ *
+ * Le listener est pose en capture phase sur document pour intercepter avant
+ * que l'eventuel framework JS consomme l'event.
+ */
+function attachOrphanPasswordListeners(): void {
+  // Declencher handleFormSubmit sur Enter dans un input password orphelin
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key !== 'Enter') return;
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.type !== 'password') return;
+      if (target.form) return; // Deja gere par le listener submit du form
+      if (target.value.length === 0) return;
+      console.info(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Sentinel Nudge M7/M9: orphan password Enter pressed',
+          context: { field_id: target.id || '(none)', field_name: target.name || '(none)' },
+        }),
+      );
+      void handleFormSubmit(event, target);
+    },
+    { capture: true },
+  );
+
+  // Declencher handleFormSubmit sur click d'un bouton proche d'un input password orphelin
+  document.addEventListener(
+    'click',
+    (event) => {
+      const btn = event.target;
+      if (!(btn instanceof HTMLElement)) return;
+      // Boutons type="submit" ou button nu avec role submit implicite
+      const isSubmitBtn =
+        (btn.tagName === 'BUTTON' && (btn as HTMLButtonElement).type !== 'button') ||
+        (btn.tagName === 'INPUT' && (btn as HTMLInputElement).type === 'submit');
+      if (!isSubmitBtn) return;
+
+      // Chercher un input password orphelin dans la hierarchie proche
+      const container = btn.closest('div, section, main, article, body') ?? document.body;
+      const pwdField = container.querySelector<HTMLInputElement>('input[type="password"]');
+      if (!pwdField) return;
+      if (pwdField.form) return; // Dans un form -> deja gere
+      if (pwdField.value.length === 0) return;
+
+      console.info(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Sentinel Nudge M7/M9: orphan password click-submit',
+          context: {
+            btn_id: btn.id || '(none)',
+            btn_text: btn.textContent?.trim().slice(0, 30) || '(none)',
+          },
+        }),
+      );
+      void handleFormSubmit(event, pwdField);
+    },
+    { capture: true },
+  );
+
+  // Log compteur de pwd inputs orphelins au demarrage
+  const orphanCount = Array.from(
+    document.querySelectorAll<HTMLInputElement>('input[type="password"]'),
+  ).filter((f) => !f.form).length;
+  if (orphanCount > 0) {
+    console.info(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Sentinel Nudge: orphan password inputs detected (no <form> parent)',
+        context: { count: orphanCount, strategy: 'fallback Enter + click listeners attached' },
+      }),
+    );
+  }
+}
+
+/**
  * Attache les listeners submit à tous les formulaires de la page
  * qui contiennent au moins un champ password.
  */
@@ -1471,6 +1559,12 @@ function initPasswordDetector(): void {
     },
     { capture: true },
   );
+
+  // Fallback pour les formulaires SANS balise <form> (pattern WordPress/SPA moderne,
+  // cf. P-017). Detecte les input[type="password"] orphelins et attache :
+  //  - keydown Enter -> trigger handleFormSubmit directement sur le champ
+  //  - click sur boutons submit proches -> trigger handleFormSubmit
+  attachOrphanPasswordListeners();
 
   // Observation des mutations DOM pour les SPA
   observeDynamicForms();
