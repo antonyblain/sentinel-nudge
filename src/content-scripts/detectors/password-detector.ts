@@ -1129,6 +1129,14 @@ async function handleFormSubmit(
   // Si M2 était actif sur ce champ, différer M7 de 5s (SFD §2.1.5)
   const m2WasActive = fieldsWithM2Active.has(pwdField);
   const sendM7 = async (): Promise<void> => {
+    console.info(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Sentinel Nudge M7: sending password_submitted to SW',
+        context: { domain_hash: domainHash.slice(0, 8) + '...' },
+      }),
+    );
     try {
       const response = (await browser.runtime.sendMessage({
         module: 'M7',
@@ -1140,12 +1148,30 @@ async function handleFormSubmit(
         timestamp: Date.now(),
       })) as { success: boolean; action: string; data?: Record<string, unknown> } | null;
 
+      console.info(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Sentinel Nudge M7: SW response received',
+          context: { response },
+        }),
+      );
+
       // Si le SW demande d'afficher le toast M7
       if (response?.action === 'show') {
         showToastM7(domainHash);
       }
-    } catch {
-      // Le SW peut être endormi — l'échec est silencieux (non bloquant pour l'utilisateur)
+    } catch (err) {
+      // Log explicite de l'erreur pour diagnostic (au lieu du silent fail)
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'warn',
+          message: 'Sentinel Nudge M7: sendMessage to SW failed',
+          context: { error: errMsg },
+        }),
+      );
     }
   };
 
