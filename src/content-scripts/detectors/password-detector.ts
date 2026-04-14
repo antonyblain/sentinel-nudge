@@ -1197,8 +1197,17 @@ async function handleFormSubmit(
  *
  * @param domainHash - Hash salé du domaine courant pour la suppression_list
  */
+/**
+ * Domaine pour lequel un toast M7 a deja ete rendu dans cette page.
+ * Empeche les doublons quand storage.onChanged re-declenche apres un submit
+ * (ex: lors du re-rendu React). Reset implicite a chaque boot de content script
+ * (donc apres un redirect post-submit, la page suivante pourra reafficher).
+ */
+let m7ToastShownForDomain: string | null = null;
+
 function showToastM7(domainHash: string): void {
   const TOAST_MS = 8000;
+  m7ToastShownForDomain = domainHash;
 
   const host = document.createElement('div');
   host.style.cssText =
@@ -1341,6 +1350,13 @@ function showToastM7(domainHash: string): void {
       payload: { user_action: action, domain_hash: domainHash },
       timestamp: Date.now(),
     });
+    // Purger pending_m7_toast uniquement sur action utilisateur explicite.
+    // Sur 'timeout' (auto-fermeture), on laisse le TTL naturel (10min) gerer :
+    // si un redirect detruit le toast avant que l'utilisateur le voie, la page
+    // suivante pourra le reafficher via checkAndShowPendingM7Toast.
+    if (action !== 'timeout') {
+      void browser.storage.local.remove(['pending_m7_toast']);
+    }
     host.remove();
   }
 
@@ -1565,8 +1581,13 @@ async function checkAndShowPendingM7Toast(): Promise<void> {
     const currentDomainHash = await hashDomain(salt, location.hostname);
     if (pending.domain_hash !== currentDomainHash) return;
 
-    // Purger AVANT affichage (eviter doublons en cas de rechargement rapide)
-    await browser.storage.local.remove(['pending_m7_toast']);
+    // Anti-doublon intra-page : si storage.onChanged re-trigger sur la meme
+    // page (ex: re-rendu React), on ne reaffiche pas.
+    if (m7ToastShownForDomain === pending.domain_hash) return;
+
+    // Ne PAS purger ici : on garde pending_m7_toast jusqu'a l'interaction
+    // utilisateur (closeToast) ou l'expiration TTL. Permet au toast de
+    // survivre a un redirect post-submit (pattern pending_toast).
 
     console.info(
       JSON.stringify({
