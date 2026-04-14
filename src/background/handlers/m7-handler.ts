@@ -302,6 +302,16 @@ export function createM7Handler(
     msg: NudgeMessage,
     _sender: chrome.runtime.MessageSender,
   ): Promise<NudgeResponse> => {
+    // Log diagnostic : tout message M7 recu
+    console.info(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'M7Handler: message recu',
+        context: { action: msg.action, origin: _sender.tab?.url ?? 'unknown' },
+      }),
+    );
+
     // L'action 'toast_action' a un payload différent (user_action + domain_hash, pas de hash)
     // → traiter en premier, avant la validation du champ 'hash'
     if (msg.action === 'toast_action') {

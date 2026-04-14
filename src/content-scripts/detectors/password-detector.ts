@@ -1422,6 +1422,30 @@ function initPasswordDetector(): void {
   // Attachement des listeners submit
   attachSubmitListeners();
 
+  // Listener submit GLOBAL en capture phase — diagnostic + fallback si un autre
+  // script bloque la propagation. Attrape TOUS les submits de la page.
+  document.addEventListener(
+    'submit',
+    (event) => {
+      const form = event.target as HTMLFormElement | null;
+      if (!form || form.tagName !== 'FORM') return;
+      const pwdCount = form.querySelectorAll<HTMLInputElement>('input[type="password"]').length;
+      console.info(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Sentinel Nudge: global submit captured (capture phase)',
+          context: {
+            form_id: form.id || '(none)',
+            form_action: form.action || '(none)',
+            pwdCount,
+          },
+        }),
+      );
+    },
+    { capture: true },
+  );
+
   // Observation des mutations DOM pour les SPA
   observeDynamicForms();
 }
