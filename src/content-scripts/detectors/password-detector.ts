@@ -1331,18 +1331,42 @@ function showToastM7(domainHash: string): void {
  */
 function attachSubmitListeners(): void {
   const forms = document.querySelectorAll('form');
+  let newlyAttached = 0;
+  let pwdFormsCount = 0;
   forms.forEach((form) => {
     // Éviter les doublons
     if ((form as HTMLFormElement & { _snSubmitAttached?: boolean })._snSubmitAttached) return;
     (form as HTMLFormElement & { _snSubmitAttached?: boolean })._snSubmitAttached = true;
+    newlyAttached++;
+
+    const pwdCount = form.querySelectorAll<HTMLInputElement>('input[type="password"]').length;
+    if (pwdCount > 0) pwdFormsCount++;
 
     form.addEventListener('submit', (event) => {
       const pwdFields = form.querySelectorAll<HTMLInputElement>('input[type="password"]');
+      console.info(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Sentinel Nudge M7/M9: submit event captured',
+          context: { pwdFields: pwdFields.length, formAction: form.action || '(none)' },
+        }),
+      );
       pwdFields.forEach((field) => {
         void handleFormSubmit(event, field);
       });
     });
   });
+  if (newlyAttached > 0) {
+    console.info(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Sentinel Nudge: submit listeners attached',
+        context: { newForms: newlyAttached, pwdForms: pwdFormsCount, totalForms: forms.length },
+      }),
+    );
+  }
 }
 
 /**
@@ -1403,4 +1427,12 @@ function initPasswordDetector(): void {
 }
 
 // Démarrage du détecteur
+console.info(
+  JSON.stringify({
+    timestamp: new Date().toISOString(),
+    level: 'info',
+    message: 'Sentinel Nudge password-detector: injected',
+    context: { url: location.hostname, readyState: document.readyState },
+  }),
+);
 initPasswordDetector();
