@@ -133,7 +133,28 @@ async function loadCryptoKey(): Promise<CryptoKey | null> {
   const result = await browser.storage.local.get(['encryption_key_material']);
   const material = result['encryption_key_material'];
   if (!material) return null;
-  return cryptoService.importKey(material as ArrayBuffer);
+
+  // chrome.storage.local NE supporte PAS ArrayBuffer en JSON. La cle doit
+  // etre stockee en tant que Array<number> (32 octets pour AES-256).
+  // Cette fonction gere les 2 formats :
+  //  - Array<number> : nouveau format (JSON-safe)
+  //  - ArrayBuffer : ancien format (pre-fix P-016 etendu, ne devrait plus exister)
+  let buffer: ArrayBuffer;
+  if (Array.isArray(material)) {
+    if (material.length !== 32) return null;
+    buffer = new Uint8Array(material).buffer;
+  } else if (material instanceof ArrayBuffer) {
+    buffer = material;
+  } else {
+    // Format inconnu (objet vide apres serialization JSON ratee) -> regeneration
+    return null;
+  }
+
+  try {
+    return await cryptoService.importKey(buffer);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -194,6 +215,10 @@ async function onFirstInstall(): Promise<void> {
   const cryptoKey = await cryptoService.generateKey();
   const keyMaterial = await cryptoService.exportKey(cryptoKey);
 
+  // chrome.storage.local ne serialize pas un ArrayBuffer — on le convertit en
+  // Array<number> pour stockage JSON-safe (32 octets AES-256). Cf. P-018.
+  const keyMaterialArray = Array.from(new Uint8Array(keyMaterial));
+
   // Configuration par défaut — tous les modules activés sauf M7 (opt-in explicite)
   const defaultConfig: ChromeStorageSchema['config'] = {
     modules: Object.fromEntries(
@@ -208,14 +233,14 @@ async function onFirstInstall(): Promise<void> {
   // Persistance dans chrome.storage.local
   await browser.storage.local.set({
     installation_salt: installationSalt,
-    encryption_key_material: keyMaterial,
+    encryption_key_material: keyMaterialArray,
     config: defaultConfig,
     quota_state: {
       date: new Date().toISOString().split('T')[0],
       count: 0,
     },
     m2_session_domains: [],
-  } as Partial<ChromeStorageSchema>);
+  } as unknown as Partial<ChromeStorageSchema>);
 
   // Initialisation de la base IndexedDB
   await storageService.initDB();
@@ -339,7 +364,9 @@ void (async () => {
     );
     const newKey = await cryptoService.generateKey();
     const material = await cryptoService.exportKey(newKey);
-    await browser.storage.local.set({ encryption_key_material: material });
+    // Conversion ArrayBuffer -> Array<number> pour stockage JSON-safe (cf. P-018)
+    const materialArray = Array.from(new Uint8Array(material));
+    await browser.storage.local.set({ encryption_key_material: materialArray });
     cryptoKey = newKey;
   }
 
