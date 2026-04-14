@@ -1157,10 +1157,10 @@ async function handleFormSubmit(
         }),
       );
 
-      // Si le SW demande d'afficher le toast M7
-      if (response?.action === 'show') {
-        showToastM7(domainHash);
-      }
+      // NOTE : le toast n'est PAS affiche directement ici. Le SW a stocke
+      // pending_m7_toast dans chrome.storage.local. Un listener storage.onChanged
+      // cote content-script declenche l'affichage (pattern pending_toast :
+      // resilience a la navigation post-submit, cf. TACHE-056).
     } catch (err) {
       // Log explicite de l'erreur pour diagnostic (au lieu du silent fail)
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1531,12 +1531,83 @@ function observeDynamicForms(): void {
 }
 
 /**
+ * TTL du pending_m7_toast (10 minutes). Au-dela, on ne l'affiche pas
+ * (page ouverte trop tardivement pour etre contextuelle).
+ */
+const PENDING_M7_TOAST_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Verifie si un toast M7 est en attente dans chrome.storage.local et
+ * l'affiche si le domaine courant correspond. Purge la cle apres affichage.
+ *
+ * Appele :
+ *  - Au chargement de chaque page (apres navigation post-submit)
+ *  - Sur storage.onChanged (pour les pages SPA sans rechargement)
+ */
+async function checkAndShowPendingM7Toast(): Promise<void> {
+  try {
+    const stored = (await browser.storage.local.get(['pending_m7_toast'])) as {
+      pending_m7_toast?: { domain_hash: string; timestamp: number };
+    };
+    const pending = stored.pending_m7_toast;
+    if (!pending) return;
+
+    // TTL check : trop ancien → purger sans afficher
+    if (Date.now() - pending.timestamp > PENDING_M7_TOAST_TTL_MS) {
+      await browser.storage.local.remove(['pending_m7_toast']);
+      return;
+    }
+
+    // Verifier que le domaine courant correspond (evite les toasts
+    // cross-onglets sur des domaines differents)
+    const salt = await getInstallationSalt();
+    if (!salt) return;
+    const currentDomainHash = await hashDomain(salt, location.hostname);
+    if (pending.domain_hash !== currentDomainHash) return;
+
+    // Purger AVANT affichage (eviter doublons en cas de rechargement rapide)
+    await browser.storage.local.remove(['pending_m7_toast']);
+
+    console.info(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Sentinel Nudge M7: pending toast rendered',
+        context: { domain_hash: pending.domain_hash.slice(0, 8) + '...' },
+      }),
+    );
+    showToastM7(pending.domain_hash);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'warn',
+        message: 'Sentinel Nudge M7: checkAndShowPendingM7Toast failed',
+        context: { error: msg },
+      }),
+    );
+  }
+}
+
+/**
  * Initialise le détecteur de champs mot de passe.
  * Appelé une seule fois à l'injection du content script.
  */
 function initPasswordDetector(): void {
   // Charger la whitelist M2 persistée (chrome.storage.local)
   void loadTrustedDomains();
+
+  // Verifier au boot si un toast M7 est en attente (resilience navigation)
+  void checkAndShowPendingM7Toast();
+
+  // Listener storage.onChanged : declenche l'affichage sur SPA sans reload
+  browser.storage.onChanged.addListener((changes) => {
+    const changesTyped = changes as { pending_m7_toast?: { newValue?: unknown } };
+    if (changesTyped.pending_m7_toast?.newValue) {
+      void checkAndShowPendingM7Toast();
+    }
+  });
 
   // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
   document.addEventListener(

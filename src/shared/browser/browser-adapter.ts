@@ -44,6 +44,16 @@ export interface BrowserAdapter {
        */
       clear(): Promise<void>;
     };
+    /**
+     * Listener pour les changements de chrome.storage.local.
+     * Utilise pour le pattern pending_toast (M7) : notifie les content scripts
+     * quand le SW depose une action a executer.
+     */
+    onChanged: {
+      addListener(
+        callback: (changes: Record<string, { oldValue?: unknown; newValue?: unknown }>) => void,
+      ): void;
+    };
   };
 
   runtime: {
@@ -161,6 +171,18 @@ export const browser: BrowserAdapter = {
       remove: (keys: string[]): Promise<void> =>
         new Promise((resolve) => chrome.storage.local.remove(keys, resolve)),
       clear: (): Promise<void> => new Promise((resolve) => chrome.storage.local.clear(resolve)),
+    },
+    onChanged: {
+      addListener: (
+        callback: (changes: Record<string, { oldValue?: unknown; newValue?: unknown }>) => void,
+      ): void => {
+        // chrome.storage.onChanged emet pour TOUS les areas (local, sync, session).
+        // On filtre uniquement 'local' pour respecter la semantique de l'adapter.
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+          if (areaName !== 'local') return;
+          callback(changes);
+        });
+      },
     },
   },
 

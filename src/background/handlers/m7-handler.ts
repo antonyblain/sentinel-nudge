@@ -271,6 +271,18 @@ async function handlePasswordSubmitted(
       cryptoKey,
     );
 
+    // Pattern pending_toast : stocker l'intention d'afficher le toast dans
+    // chrome.storage.local pour qu'il survive à la navigation post-submit
+    // (redirection après login). Le content script affiche le toast au
+    // chargement de la page suivante via un listener storage.onChanged.
+    // TTL : 10 minutes.
+    await browser.storage.local.set({
+      pending_m7_toast: {
+        domain_hash: domainHash,
+        timestamp: Date.now(),
+      },
+    });
+
     return {
       success: true,
       action: 'show',
