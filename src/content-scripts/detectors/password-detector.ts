@@ -1388,24 +1388,40 @@ function attachOrphanPasswordListeners(): void {
     { capture: true },
   );
 
-  // Declencher handleFormSubmit sur click d'un bouton proche d'un input password orphelin
+  // Declencher handleFormSubmit sur click d'un bouton proche d'un input password orphelin.
+  // IMPORTANT : event.target est souvent un element interieur au bouton (span, i, svg).
+  // Il faut remonter via closest() pour trouver le bouton reel.
   document.addEventListener(
     'click',
     (event) => {
-      const btn = event.target;
-      if (!(btn instanceof HTMLElement)) return;
-      // Boutons type="submit" ou button nu avec role submit implicite
-      const isSubmitBtn =
-        (btn.tagName === 'BUTTON' && (btn as HTMLButtonElement).type !== 'button') ||
-        (btn.tagName === 'INPUT' && (btn as HTMLInputElement).type === 'submit');
-      if (!isSubmitBtn) return;
+      const el = event.target;
+      if (!(el instanceof HTMLElement)) return;
 
-      // Chercher un input password orphelin dans la hierarchie proche
-      const container = btn.closest('div, section, main, article, body') ?? document.body;
-      const pwdField = container.querySelector<HTMLInputElement>('input[type="password"]');
+      // Remonter au bouton reel (gere click sur span/icone interieur)
+      const btn = el.closest<HTMLElement>(
+        'button, input[type="submit"], input[type="button"], [role="button"], a',
+      );
+      if (!btn) return;
+
+      // Filtrer les faux positifs : ignore les <button type="button"> explicites
+      // (souvent boutons annuler/close/toggle), mais accepter tout le reste
+      if (btn.tagName === 'BUTTON' && (btn as HTMLButtonElement).type === 'button') {
+        // Exception : si le texte contient submit/login/sign/connect, on accepte
+        const txt = (btn.textContent ?? '').toLowerCase();
+        const looksLikeSubmit = /submit|login|log\s*in|sign\s*in|connect|entrer|valider/.test(txt);
+        if (!looksLikeSubmit) return;
+      }
+
+      // Chercher un input password orphelin sur TOUTE la page (pattern SPA : pwd
+      // et bouton peuvent etre dans des containers differents)
+      const orphans = Array.from(
+        document.querySelectorAll<HTMLInputElement>('input[type="password"]'),
+      ).filter((f) => !f.form && f.value.length > 0);
+      if (orphans.length === 0) return;
+
+      // Prendre le premier orphelin visible avec valeur
+      const pwdField = orphans[0];
       if (!pwdField) return;
-      if (pwdField.form) return; // Dans un form -> deja gere
-      if (pwdField.value.length === 0) return;
 
       console.info(
         JSON.stringify({
@@ -1414,7 +1430,9 @@ function attachOrphanPasswordListeners(): void {
           message: 'Sentinel Nudge M7/M9: orphan password click-submit',
           context: {
             btn_id: btn.id || '(none)',
+            btn_tag: btn.tagName.toLowerCase(),
             btn_text: btn.textContent?.trim().slice(0, 30) || '(none)',
+            pwd_field_id: pwdField.id || '(none)',
           },
         }),
       );
