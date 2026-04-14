@@ -63,17 +63,30 @@ await chrome.storage.local.remove([
 await chrome.runtime.reload();
 ```
 
-### 4. Régénération des pré-requis si `installation_salt` absent
+### 4. Régénération COMPLÈTE des pré-requis
 
-Si vous avez fait `chrome.storage.local.clear()` par erreur, ou si l'onboarding n'a jamais été complété, regénérez les pré-requis avant de tester :
+⚠️ **Si vous avez fait `chrome.storage.local.clear()` par erreur, ou si l'onboarding n'a jamais été complété, la régénération doit inclure 3 éléments** (P-016 étendu) :
+
+1. `installation_salt` — sel de hashing SHA-256
+2. `encryption_key_material` — clé AES-256-GCM (sans elle, **aucun handler SW n'est enregistré** !)
+3. `config` — configuration des modules + consentements
 
 ```javascript
-// Console SW — régénère installation_salt et la config par défaut
+// Console SW — régénère TOUS les pré-requis (salt + clé AES + config)
 const saltBytes = crypto.getRandomValues(new Uint8Array(16));
 const installationSalt = Array.from(saltBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
+// Génération de la clé AES-256-GCM (indispensable pour enregistrer les handlers)
+const key = await crypto.subtle.generateKey(
+  { name: 'AES-GCM', length: 256 },
+  true,
+  ['encrypt', 'decrypt'],
+);
+const keyMaterial = await crypto.subtle.exportKey('raw', key);
+
 await chrome.storage.local.set({
   installation_salt: installationSalt,
+  encryption_key_material: keyMaterial,
   config: {
     modules: { M2: true, M3: true, M5: true, M6: true, M7: true, M9: true, M17: true },
     quota_limit: 3,
@@ -84,11 +97,13 @@ await chrome.storage.local.set({
   quota_state: { date: new Date().toISOString().split('T')[0], count: 0 },
 });
 
-console.log('Sel regénéré + config complète avec M7 activé');
+console.log('Pré-requis complets regénérés');
 await chrome.runtime.reload();
 ```
 
-**Note importante** : cette commande active M7 **sans consentement explicite**, uniquement pour les besoins de test. En production, M7 requiert un opt-in via l'onboarding (RGPD).
+**Note 1** : depuis le commit qui a corrigé P-016 (auto-récupération SW), si `encryption_key_material` est absent au démarrage du service worker, **il est automatiquement régénéré** et les handlers sont enregistrés. Cette commande reste utile pour un reset manuel forcé.
+
+**Note 2** : cette commande active M7 **sans consentement explicite**, uniquement pour les besoins de test. En production, M7 requiert un opt-in via l'onboarding (RGPD).
 
 ---
 

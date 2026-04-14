@@ -318,6 +318,38 @@ messageRouter.listen();
 // Nécessaire car onStartup n'est appelé qu'au démarrage du navigateur, pas au réveil du SW
 void (async () => {
   await storageService.initDB();
-  const cryptoKey = await loadCryptoKey();
-  if (cryptoKey) registerModuleHandlers(cryptoKey);
+  let cryptoKey = await loadCryptoKey();
+
+  // Auto-récupération : si la clé est absente (storage purgé manuellement, cas
+  // diagnostic P-016), on en régénère une AU LIEU de laisser le SW avec aucun
+  // handler enregistré (ce qui provoquerait handler_not_registered sur toute
+  // interaction). La régénération ne peut pas déchiffrer les anciennes données
+  // mais permet au SW de rester fonctionnel.
+  if (!cryptoKey) {
+    console.warn(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'warn',
+        message:
+          'SW init: encryption_key_material absent de chrome.storage.local — régénération automatique',
+        context: {
+          hint: 'Les anciennes données chiffrées (M7 hashes) ne pourront pas être déchiffrées',
+        },
+      }),
+    );
+    const newKey = await cryptoService.generateKey();
+    const material = await cryptoService.exportKey(newKey);
+    await browser.storage.local.set({ encryption_key_material: material });
+    cryptoKey = newKey;
+  }
+
+  registerModuleHandlers(cryptoKey);
+  console.info(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      message: 'SW init: handlers registered',
+      context: { modules: ['M2', 'M3', 'M5', 'M6', 'M7', 'M9', 'M17', 'EXPORT'] },
+    }),
+  );
 })();
