@@ -7,9 +7,11 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P4' — Intégration design system + fiabilisation modules asynchrones (terminé, post-mortem M7 clos)
-- **Dernière action** : **Saga fiabilisation M7 terminée** — 7 commits correctifs (P-014 à P-020) : P-016 auto-régénération clé AES au boot SW, P-017 détection inputs password orphelins (3 stratégies submit+Enter+click), P-018 sérialisation Array<number> des clés crypto, P-019 pattern pending-intent avec TTL 10 min pour survivre aux redirects post-submit, P-020 promotion M7 en CRITICAL_MODULES (bypass quota 3/jour, cooldown 30j + suppression_list suffisent au rate-limit). Tests M7 **validés sur 3 sites réels** (saucedemo, herokuapp avec redirect, practicetestautomation via fallback Enter). Post-mortem consolidé avec 4 profils techniques : PV `gouvernance-pv-postmortem-m7-v1.0.md` produit + atelier PDCA + revue 15 cas d'usage (UC-01 à UC-15). **Option A retenue par Commanditaire** : v1 complète avec UC-01 à UC-06 (P0) couverts avant release. 16 commits au total sur feature/p4-developpement. 200 tests OK, CI verte, format/lint/build OK — 2026-04-14.
-- **Prochaine action attendue** : **P5 — 17 tâches consolidées** réparties en 4 chantiers prioritaires :
+- **Phase active** : P5 — Fiabilisation M7 + couverture UC P0 v1 (démarrée 2026-04-16)
+- **Dernière action** : **Mini-DAT TACHE-061 v1.1 validé** — produit par Architecte logiciel, enrichi par Architecte sécurité (5 INV-SEC, 5 sections STRIDE, 8 contrôles ISO 27001, 3 nouveaux risques R-M7-05/06/07 dans RISQUES.md), contrôlé par Référent qualité (Validé avec commentaires — 2 bloquantes A-01/A-02 corrigées). 3 arbitrages ARB-061-01/02/03 tranchés par le Commanditaire selon recommandations (Option A / B / A). 2 tâches de suivi créées (TACHE-074 transmission DPO, TACHE-075 référentiel ISO 27001). Livrable : `docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md` — 2026-04-16.
+- **Action précédente** : **Saga fiabilisation M7 terminée** — 7 commits correctifs (P-014 à P-020) : P-016 auto-régénération clé AES au boot SW, P-017 détection inputs password orphelins (3 stratégies submit+Enter+click), P-018 sérialisation Array<number> des clés crypto, P-019 pattern pending-intent avec TTL 10 min pour survivre aux redirects post-submit, P-020 promotion M7 en CRITICAL_MODULES (bypass quota 3/jour, cooldown 30j + suppression_list suffisent au rate-limit). Tests M7 **validés sur 3 sites réels** (saucedemo, herokuapp avec redirect, practicetestautomation via fallback Enter). Post-mortem consolidé avec 4 profils techniques : PV `gouvernance-pv-postmortem-m7-v1.0.md` produit + atelier PDCA + revue 15 cas d'usage (UC-01 à UC-15). **Option A retenue par Commanditaire** : v1 complète avec UC-01 à UC-06 (P0) couverts avant release. 16 commits au total sur feature/p4-developpement. 200 tests OK, CI verte, format/lint/build OK — 2026-04-14.
+- **Prochaine action attendue** : **Implémentation TACHE-061** par le Développeur (heartbeat M7 + canary hash + registre incidents IndexedDB), selon mini-DAT v1.1 validé. Puis **TACHE-058** (ADR SW-BOOT-CONTRACT + CROSS-LIFECYCLE-INTENT + audit M2/M3/M5/M6/M9/M17). Puis UC P0 (TACHE-068 à 073) en parallèle des tests E2E.
+- **Prochaines actions P5 consolidées** : **19 tâches** (17 + TACHE-074/075) réparties en 4 chantiers prioritaires :
   1. **UC P0 bloquants v1** (TACHE-068 à 073) : login multi-étape, password managers, iframes, toggle show/hide, inputs dynamiques
   2. **Patterns défensifs ADR + audit modules** (TACHE-058, TACHE-061, TACHE-062) : SW-BOOT-CONTRACT + CROSS-LIFECYCLE-INTENT, heartbeat M7, badge dégradé
   3. **Tests** (TACHE-059, TACHE-060, TACHE-063, TACHE-017 à 024, TACHE-048 à 053) : 12 scénarios TC-M7, mock chrome.storage JSON-strict, protocole recette formalisé, couverture popup.ts, atteindre 80% couverture (TACHE-026)
@@ -73,6 +75,7 @@
 | P4' | docs/gouvernance/gouvernance-pv-revue-code-p4prime-v1.0.md | v1.0 | PV comité revue code P4' — 3 revues consolidées | 2026-04-14 |
 | P4' | docs/p4-conception/p4prime-tests-manuels-modules-asynchrones-v1.0.md | v1.0 | Guide tests manuels M3/M5/M6/M7 avec commandes DevTools | 2026-04-14 |
 | P4' | docs/gouvernance/gouvernance-pv-postmortem-m7-v1.0.md | v1.0 | PV post-mortem M7 — 4 profils techniques, PDCA, 15 UC, score 2.0→3.4/5 | 2026-04-14 |
+| P5 | docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md | v1.1 | Validé par Commanditaire — arbitrages ARB-061-01/02/03 tranchés | 2026-04-16 |
 
 ## Actions manuelles en attente
 

@@ -75,6 +75,8 @@
 | TACHE-073 | TÂCHE | UC-06 — Inputs password dynamiques (React/Vue render tardif, modales) : ajouter scénarios de recette manuelle + tests E2E Playwright dédiés | **Bloquant v1** | À faire | P5 | Testeur QA | Post-mortem M7 UC-06 |
 | TACHE-066 | TÂCHE | Étendre content scripts `"all_frames": true` pour iframes same-origin (UC-03) — avec revue impact surface d'attaque | Should | À faire | P5 | Développeur + Architecte sécurité | Post-mortem M7 UC-03 |
 | TACHE-067 | TÂCHE | MutationObserver sur changements type des inputs password (UC-05 toggle show/hide) | Could | À faire | P5 | Développeur | Post-mortem M7 UC-05 |
+| TACHE-074 | TÂCHE | Transmettre mini-DAT TACHE-061 au DPO pour validation compatibilité registre d'incidents minimisé avec AIPD M7 (CM-ID4) | Should | À faire | P5 | DPO | Mini-DAT TACHE-061 v1.1 section 11.3 |
+| TACHE-075 | TÂCHE | Créer `docs/securite/referentiel-iso27001.md` et tracer les 8 contrôles référencés par le mini-DAT TACHE-061 (A.5.7, A.8.8, A.8.12, A.8.15, A.8.16, A.8.24, A.8.28, A.5.24/A.5.26) | Should | À faire | P5 | Architecte sécurité | Mini-DAT TACHE-061 v1.1 section 12 |
 
 ## Actions résiduelles par phase
 
