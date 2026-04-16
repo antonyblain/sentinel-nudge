@@ -1,5 +1,15 @@
 # SESSION — État courant du projet
 
+## Fil rouge (narration courte)
+
+**Où on en est.** Sentinel Nudge entre en P5 après une P4' dense (saga fiabilisation M7 de 7 commits correctifs, post-mortem consolidé avec 15 UC catalogués, brand book Aegis Blue validé). Le mini-DAT TACHE-061 v1.1 a été validé (heartbeat + canary + registre incidents), le code correspondant est produit (239 tests OK) et attend le Référent qualité et le comité de revue code. Une PR rétrospective #3 `feature/p4-developpement → develop` a été ouverte pour figer la masse (68 commits).
+
+**Où on va.** Boucler TACHE-061 (revue code + commit sur nouvelle branche courte), puis TACHE-058 (ADR SW-BOOT-CONTRACT + CROSS-LIFECYCLE-INTENT + audit modules), puis ouvrir le chantier UC P0 bloquants v1 (TACHE-068 à 073 : login multi-étape, password managers, iframes, toggle show/hide, inputs dynamiques) en parallèle des tests E2E.
+
+**Pourquoi.** Option A v1 retenue par le Commanditaire (2026-04-14) : les 6 UC P0 sont bloquants pour la release v1. TACHE-061 pose l'infrastructure de détection amont pour éviter que les incidents type P-016/P-018 se répètent.
+
+**Règles de flow adoptées (2026-04-16).** Niveau Exposé respecté : chaque tâche P5+ → branche courte + PR vers `develop`. Pas de cumul sur une feature géante.
+
 ## Projet
 - **Nom** : Sentinel Nudge
 - **Niveau de sensibilité** : Exposé
