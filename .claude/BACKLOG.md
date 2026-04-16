@@ -66,7 +66,13 @@
 | TACHE-062 | TÂCHE | Badge popup "dégradé" si diagnostics.m7.ready=false depuis >1h | Should | À faire | P5 | Développeur + Expert UX/UI | Post-mortem M7 D-PM-04 |
 | TACHE-063 | TÂCHE | Protocole recette manuelle formalisé (Given/When/Then, pré-conditions, PV daté, P0/P1/P2) + scénarios UC-01 à UC-06 | Must | À faire | P5 | Testeur QA | Post-mortem M7 D-PM-05 |
 | TACHE-064 | TÂCHE | Filtrer champs password avec autocomplete="new-password" dans M7 (UC-07/UC-08 signup vs login) | Should | À faire | P5 | Développeur | Post-mortem M7 D-PM-06 |
-| TACHE-065 | TÂCHE | Ajouter R-M7-03 (toast éphémère résiduel) et R-M7-04 (régénération intempestive clé AES) dans RISQUES.md | Should | À faire | P5 | Architecte sécurité | Post-mortem M7 D-PM-07 |
+| TACHE-065 | TÂCHE | Ajouter R-M7-03 (toast éphémère résiduel) et R-M7-04 (régénération intempestive clé AES) dans RISQUES.md | Should | Terminé | P4' | Architecte sécurité | Post-mortem M7 D-PM-07 |
+| TACHE-068 | TÂCHE | UC-01 — Login multi-étape (Google/Microsoft/Okta) : tester détection M7 sur flux email→password séparés, documenter comportement `location.hostname` | **Bloquant v1** | À faire | P5 | Testeur QA + Développeur | Post-mortem M7 UC-01 |
+| TACHE-069 | TÂCHE | UC-02 — Gestionnaires de mots de passe (Bitwarden/1Password/Dashlane/Chrome PM) : tester auto-remplissage + auto-submit, filtrer `event.isTrusted=false` si pertinent | **Bloquant v1** | À faire | P5 | Testeur QA + Développeur | Post-mortem M7 UC-02 |
+| TACHE-070 | TÂCHE | UC-03 — Iframes same-origin : étendre content scripts avec `all_frames: true` (avec revue impact sécurité par Architecte sécurité) | **Bloquant v1** | À faire | P5 | Développeur + Architecte sécurité | Post-mortem M7 UC-03 (doublon TACHE-066 — consolider) |
+| TACHE-071 | TÂCHE | UC-04 — Iframes cross-origin : documenter la limite explicite dans politique de confidentialité + DAT | Should | À faire | P5 | DPO + Architecte logiciel | Post-mortem M7 UC-04 |
+| TACHE-072 | TÂCHE | UC-05 — Password affiché en clair (toggle show/hide) : MutationObserver sur changements de `type` pour conserver la détection (consolide TACHE-067) | **Bloquant v1** | À faire | P5 | Développeur | Post-mortem M7 UC-05 |
+| TACHE-073 | TÂCHE | UC-06 — Inputs password dynamiques (React/Vue render tardif, modales) : ajouter scénarios de recette manuelle + tests E2E Playwright dédiés | **Bloquant v1** | À faire | P5 | Testeur QA | Post-mortem M7 UC-06 |
 | TACHE-066 | TÂCHE | Étendre content scripts `"all_frames": true` pour iframes same-origin (UC-03) — avec revue impact surface d'attaque | Should | À faire | P5 | Développeur + Architecte sécurité | Post-mortem M7 UC-03 |
 | TACHE-067 | TÂCHE | MutationObserver sur changements type des inputs password (UC-05 toggle show/hide) | Could | À faire | P5 | Développeur | Post-mortem M7 UC-05 |
 

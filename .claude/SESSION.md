@@ -7,9 +7,13 @@
 - **Date de création** : 2026-04-10
 
 ## État courant
-- **Phase active** : P4' — Intégration design system (terminé, revue de code effectuée)
-- **Dernière action** : P4' complet — tokens CSS centralisés, palette Aegis Blue, dark mode, 4 CSS tokenisées, Shadow DOM aligné, logo HD vectorisé (potrace multi-passes + classification `#418FB9` + floodfill + viewBox maximisé 94.4%), popup refondue (header avec icône bouclier SVG, bloc statut KPI card avec icônes grille/horloge, 5 clés i18n ajoutées). 5 commits sur feature/p4-developpement poussés vers origin (`8989ef0`, `81077a2`, `5ad8210`, `5d89a12`, `fe9d653`). Comité revue de code P4' terminé 2026-04-14 : PV `gouvernance-pv-revue-code-p4prime-v1.0.md`. 3 corrections bloquantes appliquées (TACHE-044 JSDoc, TACHE-045 i18n, TACHE-046 magic number, TACHE-047 aria-label). 2 risques consignés (R-022 pngjs/potrace --no-save, R-023 launch.json exposition). 7 TACHES P5 créées (TACHE-048 à 053 tests popup.ts + coverage-v8, TACHE-054/055 gouvernance). 200 tests OK, CI verte — 2026-04-14.
-- **Prochaine action attendue** : **P5 — Tests unitaires couche présentation** (TACHE-048 à 053) et atteinte couverture 80% (TACHE-026). Puis tests manuels M5/M6/M7/M3 via commandes DevTools documentées dans le PV.
+- **Phase active** : P4' — Intégration design system + fiabilisation modules asynchrones (terminé, post-mortem M7 clos)
+- **Dernière action** : **Saga fiabilisation M7 terminée** — 7 commits correctifs (P-014 à P-020) : P-016 auto-régénération clé AES au boot SW, P-017 détection inputs password orphelins (3 stratégies submit+Enter+click), P-018 sérialisation Array<number> des clés crypto, P-019 pattern pending-intent avec TTL 10 min pour survivre aux redirects post-submit, P-020 promotion M7 en CRITICAL_MODULES (bypass quota 3/jour, cooldown 30j + suppression_list suffisent au rate-limit). Tests M7 **validés sur 3 sites réels** (saucedemo, herokuapp avec redirect, practicetestautomation via fallback Enter). Post-mortem consolidé avec 4 profils techniques : PV `gouvernance-pv-postmortem-m7-v1.0.md` produit + atelier PDCA + revue 15 cas d'usage (UC-01 à UC-15). **Option A retenue par Commanditaire** : v1 complète avec UC-01 à UC-06 (P0) couverts avant release. 16 commits au total sur feature/p4-developpement. 200 tests OK, CI verte, format/lint/build OK — 2026-04-14.
+- **Prochaine action attendue** : **P5 — 17 tâches consolidées** réparties en 4 chantiers prioritaires :
+  1. **UC P0 bloquants v1** (TACHE-068 à 073) : login multi-étape, password managers, iframes, toggle show/hide, inputs dynamiques
+  2. **Patterns défensifs ADR + audit modules** (TACHE-058, TACHE-061, TACHE-062) : SW-BOOT-CONTRACT + CROSS-LIFECYCLE-INTENT, heartbeat M7, badge dégradé
+  3. **Tests** (TACHE-059, TACHE-060, TACHE-063, TACHE-017 à 024, TACHE-048 à 053) : 12 scénarios TC-M7, mock chrome.storage JSON-strict, protocole recette formalisé, couverture popup.ts, atteindre 80% couverture (TACHE-026)
+  4. **Corrections fonctionnelles** (TACHE-064, TACHE-067, TACHE-040 à 043) : filtrage autocomplete="new-password", MutationObserver type toggle, documentation DPO, hardening web_accessible_resources
 - **Branche Git active** : feature/p4-developpement
 
 ## Livrables produits
@@ -67,6 +71,8 @@
 | P4' | src/assets/icons/icon{16,48,128}.png | — | Icônes PNG réelles (générées depuis SVG) | 2026-04-13 |
 | P4' | src/assets/icons/icon.svg + icon{16,48,128}.png | — | Logo HD vectorisé via potrace, viewBox maximisé (94.4% densité) | 2026-04-14 |
 | P4' | docs/gouvernance/gouvernance-pv-revue-code-p4prime-v1.0.md | v1.0 | PV comité revue code P4' — 3 revues consolidées | 2026-04-14 |
+| P4' | docs/p4-conception/p4prime-tests-manuels-modules-asynchrones-v1.0.md | v1.0 | Guide tests manuels M3/M5/M6/M7 avec commandes DevTools | 2026-04-14 |
+| P4' | docs/gouvernance/gouvernance-pv-postmortem-m7-v1.0.md | v1.0 | PV post-mortem M7 — 4 profils techniques, PDCA, 15 UC, score 2.0→3.4/5 | 2026-04-14 |
 
 ## Actions manuelles en attente
 
@@ -91,3 +97,6 @@
 - TACHE-013 (handleExport) : les handlers SW pour EXPORT (get_all_events, get_all_quiz_sessions, get_whitelist, get_password_hash_meta) restent à implémenter côté service-worker.ts — gap fonctionnel connu, non bloquant pour le build
 - Pages statiques d'explication : renommées avec noms parlants (sites-suspects.html, score-cyber-hygiene.html, mise-a-jour-navigateur.html, quiz-phishing.html, reutilisation-mots-de-passe.html, force-mots-de-passe.html, donnees-sensibles-presse-papiers.html). MODULE_INFOS dans options.ts et tous les handlers SW alignés.
 - Brand Book validé 2026-04-12 : palette **Aegis Blue** retenue (proposition 1). Dark mode décidé pour v1 (pas v2). 10 tâches UX créées (TACHE-030 à TACHE-039) dans une phase P4' d'intégration design system.
+- **Post-mortem M7 2026-04-14** : 3 causes racines identifiées (absence contrat de boot SW, hypothèses modèle de page trop restrictives, pyramide tests trop plate). 7 règles permanentes consolidées dans l'atelier PDCA, à diffuser dans LESSONS_LEARNED.md / TECH_STACK.md / OUTILS.md. Score de maturité M7 : 2.0/5 → 3.4/5 → cible 4.7/5 fin P5.
+- **Option A v1 retenue 2026-04-14** : 6 cas d'usage P0 (UC-01 login multi-étape, UC-02 password managers, UC-03 iframes same-origin, UC-04 iframes cross-origin, UC-05 toggle show/hide, UC-06 inputs dynamiques) sont bloquants pour la release v1. Priorisation interne : UC-02 (password managers) et UC-05 (toggle) en premier car usage le plus fréquent.
+- **ADR à produire en P5** : `SW-BOOT-CONTRACT` (tout handler avec prérequis storage implémente boot : lire → valider → régénérer/migrer → logger) et `CROSS-LIFECYCLE-INTENT` (toute action traversant dormance/redirect/réinjection est persistée en storage avec TTL, consommée à destination).
