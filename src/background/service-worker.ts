@@ -37,6 +37,9 @@ import type { AlarmDispatcher } from './alarm-manager';
 import type { ChromeStorageSchema } from '@/shared/types/storage';
 import { MODULE_IDS } from '@/shared/constants/modules';
 import { QUOTA_DEFAULT } from '@/shared/constants/quota';
+import { HeartbeatService } from './services/heartbeat-service';
+import { CanaryService } from './services/canary-service';
+import { IncidentService } from './services/incident-service';
 
 // ---------------------------------------------------------------------------
 // Instanciation des services (module-level — persistés tant que le SW est actif)
@@ -47,6 +50,13 @@ const storageService = new StorageService(cryptoService);
 const quotaManager = new QuotaManager(storageService);
 const messageRouter = new MessageRouter(quotaManager);
 const scoreCalculator = new ScoreCalculator(storageService);
+
+// Services TACHE-061 : Heartbeat M7, Canary hash, Registre d'incidents
+const heartbeatService = new HeartbeatService();
+const canaryService = new CanaryService(cryptoService);
+// IncidentService est instancie apres storageService.initDB() (ARB-061-01)
+// et expose un buffer memoire pré-init pour ne pas perdre les incidents du boot (ARB-061-02)
+const incidentService = new IncidentService();
 
 // ---------------------------------------------------------------------------
 // Dispatcher d'alarmes
@@ -180,7 +190,10 @@ function registerModuleHandlers(cryptoKey: CryptoKey): void {
   messageRouter.registerHandler('M6', createM6Handler(storageService, cryptoKey));
 
   // Handler M7 — détection réutilisation mot de passe
-  messageRouter.registerHandler('M7', createM7Handler(storageService, cryptoKey));
+  messageRouter.registerHandler(
+    'M7',
+    createM7Handler(storageService, cryptoKey, heartbeatService, incidentService),
+  );
 
   // Handler M9 — enregistrement du score de force au submit
   messageRouter.registerHandler('M9', createM9Handler(storageService, cryptoKey));
@@ -250,6 +263,12 @@ async function onFirstInstall(): Promise<void> {
 
   // Configuration des alarmes planifiées
   alarmManager.setupAlarms();
+
+  // Initialisation du canary hash apres generation de la cle (TACHE-061)
+  // Le canary prouve que la cle AES est fonctionnelle au boot suivant (INV-06, CM-C1)
+  await canaryService.init(cryptoKey);
+  // Boot reussi — ready=true, canary_verified=true (INV-01)
+  await heartbeatService.onBootSuccess();
 
   // Ouverture de la page d'onboarding dans un nouvel onglet (ADR-008 — via browser adapter)
   await browser.tabs.create({ url: browser.runtime.getURL('pages/onboarding/onboarding.html') });
@@ -339,44 +358,190 @@ messageRouter.listen();
 // car celle-ci nécessite host_permissions ou une action utilisateur.
 // ---------------------------------------------------------------------------
 
-// Enregistrement initial des handlers (premier réveil du SW au chargement de la page)
-// Nécessaire car onStartup n'est appelé qu'au démarrage du navigateur, pas au réveil du SW
+// ---------------------------------------------------------------------------
+// Boot sequence principale (module-level IIFE)
+//
+// Séquence (mini-DAT TACHE-061 §2.1 / §5.1) :
+//   1. HeartbeatService.onBootStart()   — incrémente boot_count, last_boot_ts=now, ready=false
+//   2. storageService.initDB()           — ouvre/migre la base IDB (v2 inclut m7_incidents)
+//   3. incidentService.initService(db)  — flush du buffer pré-init (ARB-061-02)
+//   4. loadCryptoKey()                  — charge la clé AES depuis chrome.storage.local
+//   5a. Clé absente → log boot_fail + régénération (chemin P-016)
+//   5b. Clé présente → canaryService.verify()
+//        - ok → heartbeatService.onBootSuccess()
+//        - absent → canaryService.init() + re-verify
+//        - échec → CM-EOP1 (test sur password_hashes) → canary_reinit ou key_regenerated
+//   6. registerModuleHandlers(cryptoKey)
+// ---------------------------------------------------------------------------
 void (async () => {
-  await storageService.initDB();
-  let cryptoKey = await loadCryptoKey();
+  const bootStart = performance.now();
 
-  // Auto-récupération : si la clé est absente (storage purgé manuellement, cas
-  // diagnostic P-016), on en régénère une AU LIEU de laisser le SW avec aucun
-  // handler enregistré (ce qui provoquerait handler_not_registered sur toute
-  // interaction). La régénération ne peut pas déchiffrer les anciennes données
-  // mais permet au SW de rester fonctionnel.
-  if (!cryptoKey) {
-    console.warn(
+  // Étape 1 — Heartbeat : début de boot (état conservatif, ready=false)
+  const diagnostics = await heartbeatService.onBootStart();
+
+  try {
+    // Étape 2 — Initialisation de la base IndexedDB (migration v2 si besoin)
+    await storageService.initDB();
+
+    // Étape 3 — Flush du buffer pré-init (ARB-061-02)
+    await incidentService.initService(storageService.getDB());
+
+    // Étape 4 — Chargement de la clé AES
+    let cryptoKey = await loadCryptoKey();
+
+    if (!cryptoKey) {
+      // Étape 5a — Clé absente : log incident boot_fail + régénération automatique (P-016)
+      await incidentService.log('boot_fail', 'error', {
+        type: 'boot_fail',
+        hint: 'key_absent',
+        boot_count: diagnostics.boot_count,
+      });
+
+      console.warn(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'warn',
+          message:
+            'SW init: encryption_key_material absent — régénération automatique (INV-SEC-03)',
+          context: { boot_count: diagnostics.boot_count },
+        }),
+      );
+
+      // INV-SEC-03 : logger key_regenerated AVANT d'écraser l'ancienne clé
+      await incidentService.log('key_regenerated', 'error', {
+        type: 'key_regenerated',
+        trigger: 'boot_fail',
+        previous_boot_count: diagnostics.boot_count,
+        hashes_purged_count: await storageService.getPasswordHashCount(),
+      });
+
+      const newKey = await cryptoService.generateKey();
+      const material = await cryptoService.exportKey(newKey);
+      const materialArray = Array.from(new Uint8Array(material));
+      await browser.storage.local.set({ encryption_key_material: materialArray });
+      cryptoKey = newKey;
+
+      // Re-initialiser le canary avec la nouvelle clé
+      await canaryService.init(cryptoKey);
+      await heartbeatService.onBootSuccess();
+    } else {
+      // Étape 5b — Clé présente : vérifier le canary
+      const canaryResult = await canaryService.verify(cryptoKey);
+
+      if (canaryResult.ok) {
+        // Canary valide — boot nominal
+        await heartbeatService.onBootSuccess();
+      } else {
+        // Canary invalide — appliquer CM-EOP1 (§11.5 mini-DAT)
+        // Avant de régénérer la clé, tester si elle déchiffre une entrée password_hashes
+        const hashCount = await storageService.getPasswordHashCount();
+        let keyOk = false;
+
+        if (hashCount > 0) {
+          // CM-EOP1 : tenter de déchiffrer la plus ancienne entrée password_hashes
+          // pour distinguer "clé OK + canary corrompu" de "clé KO"
+          try {
+            const db = storageService.getDB();
+            keyOk = await new Promise<boolean>((resolve) => {
+              const tx = db.transaction('password_hashes', 'readonly');
+              const store = tx.objectStore('password_hashes');
+              const idx = store.index('first_seen');
+              const req = idx.openCursor(null, 'next');
+              req.onsuccess = async () => {
+                const cursor = req.result;
+                if (!cursor) {
+                  resolve(false);
+                  return;
+                }
+                const rec = cursor.value as { value: ArrayBuffer; iv: Uint8Array };
+                try {
+                  await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: rec.iv },
+                    cryptoKey!,
+                    rec.value,
+                  );
+                  resolve(true);
+                } catch {
+                  resolve(false);
+                }
+              };
+              req.onerror = () => resolve(false);
+            });
+          } catch {
+            keyOk = false;
+          }
+        }
+
+        if (keyOk) {
+          // CM-EOP1 : clé OK mais canary corrompu → re-init canary seulement (severity=warn)
+          await incidentService.log('canary_reinit', 'warn', {
+            type: 'canary_reinit',
+            reason: canaryResult.reason,
+          });
+          await canaryService.init(cryptoKey);
+          await heartbeatService.onBootSuccess();
+        } else {
+          // CM-EOP1 : clé KO ou store vide → régénération complète
+          await incidentService.log('canary_failed', 'error', {
+            type: 'canary_failed',
+            reason: canaryResult.reason,
+          });
+          // INV-SEC-03 : log key_regenerated AVANT d'écraser l'ancienne clé
+          await incidentService.log('key_regenerated', 'error', {
+            type: 'key_regenerated',
+            trigger: 'canary_failed',
+            previous_boot_count: diagnostics.boot_count,
+            hashes_purged_count: hashCount,
+          });
+          const newKey = await cryptoService.generateKey();
+          const material = await cryptoService.exportKey(newKey);
+          const materialArray = Array.from(new Uint8Array(material));
+          await browser.storage.local.set({ encryption_key_material: materialArray });
+          cryptoKey = newKey;
+          await canaryService.init(cryptoKey);
+          // Re-verify pour confirmer
+          const reVerify = await canaryService.verify(cryptoKey);
+          if (reVerify.ok) {
+            await heartbeatService.onBootSuccess();
+          } else {
+            await heartbeatService.onBootFailure();
+          }
+        }
+      }
+    }
+
+    // Étape 6 — Enregistrement des handlers de modules
+    registerModuleHandlers(cryptoKey);
+
+    const bootMs = Math.round(performance.now() - bootStart);
+    console.info(
       JSON.stringify({
         timestamp: new Date().toISOString(),
-        level: 'warn',
-        message:
-          'SW init: encryption_key_material absent de chrome.storage.local — régénération automatique',
+        level: 'info',
+        message: 'SW init: boot sequence complete',
         context: {
-          hint: 'Les anciennes données chiffrées (M7 hashes) ne pourront pas être déchiffrées',
+          modules: ['M2', 'M3', 'M5', 'M6', 'M7', 'M9', 'M17', 'EXPORT'],
+          duration_ms: bootMs,
+          boot_count: diagnostics.boot_count,
         },
       }),
     );
-    const newKey = await cryptoService.generateKey();
-    const material = await cryptoService.exportKey(newKey);
-    // Conversion ArrayBuffer -> Array<number> pour stockage JSON-safe (cf. P-018)
-    const materialArray = Array.from(new Uint8Array(material));
-    await browser.storage.local.set({ encryption_key_material: materialArray });
-    cryptoKey = newKey;
+  } catch (err: unknown) {
+    // Catch global : log incident boot_fail sur toute exception non gérée du boot
+    await incidentService.log('boot_fail', 'error', {
+      type: 'boot_fail',
+      hint: 'import_failed',
+      boot_count: diagnostics.boot_count,
+    });
+    await heartbeatService.onBootFailure();
+    console.error(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'error',
+        message: 'SW init: boot sequence failed',
+        context: { boot_count: diagnostics.boot_count },
+      }),
+    );
+    throw err;
   }
-
-  registerModuleHandlers(cryptoKey);
-  console.info(
-    JSON.stringify({
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message: 'SW init: handlers registered',
-      context: { modules: ['M2', 'M3', 'M5', 'M6', 'M7', 'M9', 'M17', 'EXPORT'] },
-    }),
-  );
 })();
