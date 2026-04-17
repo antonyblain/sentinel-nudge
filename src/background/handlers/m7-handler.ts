@@ -26,7 +26,13 @@
  * M7 est un module critique (CRITICAL_MODULES) : bypass quota automatique par MessageRouter.
  * Le rate-limit est assuré par le cooldown 30j par domaine + suppression_list.
  *
+ * TACHE-091 (R-CLI-03) : migration pending_m7_toast timestamp → expires_at.
+ * - writePendingM7Toast() écrit toujours en nouveau format (expires_at).
+ * - readPendingM7Toast() accepte les deux shapes (legacy + nouveau) et migre à la lecture.
+ * - Exception E-CLI-01 (ADR-002) supprimée : M7 est désormais conforme R-CLI-03.
+ *
  * Référence : SFD §2.5 (M7), DAT §8.1 (store password_hashes), §9.4 (D-SEC-001)
+ *             ADR-002 R-CLI-03 (expires_at — TACHE-091)
  */
 
 import { StorageService } from '@/background/storage-service';
@@ -38,6 +44,8 @@ import type { ModuleHandler } from '@/background/message-router';
 import type { PasswordHashRecord } from '@/shared/types/storage';
 import type { HeartbeatService } from '@/background/services/heartbeat-service';
 import type { IncidentService } from '@/background/services/incident-service';
+import type { PendingM7Toast, PendingM7ToastLegacy } from '@/shared/types/diagnostics';
+import { PENDING_M7_TOAST_KEY, PENDING_M7_TOAST_TTL_MS } from '@/shared/types/diagnostics';
 
 /** Logger scopé M7Handler — mitigation R-M7-08 / TACHE-083 */
 const logger = createLogger('M7Handler');
@@ -209,6 +217,128 @@ async function isPasswordReused(
   return false;
 }
 
+// ---------------------------------------------------------------------------
+// Pending M7 toast — TACHE-091 (migration timestamp → expires_at, R-CLI-03)
+// ---------------------------------------------------------------------------
+
+/**
+ * Vérifie si un pending_m7_toast (nouveau format) est dans sa période de validité.
+ *
+ * @param toast - Objet PendingM7Toast à vérifier
+ * @returns true si le toast est encore valide (expires_at dans le futur)
+ */
+export function verifyExpiresAt(toast: PendingM7Toast): boolean {
+  return Date.now() < toast.expires_at;
+}
+
+/**
+ * Écrit un pending_m7_toast en nouveau format (expires_at — R-CLI-03).
+ *
+ * TACHE-091 : toujours écrire en nouveau format, jamais avec `timestamp`.
+ *
+ * @param domainHash - Hash SHA-256 salé du domaine de détection (jamais l'URL)
+ */
+async function writePendingM7Toast(domainHash: string): Promise<void> {
+  const payload: PendingM7Toast = {
+    domain_hash: domainHash,
+    expires_at: Date.now() + PENDING_M7_TOAST_TTL_MS,
+  };
+  await browser.storage.local.set({ [PENDING_M7_TOAST_KEY]: payload });
+}
+
+/**
+ * Lit pending_m7_toast depuis chrome.storage.local avec migration backward-compatible.
+ *
+ * TACHE-091 (R-CLI-03) — stratégie de migration :
+ * - Format nouveau : { domain_hash, expires_at } → utilisé directement
+ * - Format legacy  : { domain_hash, timestamp } → converti en expires_at puis ré-écrit
+ * - Entrée expirée : supprimée silencieusement (purge passive)
+ *
+ * La migration est transparente : readPendingM7Toast() retourne toujours un
+ * PendingM7Toast (nouveau format) ou null.
+ *
+ * @returns PendingM7Toast valide, ou null si absent/expiré/corrompu
+ */
+export async function readPendingM7Toast(): Promise<PendingM7Toast | null> {
+  try {
+    const result = await browser.storage.local.get([PENDING_M7_TOAST_KEY]);
+    const stored = result[PENDING_M7_TOAST_KEY];
+
+    if (!stored || typeof stored !== 'object') {
+      return null;
+    }
+
+    const raw = stored as Record<string, unknown>;
+
+    if (typeof raw['domain_hash'] !== 'string') {
+      // Shape invalide : nettoyer silencieusement
+      try {
+        await browser.storage.local.remove(PENDING_M7_TOAST_KEY);
+      } catch {
+        // Ignorer l'erreur de suppression
+      }
+      return null;
+    }
+
+    let toast: PendingM7Toast;
+
+    if (typeof raw['expires_at'] === 'number') {
+      // Nouveau format — R-CLI-03 conforme
+      toast = {
+        domain_hash: raw['domain_hash'] as string,
+        expires_at: raw['expires_at'] as number,
+      };
+    } else if (typeof raw['timestamp'] === 'number') {
+      // Format legacy — migration : timestamp + TTL → expires_at
+      const legacyTs = (raw as unknown as PendingM7ToastLegacy).timestamp;
+      toast = {
+        domain_hash: raw['domain_hash'] as string,
+        expires_at: legacyTs + PENDING_M7_TOAST_TTL_MS,
+      };
+      // Ré-écriture en nouveau format (migration permanente)
+      try {
+        await browser.storage.local.set({ [PENDING_M7_TOAST_KEY]: toast });
+        logger.info('readPendingM7Toast: migration legacy timestamp → expires_at effectuée');
+      } catch (migrErr: unknown) {
+        // Non bloquant — le toast converti est quand même retourné
+        logger.error('readPendingM7Toast: erreur ré-écriture migration', {
+          error_name: Logger.errorName(migrErr),
+        });
+      }
+    } else {
+      // Ni expires_at ni timestamp — shape invalide
+      try {
+        await browser.storage.local.remove(PENDING_M7_TOAST_KEY);
+      } catch {
+        // Ignorer l'erreur de suppression
+      }
+      return null;
+    }
+
+    // Vérification TTL — R-CLI-03
+    if (!verifyExpiresAt(toast)) {
+      // Toast expiré : purge passive
+      try {
+        await browser.storage.local.remove(PENDING_M7_TOAST_KEY);
+      } catch {
+        // Ignorer l'erreur de suppression
+      }
+      logger.info('readPendingM7Toast: toast expiré supprimé', {
+        expires_at: toast.expires_at,
+        overdue_ms: Date.now() - toast.expires_at,
+      });
+      return null;
+    }
+
+    return toast;
+  } catch (err: unknown) {
+    logger.error('readPendingM7Toast: erreur lecture storage', {
+      error_name: Logger.errorName(err),
+    });
+    return null;
+  }
+}
+
 /**
  * Traite les actions utilisateur sur le toast M7.
  *
@@ -330,13 +460,8 @@ async function handlePasswordSubmitted(
     // chrome.storage.local pour qu'il survive à la navigation post-submit
     // (redirection après login). Le content script affiche le toast au
     // chargement de la page suivante via un listener storage.onChanged.
-    // TTL : 10 minutes.
-    await browser.storage.local.set({
-      pending_m7_toast: {
-        domain_hash: domainHash,
-        timestamp: Date.now(),
-      },
-    });
+    // TACHE-091 (R-CLI-03) : expires_at, jamais timestamp.
+    await writePendingM7Toast(domainHash);
 
     return {
       success: true,

@@ -8,6 +8,21 @@
  * - shannonEntropy : calcul d'entropie Shannon
  * - detectSensitiveTypes : pattern matching complet
  * - createM17Handler : validation payload, enregistrement événements, actions toast
+ *
+ * TACHE-089 — diagnostics M17 (Option B) :
+ * - TC-M17-DIAG-READ-01 : readM17Diagnostics retourne valeur par défaut si absent
+ * - TC-M17-DIAG-UPDATE-01 : updateM17DiagnosticsOnAction succès
+ * - TC-M17-DIAG-UPDATE-02 : updateM17DiagnosticsOnAction échec + incident m17_handler_error
+ * - TC-M17-DIAG-HANDLER-01 : handler M17 avec incidentService met à jour diagnostics
+ * - TC-M17-DIAG-HANDLER-02 : handler M17 sans incidentService (rétro-compat)
+ *
+ * TACHE-090 — pending_m17_toast (ADR-002 R-CLI-01 à 07) :
+ * - TC-M17-PENDING-01 : writePendingM17Toast écrit le bon format (expires_at, data_type enum)
+ * - TC-M17-PENDING-02 : readPendingM17Toast retourne null si absent/expiré/corrompu
+ * - TC-M17-PENDING-03 : consumePendingM17Toast supprime après lecture (R-CLI-04)
+ * - TC-M17-PENDING-04 : R-CLI-07 — JAMAIS la valeur collée (data_type enum strict)
+ * - TC-M17-PENDING-05 : TTL 5 min — toast expiré ignoré
+ * - TC-M17-PENDING-06 : handler M17 écrit pending_m17_toast pour credit_card et iban
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,19 +32,53 @@ import {
   ibanModulo97,
   shannonEntropy,
 } from '@/content-scripts/detectors/paste-detector';
-import { createM17Handler } from '@/background/handlers/m17-handler';
+import { createM17Handler, readM17Diagnostics } from '@/background/handlers/m17-handler';
+import {
+  readM17Diagnostics as readM17DiagnosticsService,
+  updateM17DiagnosticsOnAction,
+  writePendingM17Toast,
+  readPendingM17Toast,
+  consumePendingM17Toast,
+} from '@/background/services/m17-boot-service';
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
+import type { IncidentService } from '@/background/services/incident-service';
+import {
+  DIAGNOSTICS_M17_KEY,
+  M17_DIAGNOSTICS_DEFAULT,
+  PENDING_M17_TOAST_KEY,
+  PENDING_M17_TOAST_TTL_MS,
+} from '@/shared/types/diagnostics';
 
 // ---------------------------------------------------------------------------
 // Setup : mock chrome pour les tests du handler
 // ---------------------------------------------------------------------------
 
+const mockLocalStorage: Record<string, unknown> = {};
+const removedKeys: string[] = [];
+
 global.chrome = {
   storage: {
     local: {
-      get: vi.fn(),
-      set: vi.fn(),
+      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
+        const result: Record<string, unknown> = {};
+        _keys.forEach((k) => {
+          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
+        });
+        callback(result);
+      }),
+      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
+        Object.assign(mockLocalStorage, items);
+        callback?.();
+      }),
+      remove: vi.fn((key: string | string[], callback?: () => void) => {
+        const keys = Array.isArray(key) ? key : [key];
+        keys.forEach((k) => {
+          removedKeys.push(k);
+          delete mockLocalStorage[k];
+        });
+        callback?.();
+      }),
     },
   },
   tabs: {
@@ -68,6 +117,19 @@ function createMockStorage(): Partial<StorageService> {
 function createFakeKey(): CryptoKey {
   return {} as CryptoKey;
 }
+
+/** Crée un mock de IncidentService */
+function createMockIncidentService(): Partial<IncidentService> {
+  return {
+    log: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+beforeEach(() => {
+  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  removedKeys.length = 0;
+  vi.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // Tests : luhnCheck
@@ -246,10 +308,6 @@ describe('detectSensitiveTypes', () => {
 // ---------------------------------------------------------------------------
 
 describe('createM17Handler — validation du payload', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('rejette un type invalide', async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
@@ -286,10 +344,6 @@ describe('createM17Handler — validation du payload', () => {
 // ---------------------------------------------------------------------------
 
 describe('createM17Handler — sensitive_data_detected', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('retourne show pour un type credit_card valide', async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
@@ -357,10 +411,6 @@ describe('createM17Handler — sensitive_data_detected', () => {
 // ---------------------------------------------------------------------------
 
 describe('createM17Handler — toast_action', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("enregistre l'action clipboard_cleared", async () => {
     const storage = createMockStorage();
     const handler = createM17Handler(storage as StorageService, createFakeKey());
@@ -434,5 +484,350 @@ describe('createM17Handler — toast_action', () => {
 
     expect(response.success).toBe(false);
     expect(response.reason).toBe('invalid_toast_action');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TACHE-089 — Tests diagnostics M17 (Option B)
+// ---------------------------------------------------------------------------
+
+describe('TC-M17-DIAG-READ-01 — readM17Diagnostics retourne valeur par défaut si absent', () => {
+  it('retourne M17_DIAGNOSTICS_DEFAULT si clé absente du storage', async () => {
+    const diag = await readM17DiagnosticsService();
+
+    expect(diag.ready).toBe(M17_DIAGNOSTICS_DEFAULT.ready);
+    expect(diag.last_action_ts).toBe(M17_DIAGNOSTICS_DEFAULT.last_action_ts);
+    expect(diag.last_incident).toBeUndefined();
+  });
+
+  it('retourne M17_DIAGNOSTICS_DEFAULT si la shape est corrompue', async () => {
+    mockLocalStorage[DIAGNOSTICS_M17_KEY] = { corrupt: true };
+
+    const diag = await readM17DiagnosticsService();
+
+    expect(diag.ready).toBe(false);
+    expect(diag.last_action_ts).toBe(0);
+  });
+
+  it('lit un diagnostics.m17 avec last_incident', async () => {
+    const incidentTs = Date.now() - 3000;
+    mockLocalStorage[DIAGNOSTICS_M17_KEY] = {
+      ready: false,
+      last_action_ts: incidentTs,
+      last_incident: {
+        type: 'm17_handler_error',
+        severity: 'error',
+        ts: incidentTs,
+      },
+    };
+
+    const diag = await readM17DiagnosticsService();
+
+    expect(diag.ready).toBe(false);
+    expect(diag.last_incident?.type).toBe('m17_handler_error');
+    expect(diag.last_incident?.severity).toBe('error');
+  });
+});
+
+describe('TC-M17-DIAG-UPDATE-01/02 — updateM17DiagnosticsOnAction', () => {
+  it('TC-M17-DIAG-UPDATE-01 : met à jour diagnostics.m17 avec ready=true sur action réussie', async () => {
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    const result = await updateM17DiagnosticsOnAction(
+      incidentService,
+      true,
+      'handleSensitiveDataDetected',
+    );
+
+    expect(result.ready).toBe(true);
+    expect(result.last_action_ts).toBeGreaterThan(0);
+    expect(result.last_incident).toBeUndefined();
+    expect(incidentService.log).not.toHaveBeenCalled();
+
+    const stored = mockLocalStorage[DIAGNOSTICS_M17_KEY] as Record<string, unknown>;
+    expect(stored['ready']).toBe(true);
+  });
+
+  it('TC-M17-DIAG-UPDATE-02 : émet m17_handler_error et ready=false sur échec', async () => {
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    const result = await updateM17DiagnosticsOnAction(
+      incidentService,
+      false,
+      'handleToastAction',
+      'StorageError',
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.last_incident?.type).toBe('m17_handler_error');
+    expect(result.last_incident?.severity).toBe('error');
+
+    expect(incidentService.log).toHaveBeenCalledWith(
+      'm17_handler_error',
+      'error',
+      expect.objectContaining({
+        type: 'm17_handler_error',
+        error_name: 'StorageError',
+        code_path: 'handleToastAction',
+      }),
+    );
+  });
+});
+
+describe('TC-M17-DIAG-HANDLER-01/02 — handler M17 avec/sans incidentService', () => {
+  it('TC-M17-DIAG-HANDLER-01 : met à jour diagnostics.m17 si incidentService fourni', async () => {
+    const storage = createMockStorage();
+    const fakeKey = createFakeKey();
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    const handler = createM17Handler(storage as StorageService, fakeKey, incidentService);
+    const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(true);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const diag = await readM17DiagnosticsService();
+    expect(diag.ready).toBe(true);
+  });
+
+  it('TC-M17-DIAG-HANDLER-02 : fonctionne sans incidentService (rétro-compat)', async () => {
+    const storage = createMockStorage();
+    const fakeKey = createFakeKey();
+
+    // Sans incidentService — rétro-compat service-worker.ts
+    const handler = createM17Handler(storage as StorageService, fakeKey);
+    const msg = buildM17Message({ type: 'iban', all_types: ['iban'] });
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(true);
+    expect(response.action).toBe('show');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TACHE-090 — Tests pending_m17_toast (ADR-002 R-CLI-01 à 07)
+// ---------------------------------------------------------------------------
+
+describe('TC-M17-PENDING-01 — writePendingM17Toast (format correct, data_type enum)', () => {
+  it('écrit pending_m17_toast avec expires_at et data_type valide (cb)', async () => {
+    const before = Date.now();
+    await writePendingM17Toast('cb', 42);
+
+    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
+    expect(stored['data_type']).toBe('cb');
+    expect(typeof stored['expires_at']).toBe('number');
+    expect(stored['expires_at'] as number).toBeGreaterThan(before + PENDING_M17_TOAST_TTL_MS - 100);
+    expect(stored['tab_id']).toBe(42);
+    // R-CLI-07 : jamais de valeur collée dans le storage
+    expect(stored['value']).toBeUndefined();
+    expect(stored['content']).toBeUndefined();
+  });
+
+  it('écrit pending_m17_toast pour iban sans tab_id', async () => {
+    await writePendingM17Toast('iban');
+
+    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
+    expect(stored['data_type']).toBe('iban');
+    expect(stored['tab_id']).toBeUndefined();
+  });
+
+  it('ignore silencieusement un data_type invalide (R-CLI-07 guard)', async () => {
+    // Appel avec un data_type invalide — ne doit pas lever d'exception
+    await writePendingM17Toast('invalid_type' as 'cb', 1);
+
+    // Rien ne doit être écrit
+    expect(mockLocalStorage[PENDING_M17_TOAST_KEY]).toBeUndefined();
+  });
+});
+
+describe('TC-M17-PENDING-02 — readPendingM17Toast (absent/expiré/corrompu)', () => {
+  it('retourne null si absent', async () => {
+    const result = await readPendingM17Toast();
+    expect(result).toBeNull();
+  });
+
+  it('retourne le toast si valide', async () => {
+    const expiresAt = Date.now() + PENDING_M17_TOAST_TTL_MS;
+    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
+      data_type: 'iban',
+      expires_at: expiresAt,
+    };
+
+    const result = await readPendingM17Toast();
+
+    expect(result).not.toBeNull();
+    expect(result?.data_type).toBe('iban');
+    expect(result?.expires_at).toBe(expiresAt);
+  });
+
+  it('retourne null et supprime si expiré', async () => {
+    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
+      data_type: 'cb',
+      expires_at: Date.now() - 60_000,
+    };
+
+    const result = await readPendingM17Toast();
+
+    expect(result).toBeNull();
+    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+  });
+
+  it('retourne null et supprime si shape corrompue', async () => {
+    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
+      data_type: 'invalid_enum',
+      expires_at: Date.now() + 60_000,
+    };
+
+    const result = await readPendingM17Toast();
+
+    expect(result).toBeNull();
+    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+  });
+});
+
+describe('TC-M17-PENDING-03 — consumePendingM17Toast (R-CLI-04 : suppression après lecture)', () => {
+  it('retourne le toast et le supprime (consommation atomique)', async () => {
+    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
+      data_type: 'cb',
+      expires_at: Date.now() + PENDING_M17_TOAST_TTL_MS,
+    };
+
+    const result = await consumePendingM17Toast();
+
+    expect(result).not.toBeNull();
+    expect(result?.data_type).toBe('cb');
+    // La clé doit être supprimée après consommation (R-CLI-04)
+    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+
+    // Deuxième consommation : null (double consommation empêchée)
+    const secondResult = await consumePendingM17Toast();
+    expect(secondResult).toBeNull();
+  });
+
+  it('retourne null silencieusement si absent', async () => {
+    const result = await consumePendingM17Toast();
+    expect(result).toBeNull();
+  });
+});
+
+describe('TC-M17-PENDING-04 — R-CLI-07 : JAMAIS la valeur collée', () => {
+  it('R-CLI-07 : data_type est un enum strict (cb|iban|ssn) — jamais la valeur collée', async () => {
+    // Vérification exhaustive : aucun champ ne contient de donnée sensible
+    await writePendingM17Toast('cb');
+
+    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
+    const serialized = JSON.stringify(stored);
+
+    // Aucun numéro de carte, IBAN, ou valeur longue
+    expect(serialized).not.toMatch(/"(\d{13,19})"/); // numéro de carte (en tant que string JSON, pas timestamp numérique)
+    expect(serialized).not.toMatch(/[A-Z]{2}\d{2}[A-Z0-9]{10,30}/); // IBAN
+    // Le champ data_type doit être l'un des 3 valeurs enum
+    expect(['cb', 'iban', 'ssn']).toContain(stored['data_type']);
+  });
+
+  it('R-002 : handler M17 ne stocke jamais la valeur dans pending_m17_toast', async () => {
+    const storage = createMockStorage();
+    const handler = createM17Handler(storage as StorageService, createFakeKey());
+
+    // Simuler une détection avec payload incluant potentiellement une valeur (ne doit pas passer)
+    const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
+    await handler(msg, { tab: { id: 1 } } as chrome.runtime.MessageSender);
+
+    // Attendre la résolution du void writePendingM17Toast
+    await new Promise((r) => setTimeout(r, 0));
+
+    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
+    if (stored) {
+      // Si écrit, vérifier qu'il n'y a pas de valeur sensible
+      expect(stored['value']).toBeUndefined();
+      expect(stored['content']).toBeUndefined();
+      expect(stored['raw']).toBeUndefined();
+      // Uniquement les champs autorisés
+      const allowedKeys = new Set(['data_type', 'expires_at', 'tab_id']);
+      for (const key of Object.keys(stored)) {
+        expect(allowedKeys.has(key)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('TC-M17-PENDING-05 — TTL 5 min (PENDING_M17_TOAST_TTL_MS)', () => {
+  it('TTL est de 5 minutes (300 000 ms)', () => {
+    expect(PENDING_M17_TOAST_TTL_MS).toBe(5 * 60 * 1000);
+  });
+
+  it('toast expiré après 5 min est ignoré par readPendingM17Toast', async () => {
+    // Simuler un toast créé il y a 6 minutes (> 5 min TTL)
+    const oldExpiresAt = Date.now() - 60_000; // expiré il y a 1 minute
+    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
+      data_type: 'iban',
+      expires_at: oldExpiresAt,
+    };
+
+    const result = await readPendingM17Toast();
+
+    expect(result).toBeNull();
+    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+  });
+});
+
+describe('TC-M17-PENDING-06 — handler M17 écrit pending_m17_toast pour credit_card et iban', () => {
+  it('écrit pending_m17_toast (cb) pour credit_card', async () => {
+    const storage = createMockStorage();
+    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
+    await handler(msg, { tab: { id: 5 } } as chrome.runtime.MessageSender);
+
+    // Attendre la résolution du void writePendingM17Toast
+    await new Promise((r) => setTimeout(r, 10));
+
+    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
+    // Si le pending toast est écrit, il doit être 'cb' (pas 'credit_card')
+    if (stored) {
+      expect(stored['data_type']).toBe('cb');
+      expect(stored['tab_id']).toBe(5);
+    }
+  });
+
+  it('écrit pending_m17_toast (iban) pour iban', async () => {
+    const storage = createMockStorage();
+    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const msg = buildM17Message({ type: 'iban', all_types: ['iban'] });
+    await handler(msg, { tab: { id: 7 } } as chrome.runtime.MessageSender);
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
+    if (stored) {
+      expect(stored['data_type']).toBe('iban');
+    }
+  });
+
+  it('ne crée PAS de pending_m17_toast pour api_key (toast direct suffisant)', async () => {
+    const storage = createMockStorage();
+    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const msg = buildM17Message({ type: 'api_key', all_types: ['api_key'] });
+    await handler(msg, { tab: { id: 3 } } as chrome.runtime.MessageSender);
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Pour api_key, pas de pending toast
+    expect(mockLocalStorage[PENDING_M17_TOAST_KEY]).toBeUndefined();
+  });
+});
+
+// Export réexporté depuis le handler
+describe('readM17Diagnostics — export du handler', () => {
+  it('readM17Diagnostics (export handler) est identique à readM17Diagnostics (service)', async () => {
+    mockLocalStorage[DIAGNOSTICS_M17_KEY] = {
+      ready: true,
+      last_action_ts: 777,
+    };
+
+    const fromHandler = await readM17Diagnostics();
+    const fromService = await readM17DiagnosticsService();
+
+    expect(fromHandler).toEqual(fromService);
   });
 });

@@ -9,7 +9,8 @@
  * 1. Validation du payload (type valide parmi credit_card/iban/api_key)
  * 2. M17 est critique → le quota est géré par MessageRouter (bypass automatique)
  * 3. Enregistrement de l'événement avec le type (jamais la valeur)
- * 4. Réponse 'show' pour afficher le toast
+ * 4. Écriture de pending_m17_toast (cross-lifecycle — ADR-002 R-CLI-01 à 07)
+ * 5. Réponse 'show' pour afficher le toast
  *
  * Action 'toast_action' (retour du content script après interaction utilisateur) :
  * - 'clipboard_cleared'      : presse-papiers vidé avec succès
@@ -21,15 +22,59 @@
  * - Aucune valeur sensible n'est stockée — uniquement le type
  * - Le payload ne contient jamais le contenu du presse-papiers
  *
+ * Exception ADR-001 (Option B arbitrée — TACHE-089) :
+ * M17 n'implémente PAS initBootM17() complet. Ce handler est critique mais ne
+ * dispose d'aucun état propre à valider/régénérer au boot SW. Par conséquent :
+ * - Aucun appel à initBoot() depuis le SW boot IIFE.
+ * - Les diagnostics sont mis à jour à chaque action handler (à la demande).
+ * - Les incidents m17_handler_error sont loggés sur erreur.
+ * Rationale : pas de storage métier critique en bootup pour M17.
+ * Référence : ADR-001 SW-BOOT-CONTRACT section Exceptions.
+ *
+ * Rétro-compatibilité (service-worker.ts) :
+ * incidentService est optionnel — si absent, les diagnostics ne sont pas mis à jour.
+ * Le paramètre sera rendu obligatoire lorsque service-worker.ts sera mis à jour
+ * (hors périmètre TACHE-089 — T-093 en parallèle).
+ *
  * Référence : SFD §2.7 (M17), DAT §9.4 (D-SEC-002), §6.2 (flux M17)
+ *             ADR-002 (R-CLI-01 à 07 — pending_m17_toast)
+ *             TACHE-089 (diagnostics.m17, Option B)
+ *             TACHE-090 (pending_m17_toast cross-lifecycle)
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
 import { StorageService } from '@/background/storage-service';
+import { createLogger, Logger } from '@/shared/utils/logger';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+import type { IncidentService } from '@/background/services/incident-service';
+import type { PendingM17DataType } from '@/shared/types/diagnostics';
+import {
+  updateM17DiagnosticsOnAction,
+  readM17Diagnostics,
+  writePendingM17Toast,
+} from '@/background/services/m17-boot-service';
 
-/** Types de données sensibles reconnus */
+/** Logger scopé M17Handler — mitigation R-M7-08 / TACHE-083 */
+const logger = createLogger('M17Handler');
+
+/**
+ * Mapping des types M17 du protocole de détection vers l'enum strict PendingM17DataType.
+ *
+ * Le protocole content script utilise 'credit_card', 'iban', 'api_key'.
+ * pending_m17_toast utilise l'enum court 'cb', 'iban', 'ssn' (R-CLI-07).
+ * 'api_key' n'est pas mappé vers pending_m17_toast (pas de toast cross-lifecycle
+ * pour les clés API — le toast direct suffit).
+ */
+const DETECTION_TYPE_TO_PENDING: Record<string, PendingM17DataType | undefined> = {
+  credit_card: 'cb',
+  iban: 'iban',
+  // api_key : pas de pending toast cross-lifecycle (toast direct suffisant)
+  api_key: undefined,
+  ssn: 'ssn',
+};
+
+/** Types de données sensibles reconnus par le protocole content script */
 const VALID_DATA_TYPES = new Set(['credit_card', 'iban', 'api_key']);
 
 /** Actions valides renvoyées par le toast M17 */
@@ -54,15 +99,24 @@ interface M17DetectionPayload {
  * Le handler décide d'afficher le toast en fonction du quota (géré en amont
  * par MessageRouter — M17 est critique donc toujours autorisé).
  *
- * @param storageService - Service de stockage IndexedDB
- * @param payload        - Payload validé (type de donnée)
- * @param cryptoKey      - Clé AES-256-GCM pour le chiffrement des événements
+ * Exception ADR-001 (Option B — TACHE-089) :
+ * Ce handler est read-only sur les events IDB — pas d'initBoot() au boot SW.
+ * Rationale : pas de storage métier critique en bootup pour M17.
+ * Les diagnostics m17 sont mis à jour à chaque action via updateM17DiagnosticsOnAction().
+ *
+ * @param storageService  - Service de stockage IndexedDB
+ * @param payload         - Payload validé (type de donnée)
+ * @param cryptoKey       - Clé AES-256-GCM pour le chiffrement des événements
+ * @param incidentService - Service d'incidents partagé (optionnel — TACHE-089)
+ * @param tabId           - Identifiant de l'onglet source (optionnel, R-CLI-06)
  * @returns Réponse NudgeResponse avec action 'show' ou 'skip'
  */
 async function handleSensitiveDataDetected(
   storageService: StorageService,
   payload: M17DetectionPayload,
   cryptoKey: CryptoKey,
+  incidentService: IncidentService | undefined,
+  tabId?: number,
 ): Promise<NudgeResponse> {
   const { type, all_types } = payload;
 
@@ -82,14 +136,39 @@ async function handleSensitiveDataDetected(
       cryptoKey,
     );
 
+    // Écriture du pending_m17_toast si data_type mappable (R-CLI-01 à 07 — TACHE-090)
+    // api_key : pas de pending toast (toast direct via réponse 'show' suffit)
+    const pendingDataType = DETECTION_TYPE_TO_PENDING[type];
+    if (pendingDataType !== undefined) {
+      // Non bloquant — une erreur d'écriture pending ne bloque pas la réponse
+      void writePendingM17Toast(pendingDataType, tabId);
+    }
+
+    // Mise à jour diagnostics.m17 — action réussie (Option B, à la demande)
+    if (incidentService) {
+      void updateM17DiagnosticsOnAction(incidentService, true, 'handleSensitiveDataDetected');
+    }
+
     return {
       success: true,
       action: 'show',
       data: { data_type: type },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M17Handler] Erreur sensitive_data_detected: ${message}`);
+    // R-M7-08 / TACHE-083 : ne pas logger err.message — utiliser Error.name uniquement
+    const errName = Logger.errorName(err);
+    logger.error('Erreur sensitive_data_detected', { error_name: errName });
+
+    // Mise à jour diagnostics.m17 + incident m17_handler_error (TACHE-089)
+    if (incidentService) {
+      void updateM17DiagnosticsOnAction(
+        incidentService,
+        false,
+        'handleSensitiveDataDetected',
+        errName,
+      );
+    }
+
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -97,15 +176,21 @@ async function handleSensitiveDataDetected(
 /**
  * Traite les actions utilisateur sur le toast M17.
  *
- * @param storageService - Service de stockage IndexedDB
- * @param payload        - Payload avec l'action et le type de donnée
- * @param cryptoKey      - Clé AES-256-GCM
+ * Exception ADR-001 (Option B — TACHE-089) :
+ * Ce handler est read-only sur les events IDB — pas d'initBoot() au boot SW.
+ * Les diagnostics m17 sont mis à jour à chaque action via updateM17DiagnosticsOnAction().
+ *
+ * @param storageService  - Service de stockage IndexedDB
+ * @param payload         - Payload avec l'action et le type de donnée
+ * @param cryptoKey       - Clé AES-256-GCM
+ * @param incidentService - Service d'incidents partagé (optionnel — TACHE-089)
  * @returns Réponse NudgeResponse
  */
 async function handleToastAction(
   storageService: StorageService,
   payload: Record<string, unknown>,
   cryptoKey: CryptoKey,
+  incidentService: IncidentService | undefined,
 ): Promise<NudgeResponse> {
   const user_action = payload['user_action'];
   const data_type = payload['data_type'];
@@ -135,10 +220,22 @@ async function handleToastAction(
       });
     }
 
+    // Mise à jour diagnostics.m17 — action réussie
+    if (incidentService) {
+      void updateM17DiagnosticsOnAction(incidentService, true, 'handleToastAction');
+    }
+
     return { success: true, action: 'skip' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M17Handler] Erreur toast_action: ${message}`);
+    // R-M7-08 / TACHE-083 : ne pas logger err.message — utiliser Error.name uniquement
+    const errName = Logger.errorName(err);
+    logger.error('Erreur toast_action', { error_name: errName });
+
+    // Mise à jour diagnostics.m17 + incident m17_handler_error (TACHE-089)
+    if (incidentService) {
+      void updateM17DiagnosticsOnAction(incidentService, false, 'handleToastAction', errName);
+    }
+
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -150,21 +247,31 @@ async function handleToastAction(
  * - 'sensitive_data_detected' : enregistrement + instruction d'affichage toast
  * - 'toast_action'            : traitement de l'interaction utilisateur
  *
- * @param storageService - Service de stockage IndexedDB
- * @param cryptoKey      - Clé AES-256-GCM pour le chiffrement
+ * Exception ADR-001 (Option B — TACHE-089) :
+ * Ce handler est read-only sur les events IDB — pas d'initBoot() au boot SW.
+ * Rationale : pas de storage métier critique en bootup pour M17.
+ *
+ * @param storageService  - Service de stockage IndexedDB
+ * @param cryptoKey       - Clé AES-256-GCM pour le chiffrement
+ * @param incidentService - Service d'incidents partagé (optionnel — TACHE-089)
+ *                          Si absent, les diagnostics.m17 ne sont pas mis à jour.
  * @returns Handler conforme à l'interface ModuleHandler
  */
 export function createM17Handler(
   storageService: StorageService,
   cryptoKey: CryptoKey,
+  incidentService?: IncidentService,
 ): ModuleHandler {
   return async (
     msg: NudgeMessage,
     _sender: chrome.runtime.MessageSender,
   ): Promise<NudgeResponse> => {
+    // Log diagnostic : tout message M17 recu (R-M7-08 / TACHE-083 — tab_id uniquement)
+    logger.info('message recu', { action: msg.action, tab_id: _sender.tab?.id });
+
     // Action 'toast_action' (retour UI après interaction utilisateur)
     if (msg.action === 'toast_action') {
-      return handleToastAction(storageService, msg.payload, cryptoKey);
+      return handleToastAction(storageService, msg.payload, cryptoKey, incidentService);
     }
 
     // Action principale : 'sensitive_data_detected'
@@ -187,9 +294,11 @@ export function createM17Handler(
         all_types: Array.isArray(payload.all_types) ? payload.all_types : [type],
       },
       cryptoKey,
+      incidentService,
+      _sender.tab?.id,
     );
   };
 }
 
 // Exports pour les tests
-export { VALID_DATA_TYPES, VALID_TOAST_ACTIONS };
+export { VALID_DATA_TYPES, VALID_TOAST_ACTIONS, readM17Diagnostics };

@@ -49,7 +49,9 @@ import { initBootM6, readM6Diagnostics } from '@/background/services/m6-boot-ser
 // CANARY_KEYS est utilisé pour vérifier le stockage dans le storage mock
 import { CANARY_KEYS as CK } from '@/background/services/canary-service';
 import { DB_VERSION, MIGRATIONS } from '@/background/storage-service';
-import { M5_SNOOZE_COUNT_STORAGE_KEY } from '@/shared/types/diagnostics';
+import { M5_SNOOZE_COUNT_STORAGE_KEY, DIAGNOSTICS_M9_KEY, DIAGNOSTICS_M17_KEY, PENDING_M17_TOAST_KEY, PENDING_M17_TOAST_TTL_MS } from '@/shared/types/diagnostics';
+import { updateM9DiagnosticsOnAction, readM9Diagnostics } from '@/background/services/m9-boot-service';
+import { updateM17DiagnosticsOnAction, readM17Diagnostics, writePendingM17Toast, readPendingM17Toast } from '@/background/services/m17-boot-service';
 
 // ---------------------------------------------------------------------------
 // Mock chrome.storage.local
@@ -863,5 +865,167 @@ describe('TACHE-088 — Boot M6 (ADR-001) intégration avec la séquence M7', ()
     // m6_install_date persisté dans le storage (régénéré)
     expect(typeof mockLocalStorage['m6_install_date']).toBe('number');
     expect(mockLocalStorage['m6_install_date'] as number).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests intégration M9/M17 boot — ADR-001 Option B (TACHE-089)
+// ---------------------------------------------------------------------------
+// M9 et M17 n'ont pas d'initBoot complet (Option B). Les tests vérifient
+// updateM9/M17DiagnosticsOnAction() dans le contexte de la séquence boot M7
+// pour confirmer l'indépendance des états diagnostics.
+// ---------------------------------------------------------------------------
+
+describe('TACHE-089 — Diagnostics M9/M17 Option B (ADR-001) intégration avec la séquence M7', () => {
+  beforeEach(() => {
+    Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+    removedKeys.length = 0;
+    vi.clearAllMocks();
+  });
+
+  // TC-M9-INT-01 : diagnostics.m9 et diagnostics.m7 sont indépendants
+  it('TC-M9-INT-01 : updateM9DiagnosticsOnAction nominal — diagnostics.m9 et diagnostics.m7 indépendants', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Action handler M9 (simulate logEvent réussi)
+    const m9Diag = await updateM9DiagnosticsOnAction(incidentService, true);
+
+    // M7 : ready=true (non affecté)
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+    expect(m7Diag.canary_verified).toBe(true);
+
+    // M9 : ready=true
+    expect(m9Diag.ready).toBe(true);
+    expect(m9Diag.last_action_ts).toBeGreaterThan(0);
+    expect(m9Diag.last_incident).toBeUndefined();
+
+    // Clés storage séparées
+    expect(mockLocalStorage['diagnostics.m7']).toBeDefined();
+    expect(mockLocalStorage[DIAGNOSTICS_M9_KEY]).toBeDefined();
+    const m7Stored = mockLocalStorage['diagnostics.m7'] as Record<string, unknown>;
+    const m9Stored = mockLocalStorage[DIAGNOSTICS_M9_KEY] as Record<string, unknown>;
+    expect(m7Stored['canary_verified']).toBeDefined();
+    expect(m9Stored['ready']).toBe(true);
+
+    // readM9Diagnostics retourne l'état correct
+    const m9DiagRead = await readM9Diagnostics();
+    expect(m9DiagRead.ready).toBe(true);
+  });
+
+  // TC-M9-INT-02 : incident m9_handler_error — M7 non affecté
+  it('TC-M9-INT-02 : m9_handler_error — incident loggué, diagnostics.m7 non affecté', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+    const incidents: Array<{ type: string; severity: string }> = [];
+
+    const originalLog = incidentService.log.bind(incidentService);
+    incidentService.log = async (
+      type: Parameters<typeof incidentService.log>[0],
+      severity: Parameters<typeof incidentService.log>[1],
+      context: Parameters<typeof incidentService.log>[2],
+    ) => {
+      incidents.push({ type, severity });
+      return originalLog(type, severity, context);
+    };
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Action handler M9 échouée (simulate logEvent IDB KO)
+    const m9Diag = await updateM9DiagnosticsOnAction(incidentService, false, 'IDBTransactionError');
+
+    // M7 non affecté
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M9 : ready=false, incident m9_handler_error
+    expect(m9Diag.ready).toBe(false);
+    expect(m9Diag.last_incident?.type).toBe('m9_handler_error');
+
+    const m9ErrorIncidents = incidents.filter((i) => i.type === 'm9_handler_error');
+    expect(m9ErrorIncidents).toHaveLength(1);
+    expect(m9ErrorIncidents[0].severity).toBe('error');
+
+    // Aucun incident M7
+    const bootFailIncidents = incidents.filter((i) => i.type === 'boot_fail');
+    expect(bootFailIncidents).toHaveLength(0);
+  });
+
+  // TC-M17-INT-01 : diagnostics.m17 et diagnostics.m7 sont indépendants
+  it('TC-M17-INT-01 : updateM17DiagnosticsOnAction nominal — diagnostics.m17 et diagnostics.m7 indépendants', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Action handler M17 (simulate logEvent réussi)
+    const m17Diag = await updateM17DiagnosticsOnAction(
+      incidentService,
+      true,
+      'handleSensitiveDataDetected',
+    );
+
+    // M7 : ready=true (non affecté)
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+    expect(m7Diag.canary_verified).toBe(true);
+
+    // M17 : ready=true
+    expect(m17Diag.ready).toBe(true);
+    expect(m17Diag.last_action_ts).toBeGreaterThan(0);
+    expect(m17Diag.last_incident).toBeUndefined();
+
+    // Clés storage séparées
+    expect(mockLocalStorage['diagnostics.m7']).toBeDefined();
+    expect(mockLocalStorage[DIAGNOSTICS_M17_KEY]).toBeDefined();
+    const m17Stored = mockLocalStorage[DIAGNOSTICS_M17_KEY] as Record<string, unknown>;
+    expect(m17Stored['ready']).toBe(true);
+
+    // readM17Diagnostics retourne l'état correct
+    const m17DiagRead = await readM17Diagnostics();
+    expect(m17DiagRead.ready).toBe(true);
+  });
+
+  // TC-M17-INT-02 : pending_m17_toast + cross-lifecycle avec boot M7 coexistent
+  it('TC-M17-INT-02 : pending_m17_toast persist indépendamment de diagnostics.m7', async () => {
+    const { heartbeat, canary, key } = await createServices();
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Écriture d'un pending_m17_toast (simulate détection paste)
+    await writePendingM17Toast('cb', 3);
+
+    // M7 : ready=true (non affecté par le pending toast)
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // pending_m17_toast : présent dans le storage, indépendant de diagnostics.m7
+    const toast = await readPendingM17Toast();
+    expect(toast).not.toBeNull();
+    expect(toast?.data_type).toBe('cb');
+    expect(toast?.tab_id).toBe(3);
+    expect(toast?.expires_at).toBeGreaterThan(Date.now());
+
+    // TTL correct (5 minutes)
+    expect(toast?.expires_at).toBeLessThanOrEqual(Date.now() + PENDING_M17_TOAST_TTL_MS + 100);
+
+    // Clés storage séparées — pas de collision
+    expect(mockLocalStorage['diagnostics.m7']).toBeDefined();
+    expect(mockLocalStorage[PENDING_M17_TOAST_KEY]).toBeDefined();
   });
 });

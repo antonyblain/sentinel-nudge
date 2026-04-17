@@ -8,14 +8,17 @@
  * - TACHE-086 (diagnostics.m3, incident events_store_corrupted)
  * - TACHE-087 (initBoot M5, diagnostics.m5, incidents m5_snooze_corrupted / update_check_failed)
  * - TACHE-088 (initBoot M6, diagnostics.m6, incidents m6_install_date_corrupted / quiz_deferred_stale)
+ * - TACHE-089 (diagnostics.m9, Option B — handler read-only, pas d'initBoot)
+ * - TACHE-090 (pending_m17_toast cross-lifecycle, R-CLI-01 à 07 ADR-002)
+ * - TACHE-091 (migration pending_m7_toast timestamp → expires_at, R-CLI-03)
  *
  * Ils constituent le contrat d'interface entre les services de boot, les handlers
  * et les consommateurs (popup TACHE-062, page état santé TACHE-109, tests).
  *
  * Référence : Mini-DAT TACHE-061 §3 (Contrats d'interface TypeScript)
  *             ADR-001 R-BOOT-04 (diagnostics.<module>)
- *             TACHE-085 (M2IncidentType, M2Diagnostics)
- *             TACHE-086/087/088 (M3/M5/M6 Diagnostics)
+ *             ADR-002 (pending intents cross-lifecycle, R-CLI-01 à 07)
+ *             TACHE-085/086/087/088/089/090/091
  */
 
 // ---------------------------------------------------------------------------
@@ -75,6 +78,55 @@ export const M7_DIAGNOSTICS_DEFAULT: M7Diagnostics = {
   boot_count: 0,
   canary_verified: false,
 };
+
+// ---------------------------------------------------------------------------
+// Pending M7 toast (cross-lifecycle) — TACHE-091 (migration R-CLI-03)
+// ---------------------------------------------------------------------------
+
+/**
+ * Payload persisté dans chrome.storage.local sous la clé 'pending_m7_toast'.
+ * Représente l'intention d'afficher le toast M7 après navigation post-submit.
+ *
+ * TACHE-091 (R-CLI-03) : migration de `timestamp` vers `expires_at`.
+ * L'ancien format { domain_hash, timestamp } est accepté en lecture (backward compat)
+ * et converti + ré-écrit en nouveau format par readPendingM7Toast().
+ * Exception E-CLI-01 (ADR-002) supprimée : M7 est désormais conforme R-CLI-03.
+ *
+ * Cycle de vie :
+ * - Écrit par m7-handler au moment de la détection de réutilisation.
+ * - Consommé (lu + supprimé) par le content script via storage.onChanged.
+ * - TTL : 10 minutes. Au-delà : toast_orphan incident (TACHE-061).
+ *
+ * R-CLI-07 : domain_hash uniquement (hash du domaine) — jamais d'URL en clair.
+ */
+export interface PendingM7Toast {
+  /** Hash SHA-256 salé du domaine de détection (jamais l'URL en clair) */
+  domain_hash: string;
+  /**
+   * Timestamp d'expiration (ms since epoch) — R-CLI-03.
+   * Calculé : Date.now() + TTL au moment de l'écriture.
+   */
+  expires_at: number;
+}
+
+/**
+ * Shape legacy du pending_m7_toast (format avant TACHE-091).
+ * Utilisé uniquement pour la lecture backward-compatible dans readPendingM7Toast().
+ * NE PAS utiliser pour l'écriture — toujours écrire en PendingM7Toast.
+ *
+ * @internal
+ */
+export interface PendingM7ToastLegacy {
+  domain_hash: string;
+  /** Timestamp de création (ms since epoch) — format pré-TACHE-091 */
+  timestamp: number;
+}
+
+/** Clé chrome.storage.local pour le pending intent M7 toast */
+export const PENDING_M7_TOAST_KEY = 'pending_m7_toast';
+
+/** TTL du pending intent M7 toast en millisecondes (10 minutes) */
+export const PENDING_M7_TOAST_TTL_MS = 10 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
 // Diagnostics M2 (diagnostics.m2)
@@ -335,6 +387,187 @@ export const M6_DIAGNOSTICS_DEFAULT: M6Diagnostics = {
 };
 
 // ---------------------------------------------------------------------------
+// Diagnostics M9 (diagnostics.m9) — TACHE-089
+// ---------------------------------------------------------------------------
+
+/**
+ * Objet de santé M9 persisté sous la clé chrome.storage.local 'diagnostics.m9'.
+ *
+ * Exception ADR-001 (Option B arbitrée — TACHE-089) :
+ * M9 n'implémente PAS initBootM9() complet. Le handler M9 est read-only sur les
+ * events IDB (écriture unique au submit) — il ne dispose d'aucun état propre à
+ * valider/régénérer au boot SW.
+ * Les diagnostics sont mis à jour à chaque action handler (à la demande).
+ *
+ * Rationale (voir JSDoc handler) : pas de storage métier critique à vérifier au boot.
+ * Le seul storage M9 est le store events IDB — géré et vérifié par M3.
+ *
+ * Invariant INV-M9-01 : last_action_ts mis à jour à chaque appel au handler M9.
+ */
+export interface M9Diagnostics {
+  /**
+   * true si le dernier appel au handler M9 s'est terminé sans erreur de storage.
+   * false si une exception logEvent a été levée (incident m9_handler_error).
+   */
+  ready: boolean;
+
+  /**
+   * Timestamp (ms since epoch) du dernier appel au handler M9.
+   * 0 si le handler ne s'est jamais exécuté.
+   */
+  last_action_ts: number;
+
+  /**
+   * Dernier incident M9 enregistré, ou absent si aucun.
+   * Consommé par TACHE-109 pour l'affichage de l'état de santé.
+   */
+  last_incident?: {
+    /** Type d'incident M9 */
+    type: 'm9_handler_error';
+    /** Sévérité de l'incident */
+    severity: 'info' | 'warn' | 'error';
+    /** Timestamp de l'incident (ms since epoch) */
+    ts: number;
+  };
+}
+
+/** Clé chrome.storage.local utilisée pour diagnostics.m9 */
+export const DIAGNOSTICS_M9_KEY = 'diagnostics.m9';
+
+/** Valeur par défaut retournée si diagnostics.m9 est absent du storage */
+export const M9_DIAGNOSTICS_DEFAULT: M9Diagnostics = {
+  ready: false,
+  last_action_ts: 0,
+};
+
+// ---------------------------------------------------------------------------
+// Diagnostics M17 (diagnostics.m17) — TACHE-089
+// ---------------------------------------------------------------------------
+
+/**
+ * Objet de santé M17 persisté sous la clé chrome.storage.local 'diagnostics.m17'.
+ *
+ * Exception ADR-001 (Option B arbitrée — TACHE-089) :
+ * M17 n'implémente PAS initBootM17() complet. Le handler M17 est critique (bypass quota)
+ * mais ne dispose d'aucun état propre à valider/régénérer au boot SW.
+ * Les diagnostics sont mis à jour à chaque action handler (à la demande).
+ *
+ * Rationale (voir JSDoc handler) : pas de storage métier critique à vérifier au boot.
+ * Le seul storage M17 métier est le store events IDB — géré par M3 — et pending_m17_toast
+ * (géré par m17-handler + consommateur content script).
+ *
+ * Invariant INV-M17-01 : last_action_ts mis à jour à chaque appel au handler M17.
+ */
+export interface M17Diagnostics {
+  /**
+   * true si le dernier appel au handler M17 s'est terminé sans erreur de storage.
+   * false si une exception a été levée (incident m17_handler_error).
+   */
+  ready: boolean;
+
+  /**
+   * Timestamp (ms since epoch) du dernier appel au handler M17.
+   * 0 si le handler ne s'est jamais exécuté.
+   */
+  last_action_ts: number;
+
+  /**
+   * Dernier incident M17 enregistré, ou absent si aucun.
+   * Consommé par TACHE-109 pour l'affichage de l'état de santé.
+   */
+  last_incident?: {
+    /** Type d'incident M17 */
+    type: 'm17_handler_error';
+    /** Sévérité de l'incident */
+    severity: 'info' | 'warn' | 'error';
+    /** Timestamp de l'incident (ms since epoch) */
+    ts: number;
+  };
+}
+
+/** Clé chrome.storage.local utilisée pour diagnostics.m17 */
+export const DIAGNOSTICS_M17_KEY = 'diagnostics.m17';
+
+/** Valeur par défaut retournée si diagnostics.m17 est absent du storage */
+export const M17_DIAGNOSTICS_DEFAULT: M17Diagnostics = {
+  ready: false,
+  last_action_ts: 0,
+};
+
+// ---------------------------------------------------------------------------
+// Pending M17 toast (cross-lifecycle) — TACHE-090 (ADR-002 R-CLI-01 à 07)
+// ---------------------------------------------------------------------------
+
+/**
+ * Types de données sensibles reconnus par M17 (enum strict ADR-002 R-CLI-07).
+ *
+ * IMPORTANT R-002 + R-CLI-07 : ce champ contient UNIQUEMENT le type détecté,
+ * JAMAIS la valeur collée. La valeur du presse-papiers ne doit à aucun moment
+ * être sérialisée dans chrome.storage.local.
+ *
+ * Note : 'cb' = carte bancaire (credit_card), abrégée pour réduire l'empreinte storage.
+ * Le content script mappe 'cb' → 'credit_card' pour l'affichage.
+ */
+export type PendingM17DataType = 'cb' | 'iban' | 'ssn';
+
+/**
+ * Payload persisté dans chrome.storage.local sous la clé 'pending_m17_toast'.
+ * Représente l'intention d'afficher le toast M17 au content script actif.
+ *
+ * Conforme ADR-002 R-CLI-01 à 07 :
+ * - R-CLI-01 : convention de nommage pending_<module>_<action>
+ * - R-CLI-02 : payload JSON-strict, aucun objet complexe
+ * - R-CLI-03 : expires_at (jamais timestamp) pour la durée de vie
+ * - R-CLI-04 : consommation = suppression atomique
+ * - R-CLI-05 : survie au kill du SW (persisté dans chrome.storage.local)
+ * - R-CLI-06 : tab_id optionnel pour cibler un onglet spécifique
+ * - R-CLI-07 : data_type enum strict — JAMAIS la valeur collée (R-002 absolu)
+ *
+ * Cycle de vie :
+ * - Écrit par m17-handler.handleSensitiveDataDetected().
+ * - Consommé (lu + supprimé) par le content script via storage.onChanged.
+ * - TTL : 5 minutes (chrome.storage.local quota limité, TTL court acceptable
+ *   car le presse-papiers est en mémoire vive et le toast est urgency-high).
+ *   Si le SW est killed après écriture et la page n'est jamais rechargée,
+ *   le toast fantôme est évité par le TTL + vérification expires_at à la lecture.
+ *
+ * D-SEC-002 : AUCUNE valeur sensible n'est stockée — uniquement data_type (enum).
+ */
+export interface PendingM17Toast {
+  /**
+   * Type de donnée sensible détectée (enum strict).
+   * R-CLI-07 + R-002 : JAMAIS la valeur collée, uniquement le type.
+   */
+  data_type: PendingM17DataType;
+  /**
+   * Timestamp d'expiration (ms since epoch) — R-CLI-03.
+   * Calculé : Date.now() + PENDING_M17_TOAST_TTL_MS au moment de l'écriture.
+   */
+  expires_at: number;
+  /**
+   * Identifiant de l'onglet source de la détection (optionnel — R-CLI-06).
+   * Permet au content script de n'afficher le toast que dans l'onglet concerné.
+   */
+  tab_id?: number;
+}
+
+/** Clé chrome.storage.local pour le pending intent M17 toast */
+export const PENDING_M17_TOAST_KEY = 'pending_m17_toast';
+
+/**
+ * TTL du pending intent M17 toast en millisecondes (5 minutes).
+ *
+ * Justification du TTL court (5 min vs 10 min pour M7) :
+ * - Le presse-papiers est une donnée éphémère (en mémoire vive) — le risque
+ *   diminue rapidement dès que l'utilisateur colle autre chose.
+ * - chrome.storage.local a un quota limité (5 MB) — les TTL courts préservent
+ *   le quota pour les données persistentes (hashes, whitelist, diagnostics).
+ * - Un toast après 5 min d'inactivité post-coller serait contextually irrelevant.
+ * - Conforme à l'urgency-high de M17 (avertissement immédiat vs suivi long terme M7).
+ */
+export const PENDING_M17_TOAST_TTL_MS = 5 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
 // Registre d'incidents partagé (IndexedDB store m7_incidents)
 // ---------------------------------------------------------------------------
 
@@ -352,6 +585,7 @@ export const M6_DIAGNOSTICS_DEFAULT: M6Diagnostics = {
  * TACHE-086 : ajout de events_store_corrupted (incident M3).
  * TACHE-087 : ajout de m5_snooze_corrupted et update_check_failed (incidents M5).
  * TACHE-088 : ajout de m6_install_date_corrupted et quiz_deferred_stale (incidents M6).
+ * TACHE-089 : ajout de m9_handler_error et m17_handler_error (Option B M9/M17).
  */
 export type M7IncidentType =
   | 'boot_fail' // Clé AES absente ou non importable au boot SW
@@ -369,7 +603,9 @@ export type M7IncidentType =
   | 'm5_snooze_corrupted' // M5 — m5_snooze_count absent ou shape invalide au boot (TACHE-087)
   | 'update_check_failed' // M5 — chrome.runtime.requestUpdateCheck() a échoué (TACHE-087)
   | 'm6_install_date_corrupted' // M6 — m6_install_date absent ou invalide au boot (TACHE-088)
-  | 'quiz_deferred_stale'; // M6 — pending_m6_quiz dépassé son expires_at (TACHE-088)
+  | 'quiz_deferred_stale' // M6 — pending_m6_quiz dépassé son expires_at (TACHE-088)
+  | 'm9_handler_error' // M9 — exception dans le handler (logEvent IDB inaccessible) (TACHE-089)
+  | 'm17_handler_error'; // M17 — exception dans le handler (logEvent ou storage) (TACHE-089)
 
 /** Sévérité d'un incident (M7 et autres modules SW) */
 export type M7IncidentSeverity = 'info' | 'warn' | 'error';
@@ -393,6 +629,7 @@ export type M7IncidentSeverity = 'info' | 'warn' | 'error';
  * TACHE-086 : ajout de events_store_corrupted (M3).
  * TACHE-087 : ajout de m5_snooze_corrupted et update_check_failed (M5).
  * TACHE-088 : ajout de m6_install_date_corrupted et quiz_deferred_stale (M6).
+ * TACHE-089 : ajout de m9_handler_error et m17_handler_error (Option B M9/M17).
  */
 export type IncidentContext =
   | { type: 'boot_fail'; hint: 'key_absent' | 'import_failed'; boot_count: number }
@@ -461,6 +698,24 @@ export type IncidentContext =
        * Permet de mesurer le délai de nettoyage (INV-SEC-02 : pas de données quiz).
        */
       overdue_ms: number;
+    }
+  | {
+      type: 'm9_handler_error';
+      /**
+       * Nom de l'erreur levée dans le handler M9 (logEvent IDB).
+       * R-M7-08 : uniquement le nom, jamais le message.
+       */
+      error_name: string;
+    }
+  | {
+      type: 'm17_handler_error';
+      /**
+       * Nom de l'erreur levée dans le handler M17 (logEvent ou storage).
+       * R-M7-08 : uniquement le nom, jamais le message.
+       * code_path : identifie la fonction source (handleSensitiveDataDetected | handleToastAction).
+       */
+      error_name: string;
+      code_path: 'handleSensitiveDataDetected' | 'handleToastAction';
     };
 
 /**
