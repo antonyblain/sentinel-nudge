@@ -1,9 +1,9 @@
 /**
  * @file tests/integration/boot-sequence.test.ts
- * @description Tests d'intégration de la boot sequence TACHE-061, TACHE-079 et TACHE-085.
+ * @description Tests d'intégration de la boot sequence TACHE-061, TACHE-079, TACHE-085, TACHE-086, TACHE-087, TACHE-088.
  *
- * Vérifie l'orchestration HeartbeatService + CanaryService + IncidentService + M2BootService
- * dans les scénarios de boot définis par le mini-DAT TACHE-061 et ADR-001 (TACHE-085).
+ * Vérifie l'orchestration HeartbeatService + CanaryService + IncidentService + M2/M5/M6 BootService
+ * dans les scénarios de boot définis par le mini-DAT TACHE-061 et ADR-001 (TACHE-085/086/087/088).
  *
  * Scénarios couverts :
  * - TC-M7-13 : boot avec storage vide (premier install)
@@ -21,10 +21,20 @@
  * - TC-M2-INT-02 : boot M2 avec whitelist absente — diagnostic + incident loggué (TACHE-085)
  * - TC-M2-INT-03 : boot M2 + M7 en séquence — états indépendants (TACHE-085)
  *
+ * - TC-M3-INT-01 : updateM3DiagnosticsOnAlarm nominal — diagnostics.m3 cohérent (TACHE-086)
+ * - TC-M3-INT-02 : updateM3DiagnosticsOnAlarm avec IDB KO — incident events_store_corrupted (TACHE-086)
+ *
+ * - TC-M5-INT-01 : boot M5 nominal après boot M7 — diagnostics.m5 cohérent (TACHE-087)
+ * - TC-M5-INT-02 : boot M5 avec snooze_count corrompu — incident m5_snooze_corrupted (TACHE-087)
+ *
+ * - TC-M6-INT-01 : boot M6 nominal après boot M7 — diagnostics.m6 cohérent (TACHE-088)
+ * - TC-M6-INT-02 : boot M6 avec install_date absent — incident m6_install_date_corrupted (TACHE-088)
+ *
  * Note : ces tests vérifient la logique de coordination sans le service-worker complet
  * (pas de chrome.runtime disponible). L'orchestration est testée au niveau des services.
  *
  * Référence : Mini-DAT TACHE-061 §7 (plan de tests), TACHE-079 (R-M7-09), TACHE-085 (ADR-001 M2)
+ *             TACHE-086 (ADR-001 M3 Option B), TACHE-087 (ADR-001 M5), TACHE-088 (ADR-001 M6)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -33,9 +43,13 @@ import { CanaryService } from '@/background/services/canary-service';
 import { CryptoService } from '@/background/crypto-service';
 import { IncidentService } from '@/background/services/incident-service';
 import { initBootM2, readM2Diagnostics } from '@/background/services/m2-boot-service';
+import { updateM3DiagnosticsOnAlarm, readM3Diagnostics } from '@/background/services/m3-boot-service';
+import { initBootM5, readM5Diagnostics } from '@/background/services/m5-boot-service';
+import { initBootM6, readM6Diagnostics } from '@/background/services/m6-boot-service';
 // CANARY_KEYS est utilisé pour vérifier le stockage dans le storage mock
 import { CANARY_KEYS as CK } from '@/background/services/canary-service';
 import { DB_VERSION, MIGRATIONS } from '@/background/storage-service';
+import { M5_SNOOZE_COUNT_STORAGE_KEY } from '@/shared/types/diagnostics';
 
 // ---------------------------------------------------------------------------
 // Mock chrome.storage.local
@@ -579,5 +593,275 @@ describe('TACHE-085 — Boot M2 (ADR-001) intégration avec la séquence M7', ()
     // readM2Diagnostics retourne l'état correct
     const m2DiagRead = await readM2Diagnostics();
     expect(m2DiagRead.ready).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests intégration M3 boot — ADR-001 Option B (TACHE-086)
+// ---------------------------------------------------------------------------
+// M3 n'a pas d'initBoot complet (Option B). Les tests vérifient
+// updateM3DiagnosticsOnAlarm() dans le contexte de la séquence boot M7.
+// ---------------------------------------------------------------------------
+
+describe('TACHE-086 — Boot M3 Option B (ADR-001) intégration avec la séquence M7', () => {
+  beforeEach(() => {
+    Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+    removedKeys.length = 0;
+    vi.clearAllMocks();
+  });
+
+  // TC-M3-INT-01 : diagnostics.m3 nominal après boot M7
+  it('TC-M3-INT-01 : updateM3DiagnosticsOnAlarm nominal — diagnostics.m3 et diagnostics.m7 indépendants', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Alarme score M3 — IDB accessible
+    const m3Diag = await updateM3DiagnosticsOnAlarm(incidentService, true);
+
+    // M7 : toujours ready=true (non affecté)
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M3 : ready=true
+    expect(m3Diag.ready).toBe(true);
+    expect(m3Diag.last_boot).toBeGreaterThan(0);
+    expect(m3Diag.last_incident).toBeUndefined();
+
+    // Clés storage séparées
+    expect(mockLocalStorage['diagnostics.m7']).toBeDefined();
+    expect(mockLocalStorage['diagnostics.m3']).toBeDefined();
+
+    // readM3Diagnostics retourne l'état correct
+    const m3DiagRead = await readM3Diagnostics();
+    expect(m3DiagRead.ready).toBe(true);
+  });
+
+  // TC-M3-INT-02 : IDB KO au déclenchement alarme — incident events_store_corrupted
+  it('TC-M3-INT-02 : IDB KO au déclenchement alarme score — incident events_store_corrupted, M7 non affecté', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+    const incidents: Array<{ type: string; severity: string }> = [];
+
+    // Intercepter les incidents
+    const originalLog = incidentService.log.bind(incidentService);
+    incidentService.log = async (
+      type: Parameters<typeof incidentService.log>[0],
+      severity: Parameters<typeof incidentService.log>[1],
+      context: Parameters<typeof incidentService.log>[2],
+    ) => {
+      incidents.push({ type, severity });
+      return originalLog(type, severity, context);
+    };
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Alarme score M3 — IDB inaccessible
+    const m3Diag = await updateM3DiagnosticsOnAlarm(incidentService, false, 'IDBTransactionError');
+
+    // M7 non affecté
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M3 : ready=false, incident events_store_corrupted
+    expect(m3Diag.ready).toBe(false);
+    const storeCorruptedIncidents = incidents.filter((i) => i.type === 'events_store_corrupted');
+    expect(storeCorruptedIncidents).toHaveLength(1);
+    expect(storeCorruptedIncidents[0].severity).toBe('error');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests intégration M5 boot — ADR-001 Option A (TACHE-087)
+// ---------------------------------------------------------------------------
+
+describe('TACHE-087 — Boot M5 (ADR-001) intégration avec la séquence M7', () => {
+  beforeEach(() => {
+    Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+    removedKeys.length = 0;
+    vi.clearAllMocks();
+  });
+
+  // TC-M5-INT-01 : boot M5 nominal après boot M7
+  it('TC-M5-INT-01 : boot M5 nominal après boot M7 — diagnostics.m5 et diagnostics.m7 cohérents', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+
+    // snooze_count valide dans le storage
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 1;
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Boot M5
+    const m5Diag = await initBootM5(incidentService);
+
+    // M7 : ready=true (non affecté)
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M5 : ready=true, snooze_count=1
+    expect(m5Diag.ready).toBe(true);
+    expect(m5Diag.snooze_count).toBe(1);
+    expect(m5Diag.last_incident).toBeUndefined();
+
+    // Clés storage séparées
+    const m5Stored = mockLocalStorage['diagnostics.m5'] as Record<string, unknown>;
+    expect(m5Stored['ready']).toBe(true);
+    expect(m5Stored['snooze_count']).toBe(1);
+
+    // readM5Diagnostics retourne l'état correct
+    const m5DiagRead = await readM5Diagnostics();
+    expect(m5DiagRead.ready).toBe(true);
+    expect(m5DiagRead.snooze_count).toBe(1);
+  });
+
+  // TC-M5-INT-02 : snooze_count corrompu → incident m5_snooze_corrupted, M7 non affecté
+  it('TC-M5-INT-02 : snooze_count corrompu — incident m5_snooze_corrupted, M7 non affecté', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+    const incidents: Array<{ type: string; severity: string }> = [];
+
+    const originalLog = incidentService.log.bind(incidentService);
+    incidentService.log = async (
+      type: Parameters<typeof incidentService.log>[0],
+      severity: Parameters<typeof incidentService.log>[1],
+      context: Parameters<typeof incidentService.log>[2],
+    ) => {
+      incidents.push({ type, severity });
+      return originalLog(type, severity, context);
+    };
+
+    // snooze_count corrompu
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 'corrupted';
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Boot M5 (snooze corrompu)
+    const m5Diag = await initBootM5(incidentService);
+
+    // M7 non affecté
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M5 : ready=false, incident m5_snooze_corrupted, snooze_count réinitialisé à 0
+    expect(m5Diag.ready).toBe(false);
+    expect(m5Diag.snooze_count).toBe(0);
+
+    const snoozeCorruptedIncidents = incidents.filter((i) => i.type === 'm5_snooze_corrupted');
+    expect(snoozeCorruptedIncidents).toHaveLength(1);
+    expect(snoozeCorruptedIncidents[0].severity).toBe('error');
+
+    // Aucun incident M7
+    const bootFailIncidents = incidents.filter((i) => i.type === 'boot_fail');
+    expect(bootFailIncidents).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests intégration M6 boot — ADR-001 Option A (TACHE-088)
+// ---------------------------------------------------------------------------
+
+describe('TACHE-088 — Boot M6 (ADR-001) intégration avec la séquence M7', () => {
+  beforeEach(() => {
+    Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+    removedKeys.length = 0;
+    vi.clearAllMocks();
+  });
+
+  // TC-M6-INT-01 : boot M6 nominal après boot M7
+  it('TC-M6-INT-01 : boot M6 nominal après boot M7 — diagnostics.m6 et diagnostics.m7 cohérents', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+
+    // install_date valide dans le storage
+    const validInstallDate = Date.now() - 21 * 24 * 60 * 60 * 1000; // il y a 21 jours
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Boot M6
+    const m6Diag = await initBootM6(incidentService);
+
+    // M7 : ready=true (non affecté)
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M6 : ready=true, install_date cohérente
+    expect(m6Diag.ready).toBe(true);
+    expect(m6Diag.install_date).toBe(validInstallDate);
+    expect(m6Diag.last_incident).toBeUndefined();
+
+    // Clés storage séparées
+    const m6Stored = mockLocalStorage['diagnostics.m6'] as Record<string, unknown>;
+    expect(m6Stored['ready']).toBe(true);
+    expect(m6Stored['install_date']).toBe(validInstallDate);
+
+    // readM6Diagnostics retourne l'état correct
+    const m6DiagRead = await readM6Diagnostics();
+    expect(m6DiagRead.ready).toBe(true);
+    expect(m6DiagRead.install_date).toBe(validInstallDate);
+  });
+
+  // TC-M6-INT-02 : install_date absent → incident m6_install_date_corrupted, M7 non affecté
+  it('TC-M6-INT-02 : install_date absent — incident m6_install_date_corrupted, M7 non affecté', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+    const incidents: Array<{ type: string; severity: string }> = [];
+
+    const originalLog = incidentService.log.bind(incidentService);
+    incidentService.log = async (
+      type: Parameters<typeof incidentService.log>[0],
+      severity: Parameters<typeof incidentService.log>[1],
+      context: Parameters<typeof incidentService.log>[2],
+    ) => {
+      incidents.push({ type, severity });
+      return originalLog(type, severity, context);
+    };
+
+    // Aucun install_date dans le storage
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Boot M6 (install_date absent)
+    const m6Diag = await initBootM6(incidentService);
+
+    // M7 non affecté
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M6 : ready=false, install_date régénéré à Date.now()
+    expect(m6Diag.ready).toBe(false);
+    expect(m6Diag.install_date).toBeGreaterThan(0);
+
+    const installDateIncidents = incidents.filter((i) => i.type === 'm6_install_date_corrupted');
+    expect(installDateIncidents).toHaveLength(1);
+    expect(installDateIncidents[0].severity).toBe('error');
+
+    // Aucun incident M7
+    const bootFailIncidents = incidents.filter((i) => i.type === 'boot_fail');
+    expect(bootFailIncidents).toHaveLength(0);
+
+    // m6_install_date persisté dans le storage (régénéré)
+    expect(typeof mockLocalStorage['m6_install_date']).toBe('number');
+    expect(mockLocalStorage['m6_install_date'] as number).toBeGreaterThan(0);
   });
 });
