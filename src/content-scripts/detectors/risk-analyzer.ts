@@ -24,8 +24,12 @@
  */
 
 import { levenshteinDistance } from '@/shared/utils/levenshtein';
+import { createLogger, Logger } from '@/shared/utils/logger';
 import hstsPreloadData from '@/assets/data/hsts-preload.json';
 import typosquattingData from '@/assets/data/typosquatting-targets.json';
+
+/** Logger scopé RiskAnalyzer — mitigation R-M7-08 / TACHE-083 */
+const logger = createLogger('M2RiskAnalyzer');
 
 /** Niveau de risque calculé (0 = aucun, 1-2 = modéré, 3+ = élevé) */
 export type RiskLevel = 0 | 1 | 2 | 3 | 4;
@@ -80,16 +84,14 @@ function initializeData(): void {
       hstsPreloadSet = new Set(data.hashes as string[]);
     } else {
       hstsLoadError = true;
-      console.warn(
-        '[M2 RiskAnalyzer] hsts-preload.json: champ "hashes" absent ou invalide — signal hsts_miss désactivé',
+      logger.warn(
+        'hsts-preload.json: champ "hashes" absent ou invalide — signal hsts_miss désactivé',
       );
     }
   } catch (err) {
     hstsLoadError = true;
-    console.error(
-      '[M2 RiskAnalyzer] Erreur chargement hsts-preload.json:',
-      err instanceof Error ? err.message : 'Erreur inconnue',
-    );
+    // R-M7-08 / TACHE-083 : ne pas logger err.message — utiliser Error.name uniquement
+    logger.error('Erreur chargement hsts-preload.json', { error_name: Logger.errorName(err) });
   }
 
   // Chargement des cibles typosquatting
@@ -99,16 +101,16 @@ function initializeData(): void {
       typosquattingTargets = data.targets as string[];
     } else {
       typosquattingLoadError = true;
-      console.warn(
-        '[M2 RiskAnalyzer] typosquatting-targets.json: champ "targets" absent ou invalide — signal levenshtein désactivé',
+      logger.warn(
+        'typosquatting-targets.json: champ "targets" absent ou invalide — signal levenshtein désactivé',
       );
     }
   } catch (err) {
     typosquattingLoadError = true;
-    console.error(
-      '[M2 RiskAnalyzer] Erreur chargement typosquatting-targets.json:',
-      err instanceof Error ? err.message : 'Erreur inconnue',
-    );
+    // R-M7-08 / TACHE-083 : ne pas logger err.message — utiliser Error.name uniquement
+    logger.error('Erreur chargement typosquatting-targets.json', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 

@@ -47,6 +47,7 @@ import { QUOTA_DEFAULT } from '@/shared/constants/quota';
 import { HeartbeatService } from './services/heartbeat-service';
 import { CanaryService } from './services/canary-service';
 import { IncidentService } from './services/incident-service';
+import { createLogger, Logger } from '@/shared/utils/logger';
 
 // ---------------------------------------------------------------------------
 // Instanciation des services (module-level — persistés tant que le SW est actif)
@@ -64,6 +65,9 @@ const canaryService = new CanaryService(cryptoService);
 // IncidentService est instancie apres storageService.initDB() (ARB-061-01)
 // et expose un buffer memoire pré-init pour ne pas perdre les incidents du boot (ARB-061-02)
 const incidentService = new IncidentService();
+
+/** Logger scopé ServiceWorker — mitigation R-M7-08 / TACHE-083 */
+const swLogger = createLogger('ServiceWorker');
 
 // ---------------------------------------------------------------------------
 // Dispatcher d'alarmes
@@ -438,13 +442,8 @@ void (async () => {
   // ---------------------------------------------------------------------------
   const installCheck = await browser.storage.local.get(['installation_in_progress']);
   if (installCheck['installation_in_progress']) {
-    console.info(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'SW init: installation_in_progress — IIFE boot skipped (TACHE-079)',
-      }),
-    );
+    // R-M7-08 / TACHE-083 : log structuré via logger (pas de console.info direct)
+    swLogger.info('SW init: installation_in_progress — IIFE boot skipped (TACHE-079)');
     return;
   }
 
@@ -473,14 +472,10 @@ void (async () => {
         boot_count: diagnostics.boot_count,
       });
 
-      console.warn(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'warn',
-          message:
-            'SW init: encryption_key_material absent — régénération automatique (INV-SEC-03)',
-          context: { boot_count: diagnostics.boot_count },
-        }),
+      // R-M7-08 / TACHE-083 : log structuré via logger (pas de console.warn direct)
+      swLogger.warn(
+        'SW init: encryption_key_material absent — régénération automatique (INV-SEC-03)',
+        { boot_count: diagnostics.boot_count },
       );
 
       // INV-SEC-03 : logger key_regenerated AVANT d'écraser l'ancienne clé
@@ -590,18 +585,12 @@ void (async () => {
     registerModuleHandlers(cryptoKey);
 
     const bootMs = Math.round(performance.now() - bootStart);
-    console.info(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'SW init: boot sequence complete',
-        context: {
-          modules: ['M2', 'M3', 'M5', 'M6', 'M7', 'M9', 'M17', 'EXPORT'],
-          duration_ms: bootMs,
-          boot_count: diagnostics.boot_count,
-        },
-      }),
-    );
+    // R-M7-08 / TACHE-083 : log structuré via logger (pas de console.info direct)
+    swLogger.info('SW init: boot sequence complete', {
+      modules: ['M2', 'M3', 'M5', 'M6', 'M7', 'M9', 'M17', 'EXPORT'],
+      duration_ms: bootMs,
+      boot_count: diagnostics.boot_count,
+    });
   } catch (err: unknown) {
     // Catch global : log incident boot_fail sur toute exception non gérée du boot
     await incidentService.log('boot_fail', 'error', {
@@ -610,14 +599,11 @@ void (async () => {
       boot_count: diagnostics.boot_count,
     });
     await heartbeatService.onBootFailure();
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'SW init: boot sequence failed',
-        context: { boot_count: diagnostics.boot_count },
-      }),
-    );
+    // R-M7-08 / TACHE-083 : Logger.errorName — ne pas logger err.message
+    swLogger.error('SW init: boot sequence failed', {
+      boot_count: diagnostics.boot_count,
+      error_name: Logger.errorName(err),
+    });
     throw err;
   }
 })();

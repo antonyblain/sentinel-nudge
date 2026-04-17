@@ -14,8 +14,12 @@
  */
 
 import { StorageService } from '@/background/storage-service';
+import { createLogger, Logger } from '@/shared/utils/logger';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+
+/** Logger scopé M9Handler — mitigation R-M7-08 / TACHE-083 */
+const logger = createLogger('M9Handler');
 
 /** Payload attendu du content script M9 */
 interface M9SubmitPayload {
@@ -81,8 +85,8 @@ export function createM9Handler(
         cryptoKey,
       );
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur inconnue';
-      console.error(`[M9Handler] Échec logEvent: ${message}`);
+      // R-M7-08 / TACHE-083 : ne pas logger err.message — utiliser Error.name uniquement
+      logger.error('logEvent failed', { error_name: Logger.errorName(err) });
       return {
         success: false,
         action: 'error',
