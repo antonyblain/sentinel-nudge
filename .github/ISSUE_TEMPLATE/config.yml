@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Vulnérabilité de sécurité (canal privé)
+    url: https://github.com/antonyblain/sentinel-nudge/security/advisories/new
+    about: >
+      Pour toute vulnérabilité critique, moyenne ou dont vous doutez de la sévérité,
+      utilisez le canal privé GitHub Security Advisories (chiffré, visible uniquement
+      par les mainteneurs). N'ouvrez PAS d'issue publique pour une vulnérabilité.
+  - name: 📖 Documentation et README
+    url: https://github.com/antonyblain/sentinel-nudge/blob/main/README.md
+    about: Questions générales sur l'usage de Sentinel Nudge, installation, configuration.
+  - name: 🛡️ Politique de sécurité complète
+    url: https://github.com/antonyblain/sentinel-nudge/blob/main/SECURITY.md
+    about: Périmètre, safe harbor, engagements, types de vulnérabilités recherchées.
