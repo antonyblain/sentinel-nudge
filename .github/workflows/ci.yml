@@ -15,10 +15,10 @@ jobs:
       - name: Checkout du dépôt
         uses: actions/checkout@v4
 
-      - name: Configuration Node.js 22 LTS
+      - name: Configuration Node.js 24 LTS
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Installation des dépendances
@@ -49,3 +49,49 @@ jobs:
 
       - name: Vérification compatibilité licences GPL v3
         run: npm run check-licenses
+
+  e2e:
+    name: Tests E2E — Playwright avec extension Chrome chargée
+    runs-on: ubuntu-latest
+    needs: quality
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Configuration Node.js 24 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Build de l'extension (dist/ requis par Playwright)
+        run: npm run build
+
+      - name: Installation des binaires Playwright + dépendances système
+        run: npx playwright install --with-deps chromium
+
+      - name: Installation xvfb (Chrome headed requis pour charger l'extension MV3)
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Exécution des tests E2E (xvfb pour affichage virtuel)
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" npm run test:e2e
+
+      - name: Upload du rapport Playwright HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload des traces et captures d'écran en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7
