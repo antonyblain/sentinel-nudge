@@ -35,6 +35,8 @@ import { extractTag } from '@/shared/utils/hash';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
 import type { PasswordHashRecord } from '@/shared/types/storage';
+import type { HeartbeatService } from '@/background/services/heartbeat-service';
+import type { IncidentService } from '@/background/services/incident-service';
 
 /** Nombre maximum de hashes stockés en IndexedDB (FIFO) */
 const MAX_HASHES = 100;
@@ -231,6 +233,8 @@ async function handlePasswordSubmitted(
   storageService: StorageService,
   payload: M7SubmitPayload,
   cryptoKey: CryptoKey,
+  heartbeatService: HeartbeatService,
+  incidentService: IncidentService,
 ): Promise<NudgeResponse> {
   const { hash, domain_hash: domainHash } = payload;
 
@@ -245,6 +249,9 @@ async function handlePasswordSubmitted(
       // Pas de réutilisation — pas de nudge
       return { success: true, action: 'skip', reason: 'no_reuse' };
     }
+
+    // Réutilisation confirmée — instrumentation Heartbeat (TACHE-061)
+    await heartbeatService.onDetection();
 
     // Étape 3 : Vérifier la suppression_list
     const suppressed = await isDomainSuppressed(storageService, domainHash);
@@ -294,6 +301,11 @@ async function handlePasswordSubmitted(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
     console.error(`[M7Handler] Erreur traitement: ${message}`);
+    // Instrumentation TACHE-061 : log incident submit_detect_fail (INV-SEC-02 : code_path, pas message brut)
+    await incidentService.log('submit_detect_fail', 'error', {
+      type: 'submit_detect_fail',
+      code_path: 'handlePasswordSubmitted',
+    });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -305,13 +317,17 @@ async function handlePasswordSubmitted(
  * - 'password_submitted' : détection de réutilisation + stockage
  * - 'toast_action'       : traitement de l'interaction utilisateur sur le toast
  *
- * @param storageService - Service de stockage IndexedDB
- * @param cryptoKey      - Clé AES-256-GCM pour le chiffrement
+ * @param storageService   - Service de stockage IndexedDB
+ * @param cryptoKey        - Clé AES-256-GCM pour le chiffrement
+ * @param heartbeatService - Service de heartbeat M7 (TACHE-061)
+ * @param incidentService  - Service de registre d'incidents M7 (TACHE-061)
  * @returns Handler conforme à l'interface ModuleHandler
  */
 export function createM7Handler(
   storageService: StorageService,
   cryptoKey: CryptoKey,
+  heartbeatService: HeartbeatService,
+  incidentService: IncidentService,
 ): ModuleHandler {
   return async (
     msg: NudgeMessage,
@@ -323,7 +339,7 @@ export function createM7Handler(
         timestamp: new Date().toISOString(),
         level: 'info',
         message: 'M7Handler: message recu',
-        context: { action: msg.action, origin: _sender.tab?.url ?? 'unknown' },
+        context: { action: msg.action, origin: _sender.tab?.id ?? 'unknown' },
       }),
     );
 
@@ -331,6 +347,19 @@ export function createM7Handler(
     // → traiter en premier, avant la validation du champ 'hash'
     if (msg.action === 'toast_action') {
       return handleToastAction(storageService, msg.payload, cryptoKey);
+    }
+
+    // Action de signalement d'un toast orphelin (pending_m7_toast non affiché) — TACHE-061
+    if (msg.action === 'toast_orphan') {
+      const p = msg.payload as Partial<{ domain_hash: string; ts: number }>;
+      const domHash = typeof p.domain_hash === 'string' ? p.domain_hash.slice(0, 8) : 'unknown';
+      const tsVal = typeof p.ts === 'number' ? p.ts : 0;
+      await incidentService.log('toast_orphan', 'warn', {
+        type: 'toast_orphan',
+        domain_hash_prefix: domHash,
+        age_ms: Date.now() - tsVal,
+      });
+      return { success: true, action: 'skip' };
     }
 
     // Action principale : password_submitted
@@ -354,7 +383,13 @@ export function createM7Handler(
       return { success: false, action: 'skip', reason: 'invalid_domain_hash' };
     }
 
-    return handlePasswordSubmitted(storageService, { hash, domain_hash: domainHash }, cryptoKey);
+    return handlePasswordSubmitted(
+      storageService,
+      { hash, domain_hash: domainHash },
+      cryptoKey,
+      heartbeatService,
+      incidentService,
+    );
   };
 }
 

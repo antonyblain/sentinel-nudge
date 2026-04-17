@@ -20,6 +20,8 @@ import { createM7Handler } from '@/background/handlers/m7-handler';
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
 import type { PasswordHashRecord } from '@/shared/types/storage';
+import type { HeartbeatService } from '@/background/services/heartbeat-service';
+import type { IncidentService } from '@/background/services/incident-service';
 
 // Mock de chrome.storage.local pour les tests des timestamps de nudge
 const mockLocalStorage: Record<string, unknown> = {};
@@ -97,10 +99,25 @@ function createFakeKey(): CryptoKey {
   return {} as CryptoKey;
 }
 
+/** Crée des mocks pour HeartbeatService et IncidentService (TACHE-061) */
+function createMockServices(): {
+  heartbeat: Partial<HeartbeatService>;
+  incident: Partial<IncidentService>;
+} {
+  return {
+    heartbeat: {
+      onDetection: vi.fn().mockResolvedValue(undefined),
+    },
+    incident: {
+      log: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+}
+
 describe('createM7Handler — validation du payload', () => {
   it('rejette un hash trop court', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: 'abc123', domain_hash: DOMAIN_HASH_1 });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -110,7 +127,7 @@ describe('createM7Handler — validation du payload', () => {
 
   it('rejette un hash avec des caractères non-hex', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const invalidHash = 'g'.repeat(64); // 'g' n'est pas hexadécimal
     const msg = buildM7Message({ hash: invalidHash, domain_hash: DOMAIN_HASH_1 });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
@@ -121,7 +138,7 @@ describe('createM7Handler — validation du payload', () => {
 
   it('rejette un domain_hash invalide', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: 'invalid' });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -131,7 +148,7 @@ describe('createM7Handler — validation du payload', () => {
 
   it('rejette une action inconnue', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 }, 'unknown_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -143,7 +160,7 @@ describe('createM7Handler — validation du payload', () => {
 describe('createM7Handler — logique de détection', () => {
   it('ne montre pas de nudge si aucun hash candidat (premier usage)', async () => {
     const storage = createMockStorage({ candidates: [] });
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -158,7 +175,7 @@ describe('createM7Handler — logique de détection', () => {
     // Hash candidat du MÊME domaine → pas de réutilisation inter-domaines
     const candidate = buildHashRecord(HASH_A, DOMAIN_HASH_1);
     const storage = createMockStorage({ candidates: [candidate] });
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -174,7 +191,7 @@ describe('createM7Handler — logique de détection', () => {
     const storage = createMockStorage({ candidates: [], isSuppressed: true });
     // Forcer isPasswordReused à retourner true via un candidat sur un autre domaine
     // mais comme SubtleCrypto n'est pas disponible en jsdom, on teste isWhitelisted
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     // Aucun candidat → no_reuse avant même d'arriver à la vérification whitelist
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
@@ -185,7 +202,7 @@ describe('createM7Handler — logique de détection', () => {
 
   it('stocke le hash à chaque submission (FIFO géré par StorageService)', async () => {
     const storage = createMockStorage({ candidates: [] });
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -199,7 +216,7 @@ describe('createM7Handler — logique de détection', () => {
 
   it('vérifie la pré-filtration par tag (getPasswordHashesByTag appelé avec les 8 premiers chars)', async () => {
     const storage = createMockStorage({ candidates: [] });
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -210,7 +227,7 @@ describe('createM7Handler — logique de détection', () => {
 describe('createM7Handler — action toast_action', () => {
   it('enregistre l\'action "acknowledged"', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message(
       { user_action: 'acknowledged', domain_hash: DOMAIN_HASH_1 },
       'toast_action',
@@ -227,7 +244,7 @@ describe('createM7Handler — action toast_action', () => {
 
   it('ajoute le domaine à la whitelist pour "suppress_domain"', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message(
       { user_action: 'suppress_domain', domain_hash: DOMAIN_HASH_1 },
       'toast_action',
@@ -245,7 +262,7 @@ describe('createM7Handler — action toast_action', () => {
 
   it('enregistre l\'action "learn_more" et tente d\'ouvrir un onglet', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message(
       { user_action: 'learn_more', domain_hash: DOMAIN_HASH_1 },
       'toast_action',
@@ -264,7 +281,7 @@ describe('createM7Handler — action toast_action', () => {
 
   it('rejette un toast_action avec payload invalide', async () => {
     const storage = createMockStorage({});
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ user_action: null, domain_hash: DOMAIN_HASH_1 }, 'toast_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -281,7 +298,7 @@ describe('createM7Handler — gestion des erreurs de stockage', () => {
       isWhitelisted: vi.fn().mockResolvedValue(false),
       logEvent: vi.fn().mockResolvedValue(42),
     };
-    const handler = createM7Handler(failingStorage as StorageService, createFakeKey());
+    const handler = createM7Handler(failingStorage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -307,7 +324,7 @@ describe('createM7Handler — cooldown 30 jours', () => {
     // Ce test vérifie que la logique de cooldown est bien invoquée
     // mais ne peut pas tester la détection réelle (SubtleCrypto absent)
     const storage = createMockStorage({ candidates: [] });
-    const handler = createM7Handler(storage as StorageService, createFakeKey());
+    const handler = createM7Handler(storage as StorageService, createFakeKey(), createMockServices().heartbeat as HeartbeatService, createMockServices().incident as IncidentService);
     const msg = buildM7Message({ hash: HASH_B, domain_hash: DOMAIN_HASH_2 });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 

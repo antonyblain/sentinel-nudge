@@ -9,5 +9,8 @@ Ces instructions sont lues par l'orchestrateur au démarrage de chaque session e
 | I-003 | Claude Code est utilisé via Claude Desktop sur Windows 11. | Orchestrateur |
 | I-004 | Tous les projets sont synchronisés avec GitHub. Le Commanditaire possède un compte GitHub personnel. | Assistant Git |
 | I-005 | Ne jamais commiter de secrets (clés API, tokens, mots de passe). Utiliser systématiquement des fichiers .env exclus du versionnement via .gitignore. | Assistant Git, Développeur |
+| I-006 | Dashboard de démarrage enrichi : en plus du tableau de bord court (phase active, dernière action, prochaine action), afficher en début de chaque session les 2-3 dernières décisions marquantes, les questions ouvertes de QUESTIONS.md et les problèmes actifs de PROBLEMES.md. Lire aussi QUESTIONS.md + PROBLEMES.md au démarrage. | Orchestrateur |
+| I-007 | Git flow Exposé strict : chaque tâche P5+ démarre sur une branche courte dédiée `feature/<phase>-<tache-id>-<slug>` créée depuis `develop` à jour. Fin de tâche → push + PR vers `develop` avant toute autre tâche. Pas de commit direct sur `develop` ni `main`. L'Assistant Git prescrit proactivement la création de branche. | Assistant Git, tous les agents |
+| I-008 | Marquer les chapitres de session (`mark_chapter`) à chaque transition d'étape majeure : nouvelle tâche, nouvelle phase, clôture d'un post-mortem, validation d'un livrable structurant. Pas à chaque commit. | Orchestrateur |
 
 _Ce fichier est enrichi au fil des projets. Chaque nouvelle préférence découverte est proposée au Commanditaire pour ajout._

@@ -25,7 +25,7 @@ import type {
 /** Nom de la base de données IndexedDB */
 const DB_NAME = 'sentinel-nudge-db';
 /** Version courante du schéma IndexedDB */
-const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 /** Nombre maximum de hashes de mots de passe stockés (FIFO) */
 const MAX_PASSWORD_HASHES = 100;
@@ -40,7 +40,7 @@ const MAX_PASSWORD_HASHES = 100;
  *
  * Référence : DAT §8.4 (Migration de schéma)
  */
-const MIGRATIONS: Record<number, (db: IDBDatabase) => void> = {
+export const MIGRATIONS: Record<number, (db: IDBDatabase) => void> = {
   /**
    * Migration v1 : création des 5 stores initiaux.
    * - events : événements de nudge (90 jours)
@@ -81,6 +81,32 @@ const MIGRATIONS: Record<number, (db: IDBDatabase) => void> = {
     // Store whitelist (clé primaire = domain_hash SHA-256 + module)
     const wlStore = db.createObjectStore('whitelist', { keyPath: ['domain_hash', 'module'] });
     wlStore.createIndex('module', 'module');
+  },
+  /**
+   * Migration v2 : ajout du store m7_incidents — registre circulaire des anomalies M7.
+   * Tache-061 (Heartbeat M7, Canary Hash, Registre d'incidents).
+   *
+   * Store m7_incidents :
+   * - Index 'ts'   : requetes 'derniers N incidents' et curseur de purge FIFO (INV-SEC-04)
+   * - Index 'type' : filtrage par categorie d'incident
+   *
+   * Schéma résultant (version 2) : events, password_hashes, quiz_sessions,
+   * weekly_scores, whitelist, m7_incidents.
+   *
+   * Compatibilité : si oldVersion=0 (premiere installation), onupgradeneeded
+   * applique les migrations 1 puis 2 dans l'ordre — aucune modification requise
+   * dans le code d'ouverture (DAT §8.4).
+   */
+  2: (db: IDBDatabase) => {
+    // Store m7_incidents — registre circulaire des anomalies M7 (MAX_INCIDENTS=500)
+    const incidentsStore = db.createObjectStore('m7_incidents', {
+      keyPath: 'id',
+      autoIncrement: true,
+    });
+    // Index ts : requetes 'derniers N incidents' (getLast) et purge FIFO INV-SEC-04
+    incidentsStore.createIndex('ts', 'ts');
+    // Index type : filtrage par categorie d'incident
+    incidentsStore.createIndex('type', 'type');
   },
 };
 
@@ -138,10 +164,11 @@ export class StorageService {
   }
 
   /**
-   * Retourne la référence à la base IndexedDB ouverte.
+   * Retourne la référence à la base IndexedDB ouverte — accès public pour IncidentService.
+   * ARB-061-01 (Option A) : couplage léger, IncidentService reste focal et auditable.
    * @throws Error si initDB() n'a pas été appelé
    */
-  private getDB(): IDBDatabase {
+  getDB(): IDBDatabase {
     if (!this.db) {
       throw new Error("[StorageService] Base IndexedDB non initialisée. Appeler initDB() d'abord.");
     }
