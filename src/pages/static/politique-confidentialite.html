@@ -120,6 +120,22 @@
       .highlight-box strong {
         color: var(--sn-color-success);
       }
+      .info-box {
+        background: #eff6ff;
+        border: 1px solid #93c5fd;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+      @media (prefers-color-scheme: dark) {
+        .info-box {
+          background: #1e3a8a;
+          border-color: #3b82f6;
+        }
+      }
+      .info-box strong {
+        color: var(--sn-color-accent);
+      }
       .data-table {
         width: 100%;
         border-collapse: collapse;
@@ -408,6 +424,85 @@
           Vous pouvez retirer ce consentement et désactiver ce module à tout moment depuis la page
           <strong>Paramètres</strong>. La désactivation est immédiate et aucune donnée relative à ce
           module n'est conservée après désactivation.
+        </p>
+        <p>
+          Le hachage salé SHA-256 évoqué plus haut s'applique uniquement aux champs de mot de passe
+          auxquels l'extension a accès sur la page que vous consultez. Certains formulaires intégrés
+          par d'autres sites ne sont pas accessibles à Sentinel Nudge pour des raisons de sécurité
+          imposées par le navigateur : voir la section suivante
+          <strong>« Limites de la protection »</strong>.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-limites">
+        <h2 id="section-limites">Limites de la protection</h2>
+        <div class="info-box">
+          <strong>Sentinel Nudge ne peut pas couvrir 100 % des situations.</strong>
+          <p style="margin: 0.5rem 0 0">
+            Votre navigateur impose une règle d'isolation appelée
+            <em>Same-Origin Policy</em> : une extension ne peut pas lire le contenu d'un formulaire
+            qui provient d'un autre site que celui affiché dans la barre d'adresse. Cette règle
+            protège votre vie privée, et Sentinel Nudge la respecte scrupuleusement.
+          </p>
+        </div>
+
+        <p>
+          En pratique, cela signifie que certains formulaires de mot de passe
+          <strong>ne peuvent pas être analysés</strong> par l'extension. Les cas les plus fréquents
+          sont :
+        </p>
+        <ul>
+          <li>
+            <strong>Formulaires de paiement intégrés</strong> : la plupart des boutiques en ligne
+            n'hébergent pas elles-mêmes le champ de carte bancaire. Elles affichent un encart fourni
+            par un prestataire de paiement (par exemple un encart Stripe, PayPal ou un service
+            bancaire). Cet encart est techniquement une « page dans la page », servie par un autre
+            domaine. Sentinel Nudge ne peut rien y voir.
+          </li>
+          <li>
+            <strong>Connexions par bouton « Se connecter avec… »</strong> : lorsqu'un site ouvre une
+            fenêtre incrustée pour vous faire saisir votre mot de passe Google, Microsoft ou un
+            autre fournisseur d'identité, cette fenêtre peut être servie depuis le domaine du
+            fournisseur. Si c'est le cas, Sentinel Nudge ne détectera pas la saisie.
+          </li>
+          <li>
+            <strong>Widgets de sécurité tiers</strong> (anti-robot, captcha, vérifications
+            complémentaires) : ils sont également isolés du reste de la page et donc hors de portée
+            de l'extension.
+          </li>
+        </ul>
+
+        <p>
+          Sur ces formulaires,
+          <strong>aucune alerte de réutilisation de mot de passe ne sera affichée</strong>, même si
+          vous saisissez un mot de passe déjà utilisé ailleurs. Ce n'est pas un oubli de notre part
+          : c'est une barrière de sécurité du navigateur que Sentinel Nudge — comme toute extension
+          respectueuse — n'essaie pas de contourner.
+        </p>
+
+        <p>
+          La bonne nouvelle : <strong>la grande majorité des pages de connexion principales</strong>
+          (votre messagerie, votre réseau social, votre espace client, votre intranet professionnel)
+          hébergent elles-mêmes leur formulaire de mot de passe et sont donc parfaitement couvertes
+          par Sentinel Nudge.
+        </p>
+
+        <p>
+          Pourquoi nous vous le disons ? Parce que nous préférons être transparents sur ce que
+          l'extension fait et ne fait pas, plutôt que de vous donner un sentiment de protection
+          totale qui serait trompeur. En clair : Sentinel Nudge est un <em>filet de rattrapage</em>,
+          pas un bouclier absolu. Restez vigilant sur les formulaires intégrés, et en cas de doute,
+          ouvrez directement le site du prestataire dans un nouvel onglet plutôt que de saisir votre
+          mot de passe dans un encart intégré.
+        </p>
+
+        <p>
+          <strong>Impact sur vos données personnelles</strong> : le fait que l'extension n'accède
+          pas à ces formulaires intégrés est conforme au principe de
+          <strong>minimisation des données</strong> (RGPD, article 5.1.c). Cela signifie que
+          Sentinel Nudge ne traite jamais plus de données que ce qui est strictement nécessaire — et
+          cela inclut de ne pas aller chercher des données auxquelles le navigateur ne lui donne pas
+          accès.
         </p>
       </section>
 
