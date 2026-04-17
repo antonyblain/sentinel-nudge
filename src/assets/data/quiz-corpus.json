@@ -1,0 +1,1229 @@
+{
+  "_comment": "Corpus de questions du quiz M6 — bilingue FR/EN, 50+ questions, 4 catégories.",
+  "_version": "1.1",
+  "_categories": ["urgency", "authority", "gain", "threat"],
+  "_difficulties": ["basic", "intermediate", "expert"],
+  "_types": ["email", "webpage", "sms"],
+  "questions": [
+    {
+      "id": "phish-001",
+      "category": "urgency",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "securite-compte@bancaire-alerte.fr",
+        "subject": "URGENT : Votre compte sera suspendu dans 24h",
+        "body": "Cher client, nous avons détecté une activité suspecte sur votre compte. Vous devez confirmer vos informations immédiatement via le lien ci-dessous pour éviter la suspension définitive de votre compte.",
+        "url": "http://bancaire-alerte.fr/confirmer-identite"
+      },
+      "indicators": [
+        "urgence_artificielle",
+        "menace_suspension",
+        "url_suspect",
+        "domaine_generique"
+      ],
+      "explanation": "Cet email utilise la pression temporelle (24h) et la menace de suspension pour vous pousser à agir sans réfléchir. Votre vraie banque ne vous demandera jamais de confirmer vos informations via un email.",
+      "question_fr": "Cet email vous demandant de confirmer vos informations en urgence est-il légitime ?",
+      "options_fr": ["Oui, c'est légitime", "Non, c'est du phishing"],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-002",
+      "category": "urgency",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "sms",
+      "is_phishing": true,
+      "content": {
+        "sender": "+33760000123",
+        "body": "Votre colis n°FR123456 est en attente. Des frais de douane de 2,99€ sont dus. Payez maintenant : http://livraison-colis-fr.xyz/payer",
+        "url": "http://livraison-colis-fr.xyz/payer"
+      },
+      "indicators": ["urgence_paiement", "url_domaine_suspect", "montant_faible_pour_credibilite"],
+      "explanation": "Ce SMS ('smishing') imite une notification de livraison. L'URL '.xyz' et le domaine non officiel sont des signaux clairs. Les transporteurs légitimes utilisent leurs domaines officiels (laposte.fr, colissimo.fr, etc.).",
+      "question_fr": "Ce SMS vous demandant de payer des frais de douane pour un colis est-il légitime ?",
+      "options_fr": ["Oui, c'est une notification officielle", "Non, c'est du phishing"],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-003",
+      "category": "urgency",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "support@paypa1.com",
+        "subject": "Votre paiement de 249€ a été refusé — Action requise",
+        "body": "Bonjour, un paiement de 249,00 EUR vers Amazon a été refusé en raison d'une vérification de sécurité. Pour éviter la suspension de votre compte, connectez-vous dans les 2 heures.",
+        "url": "https://paypa1.com/securite/verification"
+      },
+      "indicators": [
+        "typosquatting_paypal",
+        "urgence_temporelle",
+        "montant_credible",
+        "action_requise"
+      ],
+      "explanation": "Le domaine 'paypa1.com' remplace le 'l' par un '1' — technique classique de typosquatting. Examinez toujours attentivement le domaine expéditeur. PayPal utilise uniquement 'paypal.com'.",
+      "question_fr": "Cet email venant de 'paypa1.com' vous alertant d'un paiement refusé est-il légitime ?",
+      "options_fr": [
+        "Oui, c'est une alerte PayPal officielle",
+        "Non, c'est du phishing (typosquatting)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-004",
+      "category": "urgency",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "webpage",
+      "is_phishing": true,
+      "content": {
+        "sender": null,
+        "subject": null,
+        "body": "Page de connexion HTTPS avec certificat valide, logo officiel de la banque, mise en page identique, URL : https://secure-login.ma-banque-pro.fr/authentification",
+        "url": "https://secure-login.ma-banque-pro.fr/authentification"
+      },
+      "indicators": ["domaine_similaire_non_officiel", "https_ne_garantit_pas_legitimite"],
+      "explanation": "Un certificat HTTPS valide ne garantit PAS la légitimité d'un site. N'importe qui peut obtenir un certificat SSL. Ici, le domaine 'ma-banque-pro.fr' est différent du domaine officiel de votre banque. Vérifiez toujours le domaine exact dans la barre d'adresse.",
+      "question_fr": "Ce site HTTPS avec certificat valide et logo officiel est-il forcément légitime ?",
+      "options_fr": [
+        "Oui, le cadenas HTTPS garantit la sécurité",
+        "Non, le domaine doit être vérifié malgré HTTPS"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-005",
+      "category": "urgency",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "notifications@github.com",
+        "subject": "Une nouvelle clé SSH a été ajoutée à votre compte",
+        "body": "Bonjour, une nouvelle clé SSH a été ajoutée à votre compte GitHub depuis Paris, France. Si c'est vous, vous pouvez ignorer ce message. Si ce n'est pas vous, sécurisez immédiatement votre compte.",
+        "url": "https://github.com/settings/keys"
+      },
+      "indicators": [],
+      "explanation": "Cet email est légitime. GitHub envoie effectivement des notifications de sécurité depuis 'notifications@github.com' pour les ajouts de clés SSH. L'URL pointe vers le domaine officiel 'github.com'. Ce type de notification de sécurité est une bonne pratique.",
+      "question_fr": "Cette notification GitHub concernant l'ajout d'une clé SSH est-elle légitime ?",
+      "options_fr": ["Oui, c'est une notification de sécurité légitime", "Non, c'est du phishing"],
+      "correct_index": 0
+    },
+    {
+      "id": "phish-006",
+      "category": "authority",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "impots@dgfip-remboursement.fr",
+        "subject": "Remboursement fiscal en attente — DGFiP",
+        "body": "Le Service des Impôts vous informe qu'un remboursement de 183,50€ vous est dû suite au recalcul de votre déclaration 2024. Pour recevoir ce virement, veuillez saisir vos coordonnées bancaires.",
+        "url": "http://dgfip-remboursement.fr/rembours"
+      },
+      "indicators": [
+        "usurpation_autorite_fiscale",
+        "domaine_non_officiel",
+        "demande_rib",
+        "http_non_https"
+      ],
+      "explanation": "La DGFiP (impôts.gouv.fr) ne demande jamais vos coordonnées bancaires par email. Le domaine officiel est 'impots.gouv.fr', pas 'dgfip-remboursement.fr'. Méfiez-vous de tout email demandant votre RIB.",
+      "question_fr": "Cet email des 'Impôts' vous promettant un remboursement est-il légitime ?",
+      "options_fr": [
+        "Oui, c'est un remboursement fiscal officiel",
+        "Non, c'est du phishing (usurpation DGFiP)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-007",
+      "category": "authority",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "it-support@votre-entreprise-helpdesk.com",
+        "subject": "Action requise : Votre mot de passe expire dans 24h",
+        "body": "Cher collaborateur, votre mot de passe d'entreprise expire demain. Cliquez sur le lien ci-dessous pour le renouveler et éviter la perte d'accès à vos outils de travail.",
+        "url": "https://votre-entreprise-helpdesk.com/password-reset"
+      },
+      "indicators": ["domaine_non_interne", "urgence_expiration", "usurpation_it_interne"],
+      "explanation": "Le domaine 'votre-entreprise-helpdesk.com' n'est pas le domaine de votre entreprise. Les équipes IT légitimes utilisent les systèmes internes de l'entreprise pour les réinitialisations de mot de passe. En cas de doute, contactez directement votre DSI.",
+      "question_fr": "Cet email de votre 'support IT' vous demandant de renouveler votre mot de passe est-il légitime ?",
+      "options_fr": [
+        "Oui, c'est une demande IT normale",
+        "Non, c'est du phishing (usurpation IT interne)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-008",
+      "category": "authority",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "ceo.dupont@entreprise-corp.net",
+        "subject": "Confidentiel — Virement urgent",
+        "body": "Bonjour, je suis actuellement en déplacement et j'ai besoin d'un virement urgent de 12 000€ à effectuer avant 17h. C'est confidentiel. Ne passez pas par les procédures habituelles. Je vous expliquerai plus tard.",
+        "url": null
+      },
+      "indicators": [
+        "fraude_au_president",
+        "urgence_et_confidentialite",
+        "contournement_procedures",
+        "usurpation_dirigeant"
+      ],
+      "explanation": "C'est une 'fraude au président' (BEC — Business Email Compromise). Jamais un dirigeant légitime ne vous demandera de contourner les procédures financières par email. Vérifiez toujours les demandes de virement par téléphone en rappelant le dirigeant sur son numéro connu.",
+      "question_fr": "Cet email de votre 'PDG' vous demandant un virement urgent et confidentiel est-il légitime ?",
+      "options_fr": [
+        "Oui, il faut agir vite pour le PDG",
+        "Non, c'est une fraude au président (BEC)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-009",
+      "category": "authority",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "security@microsoft.com",
+        "subject": "Microsoft Security Alert : Suspicious sign-in detected",
+        "body": "We detected a suspicious sign-in to your Microsoft 365 account from Russia. Your account will be locked in 1 hour. Verify your identity immediately.",
+        "url": "https://login.microsoftonline.com.security-check.ru/verify"
+      },
+      "indicators": ["spoofing_expediteur", "url_sous_domaine_suspect", "urgence_verrouillage"],
+      "explanation": "L'expéditeur peut être usurpé — 'security@microsoft.com' ne garantit pas l'authenticité. L'URL 'login.microsoftonline.com.security-check.ru' est en fait sur le domaine '.ru', pas sur le domaine Microsoft. Le vrai domaine Microsoft est 'microsoftonline.com'.",
+      "question_fr": "Cet email de 'security@microsoft.com' avec l'URL 'microsoftonline.com.security-check.ru' est-il légitime ?",
+      "options_fr": [
+        "Oui, Microsoft m'envoie bien des alertes de sécurité",
+        "Non, l'URL est sur un faux domaine (.ru)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-010",
+      "category": "authority",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "noreply@accounts.google.com",
+        "subject": "Votre compte Google a été utilisé sur un nouvel appareil",
+        "body": "Un nouvel appareil Windows a accédé à votre compte Google depuis Paris. Si c'est vous, aucune action n'est nécessaire. Sinon, sécurisez votre compte via myaccount.google.com.",
+        "url": "https://myaccount.google.com/security"
+      },
+      "indicators": [],
+      "explanation": "Cet email est légitime. Google envoie des alertes de sécurité depuis 'accounts.google.com' et l'URL pointe vers 'myaccount.google.com' — le domaine officiel. Ces notifications de connexion sont une mesure de sécurité normale.",
+      "question_fr": "Cette alerte Google concernant un nouvel appareil est-elle légitime ?",
+      "options_fr": [
+        "Oui, c'est une alerte de sécurité Google officielle",
+        "Non, c'est du phishing"
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "phish-011",
+      "category": "gain",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "concours@amazon-winners.info",
+        "subject": "Félicitations ! Vous avez gagné un iPhone 15 Pro",
+        "body": "Cher client Amazon, vous avez été sélectionné parmi nos clients fidèles pour recevoir un iPhone 15 Pro gratuit. Réclamez votre prix en cliquant ci-dessous et en payant uniquement les frais de livraison (4,99€).",
+        "url": "http://amazon-winners.info/reclamer-prix"
+      },
+      "indicators": [
+        "promesse_gain_irrealiste",
+        "domaine_non_officiel",
+        "frais_livraison_piege",
+        "arnaque_frais_avances"
+      ],
+      "explanation": "Amazon n'organise pas de concours par email avec frais de livraison. Le domaine 'amazon-winners.info' n'est pas Amazon. Les 'frais de livraison' permettent de récupérer vos coordonnées bancaires. Si c'est trop beau pour être vrai, c'est probablement une arnaque.",
+      "question_fr": "Cet email vous annonçant avoir gagné un iPhone chez Amazon est-il légitime ?",
+      "options_fr": [
+        "Oui, j'ai peut-être gagné ce concours Amazon",
+        "Non, c'est une arnaque aux frais avancés"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-012",
+      "category": "gain",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "noreply@ameli-remboursement-cpam.fr",
+        "subject": "Remboursement de soins : 67,50€ disponibles",
+        "body": "Bonjour, l'Assurance Maladie vous informe qu'un remboursement de 67,50€ est disponible. Pour recevoir votre virement, mettez à jour vos coordonnées bancaires en cliquant ci-dessous.",
+        "url": "http://ameli-remboursement-cpam.fr/mise-a-jour-rib"
+      },
+      "indicators": [
+        "usurpation_cpam",
+        "domaine_non_officiel",
+        "demande_rib",
+        "remboursement_appat"
+      ],
+      "explanation": "Le domaine officiel de l'Assurance Maladie est 'ameli.fr'. 'ameli-remboursement-cpam.fr' est un faux domaine. L'Assurance Maladie ne demande jamais de mettre à jour son RIB par email — vous pouvez le faire depuis votre espace ameli.fr personnel.",
+      "question_fr": "Cet email de l'Assurance Maladie vous informant d'un remboursement est-il légitime ?",
+      "options_fr": [
+        "Oui, l'CPAM m'envoie des emails de remboursement",
+        "Non, c'est du phishing (faux domaine ameli)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-013",
+      "category": "gain",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "webpage",
+      "is_phishing": true,
+      "content": {
+        "sender": null,
+        "subject": null,
+        "body": "Pop-up sur un site de streaming : 'Vous êtes le visiteur n°1 000 000 ! Réclamez votre cadeau Amazon de 500€ en remplissant ce formulaire.'",
+        "url": "https://visitor-reward.pop-gift.com/amazon-500"
+      },
+      "indicators": [
+        "visiteur_n1million_classique",
+        "formulaire_collecte_donnees",
+        "promesse_gain_excessive"
+      ],
+      "explanation": "Le message 'visiteur n°1 million' est une arnaque classique rencontrée sur des sites peu fiables. Le but est de collecter vos données personnelles. Amazon ne distribue pas de cadeaux via des pop-ups sur des sites tiers.",
+      "question_fr": "Ce pop-up vous annonçant être le visiteur n°1 million avec un cadeau Amazon de 500€ est-il légitime ?",
+      "options_fr": [
+        "Oui, c'est peut-être ma chance !",
+        "Non, c'est une arnaque classique de collecte de données"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-014",
+      "category": "gain",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "rh@monentreprise.com",
+        "subject": "Prime exceptionnelle Q4 — Vérification coordonnées bancaires",
+        "body": "Bonjour, suite à vos excellentes performances, la direction a validé une prime exceptionnelle. Pour procéder au virement, merci de vérifier vos coordonnées bancaires via le portail RH ci-dessous avant vendredi.",
+        "url": "https://rh-portail.monentreprise-paie.com/verif-rib"
+      },
+      "indicators": [
+        "usurpation_rh_interne",
+        "domaine_similaire_non_officiel",
+        "demande_rib",
+        "gain_pro_appat"
+      ],
+      "explanation": "L'URL 'monentreprise-paie.com' est différent du domaine officiel 'monentreprise.com'. Cette attaque cible les employés avec une promesse de prime. Vérifiez toujours les URL des portails RH et contactez directement votre service RH par téléphone.",
+      "question_fr": "Cet email RH vous demandant de vérifier vos coordonnées bancaires pour une prime est-il légitime ?",
+      "options_fr": [
+        "Peut-être, si j'ai bien travaillé",
+        "Non, c'est une tentative de phishing ciblé (spear phishing RH)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-015",
+      "category": "gain",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "deals@amazon.fr",
+        "subject": "Votre cashback de 15€ est disponible",
+        "body": "Bonjour, votre cashback de 15,00€ lié à votre programme Amazon Prime est disponible. Il sera automatiquement déduit de votre prochaine commande. Aucune action requise.",
+        "url": "https://www.amazon.fr/prime/cashback"
+      },
+      "indicators": [],
+      "explanation": "Cet email est légitime. Il vient du domaine officiel 'amazon.fr', ne demande aucune action urgente ni coordonnées bancaires, et le cashback est automatique. Les emails légitimes n'exigent pas d'action urgente ni de saisie d'informations sensibles.",
+      "question_fr": "Cet email Amazon vous informant d'un cashback automatique est-il légitime ?",
+      "options_fr": [
+        "Oui, c'est une notification de cashback Amazon légitime",
+        "Non, c'est du phishing"
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "phish-016",
+      "category": "urgency",
+      "difficulty": "basic",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "security@paypal-alert.net",
+        "subject": "URGENT: Your PayPal account has been limited",
+        "body": "Your PayPal account has been limited due to suspicious activity. You must verify your identity within 24 hours or your account will be permanently suspended.",
+        "url": "http://paypal-alert.net/verify-identity"
+      },
+      "indicators": [
+        "urgency_artificial",
+        "threat_suspension",
+        "non_official_domain",
+        "http_not_https"
+      ],
+      "explanation": "PayPal's official domain is 'paypal.com', not 'paypal-alert.net'. This email uses artificial urgency (24 hours) and threats to bypass your critical thinking. Real PayPal emails come from '@paypal.com' addresses.",
+      "question_en": "Is this urgent email from 'paypal-alert.net' about a limited account legitimate?",
+      "options_en": [
+        "Yes, it looks like an official PayPal alert",
+        "No, it's phishing (wrong domain)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-017",
+      "category": "authority",
+      "difficulty": "basic",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "helpdesk@microsoft-support.xyz",
+        "subject": "Your Microsoft 365 subscription will expire today",
+        "body": "Your Microsoft 365 subscription expires today. Click below to renew and avoid losing access to all your files and emails.",
+        "url": "https://microsoft-support.xyz/renew"
+      },
+      "indicators": ["non_official_domain", "urgency_expiration", "impersonation_microsoft"],
+      "explanation": "Microsoft's official renewal page is at 'microsoft.com', not 'microsoft-support.xyz'. The '.xyz' TLD is commonly used in phishing. Microsoft will only contact you from '@microsoft.com' addresses.",
+      "question_en": "Is this email from 'microsoft-support.xyz' about your expiring subscription legitimate?",
+      "options_en": ["Yes, I need to renew my subscription", "No, it's phishing (wrong domain)"],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-018",
+      "category": "gain",
+      "difficulty": "basic",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "prize@amazon-lucky-draw.com",
+        "subject": "Congratulations! You've been selected for a $500 Amazon gift card",
+        "body": "You have been randomly selected to receive a $500 Amazon gift card! To claim your prize, complete a short survey and pay a $2.99 processing fee.",
+        "url": "http://amazon-lucky-draw.com/claim"
+      },
+      "indicators": ["too_good_to_be_true", "non_official_domain", "advance_fee_trap"],
+      "explanation": "Amazon does not run prize draws via email with processing fees. The domain 'amazon-lucky-draw.com' is not Amazon. The small fee is a trap to collect your credit card information.",
+      "question_en": "Is this email about winning a $500 Amazon gift card legitimate?",
+      "options_en": ["Yes, maybe I'm lucky!", "No, it's a classic advance fee scam"],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-019",
+      "category": "authority",
+      "difficulty": "intermediate",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "no-reply@accounts.google.com",
+        "subject": "Security alert: New sign-in on Windows",
+        "body": "A new Windows device signed in to your Google Account. If this was you, no action is needed. If not, secure your account at myaccount.google.com/security.",
+        "url": "https://myaccount.google.com/security"
+      },
+      "indicators": [],
+      "explanation": "This is a legitimate Google security alert. The sender is from 'accounts.google.com', the URL points to 'myaccount.google.com' (Google's official domain), and no urgent action or sensitive information is requested.",
+      "question_en": "Is this security alert about a new Google sign-in legitimate?",
+      "options_en": ["Yes, it's a legitimate Google security notification", "No, it's phishing"],
+      "correct_index": 0
+    },
+    {
+      "id": "phish-020",
+      "category": "urgency",
+      "difficulty": "expert",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "it-security@company.com",
+        "subject": "Mandatory: Reset your corporate password — Security incident",
+        "body": "A security incident has been detected on our network. All employees must reset their passwords immediately using the link below. This is mandatory and must be completed within 2 hours.",
+        "url": "https://company-password-reset.com/corporate"
+      },
+      "indicators": [
+        "domain_mismatch",
+        "spoofed_internal_sender",
+        "urgency_2_hours",
+        "corporate_impersonation"
+      ],
+      "explanation": "Even though the sender appears to be '@company.com', the reset URL goes to 'company-password-reset.com' — a completely different domain. Attackers can spoof the 'From' field. Always verify the URL domain matches your company's official domain before clicking.",
+      "question_en": "Is this urgent IT security email asking you to reset your corporate password legitimate?",
+      "options_en": [
+        "Yes, IT security emails must be obeyed immediately",
+        "No, the reset URL domain doesn't match the company"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-021",
+      "category": "threat",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "sms",
+      "is_phishing": true,
+      "content": {
+        "sender": "+33644000789",
+        "body": "ALERTE SECURITE : Une tentative de connexion depuis la Russie a été détectée sur votre compte. Bloquez l'accès maintenant : http://moncompte-securite.net/bloquer",
+        "url": "http://moncompte-securite.net/bloquer"
+      },
+      "indicators": [
+        "urgence_menace_geographique",
+        "url_generique",
+        "http_non_https",
+        "peur_comme_levier"
+      ],
+      "explanation": "Ce SMS exploite la peur d'une intrusion étrangère pour provoquer un clic impulsif. L'URL 'moncompte-securite.net' est générique et non associée à un service précis. Aucun service légitime n'envoie des alertes de sécurité par SMS avec un lien de blocage.",
+      "question_fr": "Ce SMS vous alertant d'une connexion depuis la Russie est-il légitime ?",
+      "options_fr": [
+        "Oui, je dois bloquer l'accès immédiatement",
+        "Non, c'est du phishing par SMS (smishing)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-022",
+      "category": "threat",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "securite@compte-fb-alerte.com",
+        "subject": "Votre compte Facebook a été compromis",
+        "body": "Nous avons détecté un accès non autorisé à votre compte Facebook. Votre compte sera désactivé dans 48h si vous ne vérifiez pas votre identité. Cliquez ici pour sécuriser votre compte.",
+        "url": "http://compte-fb-alerte.com/securiser"
+      },
+      "indicators": [
+        "usurpation_facebook",
+        "domaine_non_officiel",
+        "menace_desactivation",
+        "urgence_48h"
+      ],
+      "explanation": "Facebook envoie ses alertes depuis '@facebookmail.com' ou '@facebook.com'. Le domaine 'compte-fb-alerte.com' n'a aucun lien avec Facebook. La menace de désactivation est un levier classique pour vous faire agir sans réfléchir.",
+      "question_fr": "Cet email vous avertissant d'un piratage de votre compte Facebook est-il légitime ?",
+      "options_fr": [
+        "Oui, je dois sécuriser mon compte Facebook",
+        "Non, c'est du phishing (faux domaine Facebook)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-023",
+      "category": "threat",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "noreply@police-nationale-cybercrime.fr",
+        "subject": "Convocation judiciaire — Activité illicite détectée",
+        "body": "Suite à une enquête de la Brigade Nationale de Lutte contre la Cybercriminalité, votre adresse IP a été identifiée dans des activités illicites. Vous avez 72h pour régler une amende de 150€ ou faire face à des poursuites judiciaires.",
+        "url": "https://police-nationale-cybercrime.fr/amende"
+      },
+      "indicators": [
+        "usurpation_autorite_policiere",
+        "fausse_convocation",
+        "peur_judiciaire",
+        "demande_paiement_amende"
+      ],
+      "explanation": "Cette arnaque imite une convocation policière pour créer la peur. La police nationale ne perçoit jamais d'amendes en ligne via email. Le domaine officiel de la police nationale est 'police-nationale.interieur.gouv.fr'. En cas de doute, contactez directement le commissariat.",
+      "question_fr": "Cet email de la 'Police Nationale' vous demandant de payer une amende est-il légitime ?",
+      "options_fr": [
+        "Oui, mieux vaut payer pour éviter les ennuis judiciaires",
+        "Non, c'est une arnaque au faux policier"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-024",
+      "category": "threat",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "noreply@linkedin.com",
+        "subject": "Votre profil LinkedIn a été désactivé suite à une violation",
+        "body": "Votre profil LinkedIn a été temporairement désactivé suite à une violation détectée de nos conditions d'utilisation. Pour réactiver votre compte, vérifiez vos informations dans les 24h.",
+        "url": "https://www.linkedin.com.account-verify.info/reactivate"
+      },
+      "indicators": [
+        "expediteur_usurpe_linkedin",
+        "sous_domaine_frauduleux",
+        "urgence_reactivation"
+      ],
+      "explanation": "L'expéditeur 'noreply@linkedin.com' peut être usurpé. L'URL 'linkedin.com.account-verify.info' semble contenir 'linkedin.com' mais le vrai domaine est 'account-verify.info'. Lisez toujours le domaine de droite à gauche : le domaine réel est la dernière partie avant le chemin.",
+      "question_fr": "Cet email LinkedIn vous demandant de réactiver votre compte via 'linkedin.com.account-verify.info' est-il légitime ?",
+      "options_fr": [
+        "Oui, l'URL contient bien 'linkedin.com'",
+        "Non, le vrai domaine est 'account-verify.info', pas LinkedIn"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-025",
+      "category": "urgency",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "sms",
+      "is_phishing": true,
+      "content": {
+        "sender": "Chronopost",
+        "subject": null,
+        "body": "Chronopost : Votre livraison est bloquée en douane. Réglez les frais (2,50€) sous 24h : https://chronopost-delivery.info/payer. Passé ce délai, le colis sera renvoyé.",
+        "url": "https://chronopost-delivery.info/payer"
+      },
+      "indicators": [
+        "imitation_transporteur",
+        "domaine_non_officiel",
+        "urgence_delai",
+        "montant_faible_credible"
+      ],
+      "explanation": "Le domaine officiel de Chronopost est 'chronopost.fr', pas 'chronopost-delivery.info'. Les transporteurs légitimes n'envoient pas de liens de paiement par SMS. En cas de doute sur une livraison, connectez-vous directement sur le site officiel du transporteur.",
+      "question_fr": "Ce SMS Chronopost vous demandant de payer des frais de douane sous 24h est-il légitime ?",
+      "options_fr": [
+        "Oui, les douanes imposent parfois des frais de livraison",
+        "Non, c'est du smishing (faux SMS Chronopost)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-026",
+      "category": "authority",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "contact@caf-allocation-fr.org",
+        "subject": "CAF : Mise à jour de vos droits — Action requise",
+        "body": "La Caisse d'Allocations Familiales vous informe d'une mise à jour de vos droits. Pour continuer à percevoir vos allocations, confirmez vos informations personnelles et bancaires avant le 30 du mois.",
+        "url": "http://caf-allocation-fr.org/confirmer"
+      },
+      "indicators": [
+        "usurpation_caf",
+        "domaine_non_officiel",
+        "demande_infos_bancaires",
+        "menace_perte_allocations"
+      ],
+      "explanation": "Le domaine officiel de la CAF est 'caf.fr'. Le domaine 'caf-allocation-fr.org' n'a aucun lien avec la CAF. La CAF ne demande jamais de confirmer des informations bancaires par email. Toutes les démarches se font via votre espace personnel sur caf.fr.",
+      "question_fr": "Cet email de la 'CAF' vous demandant de confirmer vos coordonnées bancaires est-il légitime ?",
+      "options_fr": [
+        "Oui, la CAF peut demander des mises à jour",
+        "Non, c'est du phishing (faux domaine CAF)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-027",
+      "category": "authority",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "webpage",
+      "is_phishing": true,
+      "content": {
+        "sender": null,
+        "subject": null,
+        "body": "Page de connexion Microsoft 365 avec le logo Office officiel, fond bleu Microsoft, champs email et mot de passe. URL : https://microsoftonIine.com/login (lettre 'I' majuscule à la place du 'l' minuscule).",
+        "url": "https://microsoftonIine.com/login"
+      },
+      "indicators": ["homoglyphe_majuscule_I", "page_clonee_microsoft", "typosquatting_visuel"],
+      "explanation": "Cette page utilise un homoglyphe : la lettre 'I' majuscule ressemble à 'l' minuscule dans certaines polices. 'microsoftonIine.com' avec un 'I' majuscule est différent de 'microsoftonline.com'. Dans la barre d'adresse, activez toujours l'affichage de la police à espacement fixe pour détecter ce type d'attaque.",
+      "question_fr": "Cette page de connexion Microsoft 365 sur 'microsoftonIine.com' (I majuscule) est-elle légitime ?",
+      "options_fr": [
+        "Oui, ça ressemble exactement à Microsoft",
+        "Non, c'est une attaque par homoglyphe (fausse URL)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-028",
+      "category": "gain",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "sms",
+      "is_phishing": true,
+      "content": {
+        "sender": "+33755001234",
+        "body": "Votre compte Cdiscount a un bon de réduction de 50€ expirant ce soir. Réclamez-le : http://cdiscount-promo.xyz/50euros",
+        "url": "http://cdiscount-promo.xyz/50euros"
+      },
+      "indicators": ["urgence_expiration_ce_soir", "domaine_non_officiel", "tld_xyz_suspect"],
+      "explanation": "Le domaine officiel de Cdiscount est 'cdiscount.com'. L'URL 'cdiscount-promo.xyz' n'a aucun lien avec Cdiscount. Le TLD '.xyz' est fréquemment utilisé dans les arnaques. Les promotions légitimes sont accessibles directement depuis votre compte sur le site officiel.",
+      "question_fr": "Ce SMS vous offrant un bon de réduction Cdiscount de 50€ expirant ce soir est-il légitime ?",
+      "options_fr": [
+        "Oui, les promos Cdiscount sont souvent envoyées par SMS",
+        "Non, c'est du smishing (faux SMS Cdiscount)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-029",
+      "category": "gain",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "newsletter@anssi.gouv.fr",
+        "subject": "ANSSI — Lettre d'information mensuelle n°47",
+        "body": "Bonjour, retrouvez dans cette édition les dernières actualités de la cybersécurité française, les alertes récentes et les ressources pédagogiques publiées ce mois-ci par l'ANSSI.",
+        "url": "https://www.ssi.gouv.fr/actualite/lettre-information-47"
+      },
+      "indicators": [],
+      "explanation": "Cet email est légitime. Il provient du domaine officiel 'anssi.gouv.fr' (sous-domaine du gouvernement français), ne demande aucune action urgente ni information personnelle, et l'URL pointe vers 'ssi.gouv.fr', le site officiel de l'ANSSI.",
+      "question_fr": "Cette newsletter mensuelle de l'ANSSI est-elle légitime ?",
+      "options_fr": [
+        "Oui, c'est une communication officielle de l'ANSSI",
+        "Non, c'est du phishing"
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "phish-fr-030",
+      "category": "threat",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "admin@votre-domaine.fr",
+        "subject": "Votre espace de stockage est plein — Suppression dans 24h",
+        "body": "Votre boîte mail est pleine à 98%. Vos emails entrants seront rejetés dans 24h si vous ne libérez pas d'espace. Connectez-vous pour gérer votre stockage.",
+        "url": "https://webmail-storage.votre-domaine-pro.com/manage"
+      },
+      "indicators": [
+        "fausse_alerte_stockage",
+        "domaine_different_expediteur",
+        "urgence_suppression_24h"
+      ],
+      "explanation": "L'expéditeur prétend venir de votre domaine mais l'URL de gestion pointe vers 'votre-domaine-pro.com', un domaine différent. Les vraies alertes de stockage proviennent directement de votre hébergeur email via votre interface d'administration habituelle.",
+      "question_fr": "Cet email vous alertant que votre boîte mail est pleine avec un lien de gestion est-il légitime ?",
+      "options_fr": [
+        "Oui, je dois libérer de l'espace rapidement",
+        "Non, l'URL de gestion ne correspond pas au domaine expéditeur"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-031",
+      "category": "urgency",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "verification@netflix-securite.fr",
+        "subject": "Votre abonnement Netflix a été suspendu",
+        "body": "Votre abonnement Netflix a été suspendu en raison d'un problème de paiement. Pour le réactiver et conserver l'accès à vos contenus, mettez à jour vos informations de paiement dans les 48h.",
+        "url": "https://netflix-securite.fr/mise-a-jour-paiement"
+      },
+      "indicators": [
+        "usurpation_netflix",
+        "domaine_non_officiel",
+        "demande_infos_paiement",
+        "urgence_suspension"
+      ],
+      "explanation": "Le domaine officiel de Netflix est 'netflix.com'. L'URL 'netflix-securite.fr' n'appartient pas à Netflix. Netflix ne contacte jamais ses abonnés depuis un domaine '.fr' séparé. En cas de problème de paiement, Netflix indique directement dans son application qu'une mise à jour est nécessaire.",
+      "question_fr": "Cet email Netflix vous demandant de mettre à jour vos informations de paiement est-il légitime ?",
+      "options_fr": [
+        "Oui, Netflix peut avoir des problèmes de paiement",
+        "Non, c'est du phishing (faux domaine Netflix)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-032",
+      "category": "authority",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "contact@amf-autorite-marches-financiers.fr",
+        "subject": "L'AMF enquête sur votre compte de trading — Coopération requise",
+        "body": "L'Autorité des Marchés Financiers a ouvert une enquête concernant des transactions suspectes liées à votre compte. Vous devez fournir vos relevés de compte dans les 72h via le portail sécurisé ci-dessous.",
+        "url": "https://amf-autorite-marches-financiers.fr/dossier"
+      },
+      "indicators": [
+        "usurpation_autorite_financiere",
+        "domaine_imitant_amf",
+        "demande_documents_sensibles",
+        "pression_judiciaire"
+      ],
+      "explanation": "Le domaine officiel de l'AMF est 'amf-france.org'. Le domaine 'amf-autorite-marches-financiers.fr' est un faux domaine construit pour paraître officiel. L'AMF n'engage jamais ses procédures d'enquête par email. Tout contact officiel passe par courrier recommandé.",
+      "question_fr": "Cet email de l'AMF vous demandant de fournir des relevés bancaires est-il légitime ?",
+      "options_fr": [
+        "Oui, l'AMF peut mener des enquêtes sur les particuliers",
+        "Non, c'est du phishing (faux domaine AMF)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-033",
+      "category": "threat",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "antivirus@windows-protection.net",
+        "subject": "ALERTE : Votre ordinateur est infecté par 5 virus",
+        "body": "Notre système a détecté 5 virus critiques sur votre ordinateur Windows. Votre antivirus est expiré. Téléchargez immédiatement la mise à jour de protection pour sécuriser vos données.",
+        "url": "https://windows-protection.net/antivirus-download"
+      },
+      "indicators": [
+        "fausse_alerte_virus",
+        "domaine_non_officiel",
+        "telechargement_malveillant",
+        "urgence_infection"
+      ],
+      "explanation": "Un site web ou un email ne peut pas scanner votre ordinateur pour détecter des virus. Cette arnaque vise à vous faire télécharger un faux antivirus qui est en réalité un malware. Microsoft envoie ses mises à jour via Windows Update, jamais par email avec un lien de téléchargement externe.",
+      "question_fr": "Cet email vous alertant de 5 virus sur votre PC et proposant un téléchargement est-il légitime ?",
+      "options_fr": [
+        "Oui, je dois télécharger la mise à jour de protection",
+        "Non, c'est une arnaque au faux antivirus (scareware)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-034",
+      "category": "gain",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "sms",
+      "is_phishing": true,
+      "content": {
+        "sender": "EDF",
+        "subject": null,
+        "body": "EDF : Trop-perçu sur votre facture d'électricité : 87€ vous seront remboursés. Saisissez votre IBAN : https://edf-remboursement.fr/iban",
+        "url": "https://edf-remboursement.fr/iban"
+      },
+      "indicators": [
+        "imitation_edf",
+        "demande_iban_sms",
+        "domaine_non_officiel",
+        "remboursement_appat"
+      ],
+      "explanation": "EDF ne demande jamais votre IBAN par SMS. Le domaine officiel d'EDF est 'edf.fr'. Les remboursements légitimes d'EDF sont effectués automatiquement sur le compte bancaire déjà enregistré dans votre espace client. Ne communiquez jamais vos coordonnées bancaires par SMS.",
+      "question_fr": "Ce SMS d'EDF vous demandant votre IBAN pour un remboursement est-il légitime ?",
+      "options_fr": [
+        "Oui, EDF peut rembourser des trop-perçus par SMS",
+        "Non, c'est du smishing (EDF ne demande jamais l'IBAN par SMS)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-035",
+      "category": "authority",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "noreply@npm.io",
+        "subject": "Votre package npm 'sentinel-core' a reçu une nouvelle contribution",
+        "body": "Un nouveau pull request a été ouvert sur votre package npm 'sentinel-core'. Consultez les détails et approuvez ou refusez la contribution depuis votre tableau de bord npm.",
+        "url": "https://www.npmjs.com/package/sentinel-core"
+      },
+      "indicators": [],
+      "explanation": "Cet email est légitime. npm envoie des notifications depuis 'npm.io' et les liens pointent vers 'npmjs.com', le domaine officiel de npm. Aucune action urgente ni donnée sensible n'est demandée. Ce type de notification de contribution est standard dans la gestion de packages open-source.",
+      "question_fr": "Cette notification npm concernant une contribution à votre package est-elle légitime ?",
+      "options_fr": ["Oui, c'est une notification npm officielle", "Non, c'est du phishing"],
+      "correct_index": 0
+    },
+    {
+      "id": "phish-fr-036",
+      "category": "threat",
+      "difficulty": "intermediate",
+      "locale": "fr",
+      "type": "webpage",
+      "is_phishing": true,
+      "content": {
+        "sender": null,
+        "subject": null,
+        "body": "Bandeau sur un site de téléchargement : 'Votre navigateur Chrome est obsolète et présente des failles critiques. Mettez à jour maintenant pour continuer à naviguer en sécurité.' Bouton : 'Mettre à jour Chrome'.",
+        "url": "https://chrome-update-secure.com/download"
+      },
+      "indicators": [
+        "fausse_alerte_navigateur",
+        "telechargement_malveillant",
+        "domaine_non_google",
+        "imitation_chrome"
+      ],
+      "explanation": "Chrome se met à jour automatiquement via son propre mécanisme interne. Les mises à jour ne s'effectuent jamais depuis un site tiers. Le domaine officiel de Chrome est 'google.com' ou 'chromium.org'. Ce type de bannière vise à vous faire installer un malware déguisé en mise à jour.",
+      "question_fr": "Ce bandeau vous demandant de mettre à jour Chrome via 'chrome-update-secure.com' est-il légitime ?",
+      "options_fr": [
+        "Oui, je dois mettre à jour mon navigateur",
+        "Non, Chrome se met à jour automatiquement, pas depuis un site tiers"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-037",
+      "category": "urgency",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "do-not-reply@docusign.com",
+        "subject": "Signature requise : Contrat de prestation — expire dans 2h",
+        "body": "Un document vous a été envoyé pour signature via DocuSign par Acme Corp. Ce document expire dans 2 heures. Cliquez sur 'Réviser le document' pour signer.",
+        "url": "https://docusign-secure.net/review/doc-8374"
+      },
+      "indicators": [
+        "expediteur_usurpe_docusign",
+        "url_non_docusign",
+        "urgence_expiration_2h",
+        "contexte_professionnel_credible"
+      ],
+      "explanation": "L'expéditeur semble être DocuSign mais l'URL de signature pointe vers 'docusign-secure.net', pas 'docusign.com'. DocuSign n'utilise que le domaine 'docusign.com' pour ses liens de signature. Cette attaque est crédible car elle imite le workflow DocuSign que beaucoup utilisent au travail.",
+      "question_fr": "Cet email DocuSign vous demandant de signer un contrat via 'docusign-secure.net' est-il légitime ?",
+      "options_fr": [
+        "Oui, DocuSign peut utiliser des sous-domaines sécurisés",
+        "Non, le lien ne pointe pas vers docusign.com"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-038",
+      "category": "gain",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "contact@sparknotes-offre-exclusive.com",
+        "subject": "Offre exclusive 6 mois gratuits — Votre abonnement Premium",
+        "body": "En tant que membre fidèle, nous vous offrons 6 mois d'abonnement Premium gratuits. Pour activer cette offre, connectez-vous avec vos identifiants et confirmez vos préférences de facturation.",
+        "url": "https://sparknotes-offre-exclusive.com/activer-premium"
+      },
+      "indicators": [
+        "offre_trop_avantageuse",
+        "domaine_non_officiel",
+        "demande_identifiants",
+        "contexte_abonnement_credible"
+      ],
+      "explanation": "Aucun service légitime ne vous demande de 'confirmer vos préférences de facturation' pour activer une offre gratuite. Ce scénario vise à récupérer vos identifiants. Les offres réelles sont visibles directement dans votre espace personnel sur le site officiel.",
+      "question_fr": "Cet email vous offrant 6 mois d'abonnement Premium gratuits en échange de vos identifiants est-il légitime ?",
+      "options_fr": [
+        "Oui, les services fidélisent leurs membres avec des offres gratuites",
+        "Non, c'est du credential phishing déguisé en offre fidélité"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-039",
+      "category": "threat",
+      "difficulty": "expert",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "blackmail@anonymous.onion",
+        "subject": "J'ai accès à votre webcam — Payez ou je publie",
+        "body": "J'ai enregistré des vidéos intimes via votre webcam pendant vos visites sur des sites pour adultes. Si vous ne transférez pas 800€ en Bitcoin dans les 48h, j'enverrai cette vidéo à tous vos contacts.",
+        "url": null
+      },
+      "indicators": ["sextorsion", "chantage_bitcoin", "mensonge_acces_webcam", "urgence_48h"],
+      "explanation": "C'est une arnaque de sextorsion. L'attaquant n'a PAS accès à votre webcam — c'est un mensonge. Ces emails sont envoyés en masse. Pour paraître crédibles, ils incluent parfois un ancien mot de passe provenant d'une fuite de données. Ne payez jamais. Signalez à la police via cybermalveillance.gouv.fr.",
+      "question_fr": "Cet email de chantage affirmant avoir accès à votre webcam est-il à prendre au sérieux ?",
+      "options_fr": [
+        "Oui, je dois payer pour éviter la diffusion",
+        "Non, c'est une arnaque de sextorsion — ne jamais payer"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-fr-040",
+      "category": "authority",
+      "difficulty": "basic",
+      "locale": "fr",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "noreply@gitlab.com",
+        "subject": "Votre pipeline CI/CD a échoué — sentinel-nudge",
+        "body": "Le pipeline #1042 sur la branche 'main' du projet sentinel-nudge a échoué à l'étape 'test'. Consultez les logs pour identifier la cause de l'échec.",
+        "url": "https://gitlab.com/antony/sentinel-nudge/-/pipelines/1042"
+      },
+      "indicators": [],
+      "explanation": "Cet email est légitime. GitLab envoie ses notifications depuis 'gitlab.com' et les liens pointent vers le domaine officiel 'gitlab.com'. Aucune action urgente ni donnée sensible n'est demandée. Ce type de notification CI/CD est standard pour les projets hébergés sur GitLab.",
+      "question_fr": "Cette notification GitLab d'échec de pipeline CI/CD est-elle légitime ?",
+      "options_fr": ["Oui, c'est une notification GitLab officielle", "Non, c'est du phishing"],
+      "correct_index": 0
+    },
+    {
+      "id": "phish-en-021",
+      "category": "threat",
+      "difficulty": "basic",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "security@apple-id-alert.com",
+        "subject": "Your Apple ID has been locked",
+        "body": "Your Apple ID has been locked due to too many failed sign-in attempts. Unlock your account within 24 hours to avoid permanent suspension.",
+        "url": "https://apple-id-alert.com/unlock"
+      },
+      "indicators": [
+        "non_official_domain",
+        "threat_account_lock",
+        "urgency_24h",
+        "impersonation_apple"
+      ],
+      "explanation": "Apple's official domain is 'apple.com'. The domain 'apple-id-alert.com' is not affiliated with Apple. Apple always communicates through 'appleid.apple.com' or 'apple.com'. Never click links in account lock emails — go directly to appleid.apple.com.",
+      "question_en": "Is this email from 'apple-id-alert.com' about a locked Apple ID legitimate?",
+      "options_en": [
+        "Yes, I should unlock my Apple ID immediately",
+        "No, it's phishing (wrong domain)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-022",
+      "category": "gain",
+      "difficulty": "basic",
+      "locale": "en",
+      "type": "sms",
+      "is_phishing": true,
+      "content": {
+        "sender": "+12025550179",
+        "body": "WALMART: You've been selected for our customer loyalty reward! Claim your $750 Walmart gift card: http://walmart-rewards-claim.com/gift",
+        "url": "http://walmart-rewards-claim.com/gift"
+      },
+      "indicators": ["too_good_to_be_true", "non_official_domain", "smishing", "http_not_https"],
+      "explanation": "Walmart's official domain is 'walmart.com'. The domain 'walmart-rewards-claim.com' is not affiliated with Walmart. Walmart does not run $750 gift card giveaways by SMS. This is a smishing attack designed to steal your personal information.",
+      "question_en": "Is this SMS from Walmart offering a $750 gift card legitimate?",
+      "options_en": [
+        "Yes, loyalty rewards programs are common",
+        "No, it's smishing (fake Walmart SMS)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-023",
+      "category": "authority",
+      "difficulty": "intermediate",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "irs-refund@irs-tax-refund.gov.us",
+        "subject": "IRS Tax Refund Notification — $1,247 pending",
+        "body": "The Internal Revenue Service has processed your tax return and determined that you are owed a refund of $1,247.00. To receive your refund, verify your bank account details within 5 business days.",
+        "url": "https://irs-tax-refund.gov.us/verify-bank"
+      },
+      "indicators": [
+        "impersonation_irs",
+        "fake_gov_subdomain",
+        "bank_details_request",
+        "refund_bait"
+      ],
+      "explanation": "The IRS official domain is 'irs.gov', not 'irs-tax-refund.gov.us'. The '.gov.us' construction is a common trick to appear governmental. The IRS never requests bank account details via email — refunds are sent to the bank account already on file from your tax return.",
+      "question_en": "Is this IRS email asking you to verify your bank account for a tax refund legitimate?",
+      "options_en": [
+        "Yes, the IRS does send refund notifications",
+        "No, it's phishing (fake IRS domain)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-024",
+      "category": "threat",
+      "difficulty": "intermediate",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "security@dropbox-notice.com",
+        "subject": "Dropbox: Your files will be deleted in 48 hours",
+        "body": "Due to inactivity, your Dropbox account and all stored files will be permanently deleted in 48 hours. Log in immediately to prevent data loss.",
+        "url": "https://dropbox-notice.com/login"
+      },
+      "indicators": [
+        "threat_file_deletion",
+        "non_official_domain",
+        "urgency_48h",
+        "impersonation_dropbox"
+      ],
+      "explanation": "Dropbox's official domain is 'dropbox.com', not 'dropbox-notice.com'. Dropbox does not delete accounts after inactivity without prior multiple warnings through official channels. This email uses the fear of data loss to provoke immediate action.",
+      "question_en": "Is this Dropbox email threatening to delete your files in 48 hours legitimate?",
+      "options_en": ["Yes, I need to log in to save my files", "No, it's phishing (wrong domain)"],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-025",
+      "category": "urgency",
+      "difficulty": "intermediate",
+      "locale": "en",
+      "type": "sms",
+      "is_phishing": true,
+      "content": {
+        "sender": "FedEx",
+        "subject": null,
+        "body": "FedEx: Your parcel is on hold at customs. Pay the $3.99 customs fee to release it: https://fedex-customs-release.net/pay. Offer expires in 24h.",
+        "url": "https://fedex-customs-release.net/pay"
+      },
+      "indicators": [
+        "impersonation_fedex",
+        "non_official_domain",
+        "customs_fee_scam",
+        "urgency_24h"
+      ],
+      "explanation": "FedEx's official domain is 'fedex.com'. The domain 'fedex-customs-release.net' is not affiliated with FedEx. Legitimate shipping companies do not send payment links for customs fees via SMS. If you have a genuine customs issue, log in directly at fedex.com.",
+      "question_en": "Is this SMS from FedEx asking you to pay a $3.99 customs fee legitimate?",
+      "options_en": [
+        "Yes, customs fees are sometimes required for international shipments",
+        "No, it's smishing (fake FedEx SMS)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-026",
+      "category": "authority",
+      "difficulty": "basic",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "support@apple-billing-update.com",
+        "subject": "Your Apple subscription payment failed",
+        "body": "We were unable to process your payment for your Apple One subscription. Update your payment information within 3 days to avoid service interruption.",
+        "url": "https://apple-billing-update.com/payment"
+      },
+      "indicators": [
+        "non_official_domain",
+        "payment_update_request",
+        "impersonation_apple",
+        "service_interruption_threat"
+      ],
+      "explanation": "Apple's official domain is 'apple.com'. 'apple-billing-update.com' is not affiliated with Apple. Apple manages billing issues directly through the App Store or the Apple ID website at 'appleid.apple.com'. Never enter payment information on a site reached via email link.",
+      "question_en": "Is this email from 'apple-billing-update.com' asking you to update your payment info legitimate?",
+      "options_en": ["Yes, Apple subscriptions can fail", "No, it's phishing (wrong domain)"],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-027",
+      "category": "gain",
+      "difficulty": "intermediate",
+      "locale": "en",
+      "type": "webpage",
+      "is_phishing": true,
+      "content": {
+        "sender": null,
+        "subject": null,
+        "body": "A pop-up on a coupon website: 'You are today's lucky visitor! Fill in your shipping address to receive a free Apple Watch Series 9 — limited to 1 per household.'",
+        "url": "https://free-apple-watch-promo.com/claim"
+      },
+      "indicators": [
+        "too_good_to_be_true",
+        "data_harvesting_form",
+        "fake_scarcity",
+        "non_official_domain"
+      ],
+      "explanation": "Apple does not distribute free products through third-party coupon websites. This pop-up is a classic data harvesting scam. The 'limited to 1 per household' message creates fake scarcity to seem more credible. Providing your address leads to unwanted subscriptions or spam.",
+      "question_en": "Is this pop-up offering a free Apple Watch on a coupon site legitimate?",
+      "options_en": [
+        "Yes, limited giveaways happen on promotional sites",
+        "No, it's a classic data harvesting scam"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-028",
+      "category": "threat",
+      "difficulty": "expert",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "no-reply@github.com",
+        "subject": "Action required: Your repository has been flagged for DMCA violation",
+        "body": "Your repository 'sentinel-nudge' has been flagged for a DMCA takedown request. You have 72 hours to respond or the repository will be permanently removed. Review the claim and submit a counter-notice.",
+        "url": "https://github.com.dmca-notice.io/counter-notice"
+      },
+      "indicators": [
+        "spoofed_github_sender",
+        "fake_subdomain_github",
+        "legal_threat_urgency",
+        "spear_phishing_developer"
+      ],
+      "explanation": "The sender appears to be GitHub but the URL 'github.com.dmca-notice.io' is hosted on 'dmca-notice.io', not on GitHub. GitHub handles DMCA notices at 'github.com/contact/dmca'. This is targeted spear phishing against developers who fear losing their code repositories.",
+      "question_en": "Is this email from 'no-reply@github.com' about a DMCA violation with a link to 'github.com.dmca-notice.io' legitimate?",
+      "options_en": [
+        "Yes, GitHub does enforce DMCA takedowns",
+        "No, the link goes to a fake domain (dmca-notice.io), not GitHub"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-029",
+      "category": "gain",
+      "difficulty": "expert",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": true,
+      "content": {
+        "sender": "hr@yourcompany.com",
+        "subject": "Year-end bonus: Please confirm your bank details",
+        "body": "The executive team has approved a year-end performance bonus for all eligible employees. To process your payment before December 31, please verify your bank account details through the HR portal.",
+        "url": "https://hr-portal.yourcompany-payroll.com/verify"
+      },
+      "indicators": [
+        "spoofed_hr_sender",
+        "similar_but_different_domain",
+        "bank_details_request",
+        "year_end_timing"
+      ],
+      "explanation": "The sender appears to be internal HR but the URL points to 'yourcompany-payroll.com', a different domain from 'yourcompany.com'. This is spear phishing timed around year-end bonuses when employees expect payment communications. Always verify HR portal URLs by checking with your HR department directly.",
+      "question_en": "Is this HR email asking you to verify bank details for a year-end bonus legitimate?",
+      "options_en": [
+        "Yes, HR sends bonus payment requests at year-end",
+        "No, the URL domain doesn't match the company domain (spear phishing)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "id": "phish-en-030",
+      "category": "authority",
+      "difficulty": "intermediate",
+      "locale": "en",
+      "type": "email",
+      "is_phishing": false,
+      "content": {
+        "sender": "noreply@github.com",
+        "subject": "Your GitHub Actions workflow run succeeded",
+        "body": "The workflow 'CI' on repository 'sentinel-nudge' completed successfully. All 200 tests passed. View the full run details and artifacts.",
+        "url": "https://github.com/antony/sentinel-nudge/actions/runs/12345"
+      },
+      "indicators": [],
+      "explanation": "This is a legitimate GitHub Actions notification. The sender is 'noreply@github.com', the URL points directly to 'github.com' (GitHub's official domain), and no sensitive information or urgent action is requested. GitHub sends workflow status notifications as a standard development practice.",
+      "question_en": "Is this GitHub Actions success notification legitimate?",
+      "options_en": ["Yes, it's a legitimate GitHub Actions notification", "No, it's phishing"],
+      "correct_index": 0
+    }
+  ]
+}

@@ -13,3 +13,5 @@ Thumbs.db
 *.crx
 *.pem
 web-ext-artifacts/
+coverage/
+src/coverage/

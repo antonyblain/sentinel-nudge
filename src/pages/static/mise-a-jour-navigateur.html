@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mise à jour navigateur : pourquoi c'est important — Sentinel Nudge</title>
+    <style>
+      :root {
+        --sn-color-bg: #ffffff;
+        --sn-color-fg: #111827;
+        --sn-color-accent: #2563eb;
+        --sn-color-muted: #6b7280;
+        --sn-color-border: #e5e7eb;
+        --sn-font-size-body: 1rem;
+        --sn-font-size-small: 0.875rem;
+        --sn-line-height: 1.6;
+        --sn-radius: 8px;
+        --sn-space-sm: 0.5rem;
+        --sn-space-md: 1rem;
+        --sn-space-lg: 1.5rem;
+        --sn-space-xl: 2rem;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --sn-color-bg: #1f2937;
+          --sn-color-fg: #f9fafb;
+          --sn-color-accent: #60a5fa;
+          --sn-color-border: #374151;
+          --sn-color-muted: #9ca3af;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: var(--sn-font-size-body);
+        line-height: var(--sn-line-height);
+        color: var(--sn-color-fg);
+        background: var(--sn-color-bg);
+        margin: 0;
+        padding: var(--sn-space-lg);
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      header {
+        margin-bottom: var(--sn-space-xl);
+        border-bottom: 2px solid var(--sn-color-accent);
+        padding-bottom: var(--sn-space-md);
+      }
+      .badge {
+        display: inline-block;
+        background: var(--sn-color-accent);
+        color: #fff;
+        font-size: var(--sn-font-size-small);
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        margin-bottom: var(--sn-space-sm);
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-sm);
+        color: var(--sn-color-accent);
+      }
+      .subtitle {
+        color: var(--sn-color-muted);
+        font-size: var(--sn-font-size-small);
+        margin: 0;
+      }
+      section {
+        margin-bottom: var(--sn-space-xl);
+      }
+      h2 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-md);
+        border-left: 4px solid var(--sn-color-accent);
+        padding-left: var(--sn-space-sm);
+      }
+      p {
+        margin: 0 0 var(--sn-space-md);
+      }
+      ul,
+      ol {
+        margin: 0 0 var(--sn-space-md);
+        padding-left: 1.5rem;
+      }
+      li {
+        margin-bottom: var(--sn-space-sm);
+      }
+      .tip-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+      @media (prefers-color-scheme: dark) {
+        .tip-box {
+          background: #1e3a5f;
+          border-color: #2563eb;
+        }
+      }
+      .ref-list {
+        list-style: none;
+        padding: 0;
+      }
+      .ref-list li {
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        margin-bottom: var(--sn-space-sm);
+        padding-left: var(--sn-space-md);
+        border-left: 2px solid var(--sn-color-border);
+      }
+      footer {
+        margin-top: var(--sn-space-xl);
+        padding-top: var(--sn-space-md);
+        border-top: 1px solid var(--sn-color-border);
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: var(--sn-space-md);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="badge" aria-label="Module M5">Mise à jour</span>
+      <h1>Mise à jour navigateur — pourquoi c'est important</h1>
+      <p class="subtitle">Sentinel Nudge — Mise à jour navigateur</p>
+    </header>
+
+    <main>
+      <section aria-labelledby="section-risk">
+        <h2 id="section-risk">Description du risque</h2>
+        <p>
+          Votre navigateur est le logiciel le plus exposé aux menaces sur internet : il exécute du
+          code provenant de millions de sites, gère vos mots de passe, vos sessions et vos
+          paiements. Les failles de sécurité dans les navigateurs sont régulièrement découvertes et
+          activement exploitées par des attaquants dans les jours qui suivent leur publication.
+        </p>
+        <p>
+          Une mise à jour de navigateur non installée est une fenêtre d'opportunité pour des
+          attaques dites "0-day" ou "N-day" qui n'exigent pas d'interaction particulière de votre
+          part : la simple visite d'une page malveillante peut suffire.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-mechanism">
+        <h2 id="section-mechanism">Mécanisme du module</h2>
+        <p>
+          Ce module utilise l'API native Chrome
+          <code>chrome.runtime.requestUpdateCheck()</code> pour détecter si une mise à jour du
+          navigateur est disponible. Cette vérification est effectuée toutes les 48 heures par une
+          alarme en arrière-plan.
+        </p>
+        <p>Conditions de déclenchement du rappel :</p>
+        <ul>
+          <li>Une mise à jour est effectivement disponible.</li>
+          <li>48 heures se sont écoulées depuis le dernier rappel.</li>
+          <li>
+            Le navigateur n'est pas en mode plein écran (pour ne pas interrompre une présentation).
+          </li>
+          <li>Le quota de nudges journalier n'est pas atteint.</li>
+        </ul>
+        <p>
+          Après 3 reports consécutifs ("Me rappeler dans 4 heures"), le bouton de report est masqué
+          pour encourager l'action.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-advice">
+        <h2 id="section-advice">Conseils pratiques</h2>
+        <div class="tip-box">
+          <strong>Pour mettre à jour Chrome :</strong>
+          <ul>
+            <li>
+              Cliquez sur les trois points en haut à droite → Aide → À propos de Google Chrome.
+            </li>
+            <li>Chrome vérifie et installe automatiquement la mise à jour.</li>
+            <li>Relancez le navigateur pour appliquer la mise à jour.</li>
+          </ul>
+        </div>
+        <p>
+          Activez la mise à jour automatique dans les paramètres système pour ne jamais manquer une
+          mise à jour critique. Sur Windows, Chrome se met à jour automatiquement via Google Update
+          en arrière-plan.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-refs">
+        <h2 id="section-refs">Sources scientifiques</h2>
+        <ul class="ref-list">
+          <li>
+            Google Project Zero (2022). <em>0-day In the Wild</em>. Suivi des failles activement
+            exploitées dans les navigateurs — délai médian d'exploitation après publication : 15
+            jours.
+          </li>
+          <li>
+            Sombatruang, N. et al. (2020). "Why people continue to be reluctant to update security
+            software." <em>Proc. SOUPS 2020</em>. Analyse des freins comportementaux à la mise à
+            jour et efficacité des rappels contextuels.
+          </li>
+          <li>
+            CISA (2023). <em>Known Exploited Vulnerabilities Catalog</em>. Base de données
+            officielle des vulnérabilités activement exploitées, incluant les navigateurs.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Sentinel Nudge — Extension open-source de cyber-hygiène comportementale — Licence GPL v3
+      </p>
+    </footer>
+  </body>
+</html>

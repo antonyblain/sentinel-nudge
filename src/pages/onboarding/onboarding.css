@@ -1,0 +1,406 @@
+/**
+ * onboarding.css — Styles de la page d'onboarding Sentinel Nudge
+ * Tokens centralises dans tokens.css (importe via HTML)
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--sn-font-body);
+  font-size: var(--sn-font-size-body);
+  line-height: var(--sn-line-height);
+  color: var(--sn-color-fg);
+  background-color: var(--sn-color-bg);
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--sn-space-xl);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* En-tête */
+.onboarding-header {
+  margin-bottom: var(--sn-space-xl);
+  text-align: center;
+}
+
+.onboarding-main-title {
+  font-size: var(--sn-font-size-h1);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-primary);
+  margin-bottom: var(--sn-space-md);
+}
+
+/* Barre de progression */
+.progress-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sn-space-sm);
+}
+
+.progress-dots {
+  display: flex;
+  list-style: none;
+  gap: var(--sn-space-sm);
+}
+
+.progress-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--sn-color-border);
+  transition: background-color 200ms ease;
+}
+
+.progress-dot-active {
+  background-color: var(--sn-color-accent);
+  transform: scale(1.2);
+}
+
+.progress-dot-done {
+  background-color: var(--sn-color-success);
+}
+
+/* Zone de contenu d'étape */
+.step-area {
+  min-height: 300px;
+  margin-bottom: var(--sn-space-xl);
+  outline: none; /* Focus géré programmatiquement */
+}
+
+/* Titre d'étape */
+.step-title {
+  font-size: var(--sn-font-size-h2);
+  font-weight: var(--sn-font-weight-bold);
+  margin-bottom: var(--sn-space-md);
+}
+
+.step-intro,
+.step-desc {
+  color: var(--sn-color-muted);
+  margin-bottom: var(--sn-space-lg);
+  line-height: 1.6;
+}
+
+/* Privacy box (étape 1) */
+.privacy-box {
+  background-color: var(--sn-color-info-bg);
+  border: 1px solid var(--sn-color-info-border);
+  border-radius: var(--sn-radius);
+  padding: var(--sn-space-md) var(--sn-space-lg);
+  margin-top: var(--sn-space-lg);
+}
+
+.privacy-title {
+  font-size: var(--sn-font-size-body);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-accent);
+  margin-bottom: var(--sn-space-sm);
+}
+
+.privacy-desc {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-fg);
+  margin-bottom: var(--sn-space-sm);
+  line-height: 1.6;
+}
+
+.opensource-badge {
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-success);
+}
+
+/* Profil (étape 2) */
+.profile-fieldset {
+  border: none;
+  padding: 0;
+}
+
+.profile-option {
+  padding: var(--sn-space-sm) 0;
+  border-bottom: 1px solid var(--sn-color-surface);
+}
+
+.profile-option:last-of-type {
+  border-bottom: none;
+}
+
+.radio-input {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  accent-color: var(--sn-color-accent);
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: var(--sn-space-sm);
+}
+
+.radio-input:focus-visible {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+.profile-label {
+  font-weight: var(--sn-font-weight-bold);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* WCAG 2.5.5 */
+}
+
+.profile-desc {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-muted);
+  margin-top: var(--sn-space-xs);
+  margin-left: 28px;
+}
+
+/* Modules (étape 3) */
+.modules-fieldset {
+  border: none;
+  padding: 0;
+}
+
+.module-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sn-space-sm) 0;
+  border-bottom: 1px solid var(--sn-color-surface);
+}
+
+.module-row:last-of-type {
+  border-bottom: none;
+}
+
+.module-row-label-wrapper {
+  flex: 1;
+  margin-right: var(--sn-space-md);
+}
+
+.module-row-name {
+  font-weight: var(--sn-font-weight-bold);
+  display: block;
+  cursor: pointer;
+}
+
+.module-row-desc {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-muted);
+  margin-top: var(--sn-space-xs);
+}
+
+/* Toggle switch */
+.toggle-switch-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-switch {
+  display: block;
+  width: 44px;
+  height: 24px;
+  background-color: var(--sn-color-border);
+  border-radius: 12px;
+  position: relative;
+  transition: background-color 150ms ease;
+  cursor: pointer;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: transform 150ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-input:checked + .toggle-switch {
+  background-color: var(--sn-color-accent);
+}
+
+.toggle-input:checked + .toggle-switch::after {
+  transform: translateX(20px);
+}
+
+.toggle-input:disabled + .toggle-switch {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toggle-input:focus-visible + .toggle-switch {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+/* Consentement M7 (étape 4) */
+.consent-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sn-space-sm);
+  padding: var(--sn-space-md);
+  background-color: var(--sn-color-success-bg);
+  border: 1px solid var(--sn-color-success);
+  border-radius: var(--sn-radius);
+  margin-bottom: var(--sn-space-md);
+}
+
+.consent-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin-top: 2px;
+  accent-color: var(--sn-color-accent);
+  cursor: pointer;
+}
+
+.consent-checkbox:focus-visible {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+.consent-label {
+  font-size: var(--sn-font-size-body);
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.consent-note {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-muted);
+  margin-top: var(--sn-space-md);
+  line-height: 1.5;
+}
+
+/* Note jaune d'avertissement M7 dans l'étape 3 (modules) */
+.module-row-m7-note {
+  background: var(--sn-color-warning-bg);
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  margin-top: var(--sn-space-xs);
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+  line-height: 1.5;
+}
+
+/* Lien GitHub dans la section open source */
+.github-link {
+  color: var(--sn-color-accent);
+  text-decoration: underline;
+}
+
+.privacy-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--sn-color-accent);
+  font-size: var(--sn-font-size-small);
+  text-decoration: underline;
+  min-height: 44px; /* WCAG 2.5.5 */
+}
+
+.privacy-link:focus-visible {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+/* Erreur validation étape */
+.step-error {
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  background-color: var(--sn-color-danger-bg);
+  border: 1px solid var(--sn-color-danger);
+  border-radius: var(--sn-radius);
+  color: var(--sn-color-danger);
+  font-size: var(--sn-font-size-small);
+  margin-bottom: var(--sn-space-md);
+}
+
+/* Navigation */
+.onboarding-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sn-space-sm);
+  padding-top: var(--sn-space-md);
+  border-top: 1px solid var(--sn-color-border);
+}
+
+/* Boutons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sn-space-sm) var(--sn-space-lg);
+  min-height: 44px; /* WCAG 2.5.5 */
+  min-width: 100px;
+  border: none;
+  border-radius: var(--sn-radius);
+  font-size: var(--sn-font-size-body);
+  font-weight: var(--sn-font-weight-bold);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background-color: var(--sn-color-accent);
+  color: #fff;
+  margin-left: auto;
+}
+
+.btn-primary:not(:disabled):hover {
+  background-color: var(--sn-color-accent-hover);
+}
+
+.btn-secondary {
+  background-color: var(--sn-color-surface);
+  color: var(--sn-color-fg);
+  border: 1px solid var(--sn-color-border);
+}
+
+.btn-secondary:not(:disabled):hover {
+  background-color: var(--sn-color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

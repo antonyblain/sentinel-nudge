@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionnaire de mots de passe : pourquoi ne pas réutiliser — Sentinel Nudge</title>
+    <style>
+      :root {
+        --sn-color-bg: #ffffff;
+        --sn-color-fg: #111827;
+        --sn-color-accent: #2563eb;
+        --sn-color-danger: #dc2626;
+        --sn-color-muted: #6b7280;
+        --sn-color-border: #e5e7eb;
+        --sn-font-size-body: 1rem;
+        --sn-font-size-small: 0.875rem;
+        --sn-line-height: 1.6;
+        --sn-radius: 8px;
+        --sn-space-sm: 0.5rem;
+        --sn-space-md: 1rem;
+        --sn-space-lg: 1.5rem;
+        --sn-space-xl: 2rem;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --sn-color-bg: #1f2937;
+          --sn-color-fg: #f9fafb;
+          --sn-color-accent: #60a5fa;
+          --sn-color-border: #374151;
+          --sn-color-muted: #9ca3af;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: var(--sn-font-size-body);
+        line-height: var(--sn-line-height);
+        color: var(--sn-color-fg);
+        background: var(--sn-color-bg);
+        margin: 0;
+        padding: var(--sn-space-lg);
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      header {
+        margin-bottom: var(--sn-space-xl);
+        border-bottom: 2px solid var(--sn-color-accent);
+        padding-bottom: var(--sn-space-md);
+      }
+      .badge {
+        display: inline-block;
+        background: var(--sn-color-accent);
+        color: #fff;
+        font-size: var(--sn-font-size-small);
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        margin-bottom: var(--sn-space-sm);
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-sm);
+        color: var(--sn-color-accent);
+      }
+      .subtitle {
+        color: var(--sn-color-muted);
+        font-size: var(--sn-font-size-small);
+        margin: 0;
+      }
+      section {
+        margin-bottom: var(--sn-space-xl);
+      }
+      h2 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin: 0 0 var(--sn-space-md);
+        border-left: 4px solid var(--sn-color-accent);
+        padding-left: var(--sn-space-sm);
+      }
+      p {
+        margin: 0 0 var(--sn-space-md);
+      }
+      ul,
+      ol {
+        margin: 0 0 var(--sn-space-md);
+        padding-left: 1.5rem;
+      }
+      li {
+        margin-bottom: var(--sn-space-sm);
+      }
+      .tip-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+      @media (prefers-color-scheme: dark) {
+        .tip-box {
+          background: #1e3a5f;
+          border-color: #2563eb;
+        }
+      }
+      .privacy-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: var(--sn-radius);
+        padding: var(--sn-space-md);
+        margin-bottom: var(--sn-space-md);
+      }
+      @media (prefers-color-scheme: dark) {
+        .privacy-box {
+          background: #14532d;
+          border-color: #16a34a;
+        }
+      }
+      .ref-list {
+        list-style: none;
+        padding: 0;
+      }
+      .ref-list li {
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        margin-bottom: var(--sn-space-sm);
+        padding-left: var(--sn-space-md);
+        border-left: 2px solid var(--sn-color-border);
+      }
+      footer {
+        margin-top: var(--sn-space-xl);
+        padding-top: var(--sn-space-md);
+        border-top: 1px solid var(--sn-color-border);
+        font-size: var(--sn-font-size-small);
+        color: var(--sn-color-muted);
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: var(--sn-space-md);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="badge" aria-label="Module M7">Réutilisation</span>
+      <h1>Gestionnaire de mots de passe — pourquoi ne pas réutiliser</h1>
+      <p class="subtitle">Sentinel Nudge — Détecteur de réutilisation de mots de passe</p>
+    </header>
+
+    <main>
+      <section aria-labelledby="section-risk">
+        <h2 id="section-risk">Description du risque</h2>
+        <p>
+          La réutilisation de mots de passe est l'une des pratiques les plus dangereuses en sécurité
+          numérique. Lorsqu'un service en ligne est compromis et que sa base de données de mots de
+          passe est volée, les attaquants testent systématiquement ces identifiants sur des dizaines
+          d'autres services : Gmail, banques, réseaux sociaux. C'est l'attaque dite de
+          <em>credential stuffing</em>.
+        </p>
+        <p>
+          Des milliards d'identifiants compromis sont disponibles gratuitement sur le dark web. Un
+          seul mot de passe réutilisé peut entraîner la compromission en cascade de tous vos
+          comptes.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-mechanism">
+        <h2 id="section-mechanism">Mécanisme du module</h2>
+        <p>
+          Le détecteur identifie la réutilisation de mots de passe entre sites différents. Il
+          calcule une empreinte locale (hash SHA-256) de chaque mot de passe soumis dans un
+          formulaire et compare cette empreinte aux précédentes.
+        </p>
+        <div class="privacy-box">
+          <strong>Protection de votre vie privée :</strong>
+          <ul>
+            <li>Les mots de passe en clair ne sont jamais stockés ni transmis.</li>
+            <li>
+              Seule l'empreinte cryptographique (SHA-256) est conservée, chiffrée en AES-256-GCM.
+            </li>
+            <li>Aucune donnée ne quitte votre navigateur.</li>
+            <li>Ce module requiert votre consentement explicite lors de l'installation.</li>
+          </ul>
+        </div>
+        <p>
+          Si une réutilisation est détectée, un toast discret s'affiche après la soumission du
+          formulaire pour vous informer et vous orienter vers un gestionnaire de mots de passe.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-advice">
+        <h2 id="section-advice">Gestionnaires de mots de passe recommandés</h2>
+        <p>
+          Sentinel Nudge recommande uniquement des gestionnaires open-source dont le code est
+          auditable publiquement :
+        </p>
+        <div class="tip-box">
+          <ul>
+            <li>
+              <strong>KeePassXC</strong> — Application locale, hors ligne, multiplateforme. Idéal
+              pour les utilisateurs avancés.
+            </li>
+            <li>
+              <strong>KeePass</strong> — Le projet original, Windows, très répandu en entreprise.
+            </li>
+            <li>
+              <strong>Bitwarden</strong> — Service cloud open-source avec applications mobiles et
+              extensions navigateur. Option auto-hébergement disponible.
+            </li>
+            <li>
+              <strong>Vaultwarden</strong> — Implémentation auto-hébergée compatible Bitwarden,
+              légère et performante.
+            </li>
+          </ul>
+        </div>
+        <p>
+          Un gestionnaire de mots de passe génère et mémorise un mot de passe unique et fort pour
+          chaque site. Vous n'avez à retenir qu'un seul mot de passe maître.
+        </p>
+      </section>
+
+      <section aria-labelledby="section-refs">
+        <h2 id="section-refs">Sources scientifiques</h2>
+        <ul class="ref-list">
+          <li>
+            Das, A. et al. (2014). "The tangled web of password reuse."
+            <em>Proc. NDSS 2014</em>. Mesure empirique de la réutilisation de mots de passe entre
+            services et corrélation avec les compromissions.
+          </li>
+          <li>
+            Florêncio, D. &amp; Herley, C. (2007). "A large-scale study of web password habits."
+            <em>Proc. WWW 2007</em>. 43 % des utilisateurs réutilisent leur mot de passe principal
+            sur des sites à risque élevé.
+          </li>
+          <li>
+            NIST SP 800-63B (2020). <em>Digital Identity Guidelines — Authentication</em>.
+            Recommandations officielles sur les mots de passe, incluant l'interdiction de
+            réutilisation entre services critiques.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Sentinel Nudge — Extension open-source de cyber-hygiène comportementale — Licence GPL v3
+      </p>
+    </footer>
+  </body>
+</html>

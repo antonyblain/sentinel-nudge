@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build release + SBOM + Publication GitHub Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # Nécessaire pour créer la GitHub Release
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Configuration Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Build de production
+        run: npm run build -- --mode production
+
+      - name: Vérification compatibilité licences GPL v3
+        run: npm run check-licenses
+
+      - name: Création de l'archive ZIP de l'extension
+        run: |
+          cd dist
+          zip -r ../sentinel-nudge-${{ github.ref_name }}.zip .
+          cd ..
+          echo "Archive créée : sentinel-nudge-${{ github.ref_name }}.zip"
+          ls -lh sentinel-nudge-${{ github.ref_name }}.zip
+
+      - name: Installation Syft (génération SBOM)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | \
+            sh -s -- -b /usr/local/bin
+
+      - name: Génération du SBOM au format SPDX-JSON
+        run: |
+          syft . \
+            --output spdx-json=sentinel-nudge-${{ github.ref_name }}-sbom.spdx.json \
+            --config /dev/null
+          echo "SBOM généré : sentinel-nudge-${{ github.ref_name }}-sbom.spdx.json"
+
+      - name: Création de la GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Sentinel Nudge ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            sentinel-nudge-${{ github.ref_name }}.zip
+            sentinel-nudge-${{ github.ref_name }}-sbom.spdx.json
+          body: |
+            ## Sentinel Nudge ${{ github.ref_name }}
+
+            ### Installation manuelle
+            1. Télécharger `sentinel-nudge-${{ github.ref_name }}.zip`
+            2. Extraire le contenu dans un dossier
+            3. Ouvrir Chrome → `chrome://extensions/`
+            4. Activer le "Mode développeur"
+            5. Cliquer "Charger l'extension non empaquetée" → sélectionner le dossier extrait
+
+            ### SBOM
+            Le fichier `sentinel-nudge-${{ github.ref_name }}-sbom.spdx.json` liste toutes
+            les dépendances de l'extension avec leurs licences (format SPDX-JSON, Syft/Anchore).
+
+            > Note : La publication sur le Chrome Web Store est effectuée manuellement
+            > par le Commanditaire suite à la review Google (délai 1-7 jours).
+
+      # Publication Chrome Web Store (commentée — nécessite secrets CWS configurés)
+      # Référence : DAT §13.3
+      #
+      # - name: Publication Chrome Web Store
+      #   uses: trmcnvn/chrome-addon@v2
+      #   with:
+      #     extension: ${{ secrets.CWS_EXTENSION_ID }}
+      #     zip: sentinel-nudge-${{ github.ref_name }}.zip
+      #     client-id: ${{ secrets.CWS_CLIENT_ID }}
+      #     client-secret: ${{ secrets.CWS_CLIENT_SECRET }}
+      #     refresh-token: ${{ secrets.CWS_REFRESH_TOKEN }}

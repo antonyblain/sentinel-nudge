@@ -1,0 +1,835 @@
+{
+  "extension_name": {
+    "message": "Sentinel Nudge",
+    "description": "Nom de l'extension"
+  },
+  "extension_description": {
+    "message": "Micro-nudges de cyber-hygiène pour améliorer vos habitudes de sécurité",
+    "description": "Description de l'extension"
+  },
+  "m2_overlay_title": {
+    "message": "Ce domaine présente des signaux inhabituels",
+    "description": "Titre de l'overlay M2"
+  },
+  "m2_overlay_description": {
+    "message": "Sentinel Nudge a détecté des signaux de risque sur ce site.",
+    "description": "Description de l'overlay M2"
+  },
+  "m2_overlay_signals_label": {
+    "message": "Signaux de risque détectés",
+    "description": "Aria-label de la liste de signaux M2"
+  },
+  "m2_overlay_btn_abandon": {
+    "message": "Abandonner la saisie",
+    "description": "Bouton abandon M2 (action sécurité principale)"
+  },
+  "m2_overlay_btn_dismiss": {
+    "message": "Continuer quand même",
+    "description": "Bouton de fermeture M2"
+  },
+  "m2_overlay_btn_trust": {
+    "message": "Marquer comme de confiance",
+    "description": "Bouton whitelist M2"
+  },
+  "m2_overlay_btn_why": {
+    "message": "Pourquoi ce message ?",
+    "description": "Bouton explication inline M2"
+  },
+  "m2_overlay_btn_learn": {
+    "message": "En savoir plus sur les risques",
+    "description": "Bouton lien page explication M2"
+  },
+  "m2_explanation_title": {
+    "message": "Pourquoi cette alerte ?",
+    "description": "Titre section explication M2"
+  },
+  "m2_explanation_para1": {
+    "message": "Les signaux détectés indiquent que ce site présente des caractéristiques couramment associées aux attaques de phishing et d'usurpation d'identité.",
+    "description": "Premier paragraphe explication M2"
+  },
+  "m2_explanation_para2": {
+    "message": "Saisir un mot de passe sur un site non sécurisé ou imitant un site connu expose vos identifiants à des tiers malveillants.",
+    "description": "Deuxième paragraphe explication M2"
+  },
+  "m2_signal_http": {
+    "message": "Ce site utilise HTTP (non chiffré)",
+    "description": "Signal HTTP M2"
+  },
+  "m2_signal_hsts_miss": {
+    "message": "Ce site n'est pas dans la liste HSTS preload",
+    "description": "Signal HSTS miss M2"
+  },
+  "m2_signal_levenshtein": {
+    "message": "Ce domaine ressemble à un site connu (typosquatting possible)",
+    "description": "Signal Levenshtein M2"
+  },
+  "m2_signal_cert_invalid": {
+    "message": "Le certificat TLS n'est pas valide",
+    "description": "Signal certificat invalide M2"
+  },
+  "m5_toast_title": {
+    "message": "Mise à jour disponible",
+    "description": "Titre du toast M5"
+  },
+  "m5_toast_body": {
+    "message": "Une mise à jour de votre navigateur est disponible. Les mises à jour corrigent des failles de sécurité importantes.",
+    "description": "Corps du toast M5"
+  },
+  "m5_toast_btn_close_label": {
+    "message": "Fermer cette notification",
+    "description": "Aria-label du bouton fermer M5"
+  },
+  "m5_toast_btn_update": {
+    "message": "Mettre à jour maintenant",
+    "description": "Bouton mise à jour M5"
+  },
+  "m5_toast_btn_snooze": {
+    "message": "Me rappeler dans 4 heures",
+    "description": "Bouton snooze M5"
+  },
+  "m5_toast_btn_why": {
+    "message": "Pourquoi c'est important ?",
+    "description": "Bouton explication M5"
+  },
+  "m6_overlay_title": {
+    "message": "Quiz phishing",
+    "description": "Titre de l'overlay quiz M6"
+  },
+  "m6_overlay_progress": {
+    "message": "Question $1 sur $2",
+    "description": "Progression du quiz M6",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "3" }
+    }
+  },
+  "m6_overlay_btn_close": {
+    "message": "Fermer le quiz",
+    "description": "Aria-label bouton fermer quiz M6"
+  },
+  "m6_overlay_btn_validate": {
+    "message": "Valider",
+    "description": "Bouton valider réponse M6"
+  },
+  "m6_overlay_btn_next": {
+    "message": "Question suivante",
+    "description": "Bouton question suivante M6"
+  },
+  "m6_overlay_btn_finish": {
+    "message": "Voir mon score",
+    "description": "Bouton voir score final M6"
+  },
+  "m6_overlay_btn_close_final": {
+    "message": "Fermer",
+    "description": "Bouton fermer résultats M6"
+  },
+  "m6_overlay_no_selection": {
+    "message": "Veuillez sélectionner une réponse avant de valider.",
+    "description": "Message absence de sélection M6"
+  },
+  "m6_overlay_feedback_label": {
+    "message": "Explication",
+    "description": "Aria-label zone feedback M6"
+  },
+  "m6_overlay_feedback_correct": {
+    "message": "Bonne réponse !",
+    "description": "Feedback réponse correcte M6"
+  },
+  "m6_overlay_feedback_wrong": {
+    "message": "Réponse incorrecte.",
+    "description": "Feedback réponse incorrecte M6"
+  },
+  "m6_overlay_results_title": {
+    "message": "Résultats du quiz",
+    "description": "Titre section résultats M6"
+  },
+  "m6_overlay_score": {
+    "message": "$1 / $2 bonnes réponses ($3 %)",
+    "description": "Score final M6",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "3" },
+      "3": { "content": "$3", "example": "67" }
+    }
+  },
+  "m6_overlay_score_excellent": {
+    "message": "Excellent ! Vous avez tout bon.",
+    "description": "Commentaire score parfait M6"
+  },
+  "m6_overlay_score_good": {
+    "message": "Bien joué ! Continuez à vous entraîner.",
+    "description": "Commentaire bon score M6"
+  },
+  "m6_overlay_score_improve": {
+    "message": "Continuez à pratiquer — la vigilance s'améliore avec l'entraînement.",
+    "description": "Commentaire score à améliorer M6"
+  },
+  "m7_toast_title": {
+    "message": "Mot de passe déjà utilisé",
+    "description": "Titre du toast M7"
+  },
+  "m7_toast_body": {
+    "message": "Ce mot de passe est utilisé sur un autre site. La réutilisation augmente le risque si l'un de vos comptes est compromis.",
+    "description": "Corps du toast M7"
+  },
+  "m7_toast_btn_close_label": {
+    "message": "Fermer cette notification",
+    "description": "Aria-label bouton fermer M7"
+  },
+  "m7_toast_btn_learn": {
+    "message": "Voir comment",
+    "description": "Bouton en savoir plus M7"
+  },
+  "m7_toast_btn_ok": {
+    "message": "OK, compris",
+    "description": "Bouton acquittement M7"
+  },
+  "m7_toast_btn_suppress": {
+    "message": "Ne plus ce site",
+    "description": "Bouton suppression domaine M7"
+  },
+  "m9_meter_label": {
+    "message": "Force du mot de passe",
+    "description": "Aria-label du meter M9"
+  },
+  "m9_score_very_weak": {
+    "message": "Très faible",
+    "description": "Label score 0 M9"
+  },
+  "m9_score_weak": {
+    "message": "Faible",
+    "description": "Label score 1 M9"
+  },
+  "m9_score_medium": {
+    "message": "Moyen",
+    "description": "Label score 2 M9"
+  },
+  "m9_score_strong": {
+    "message": "Fort",
+    "description": "Label score 3 M9"
+  },
+  "m9_score_very_strong": {
+    "message": "Très fort",
+    "description": "Label score 4 M9"
+  },
+  "m9_anssi_not_recommended": {
+    "message": "Déconseillé par l'ANSSI",
+    "description": "Marqueur ANSSI scores 0-1 M9"
+  },
+  "m9_anssi_acceptable": {
+    "message": "Acceptable",
+    "description": "Marqueur ANSSI score 2 M9"
+  },
+  "m9_anssi_recommended": {
+    "message": "Recommandé",
+    "description": "Marqueur ANSSI scores 3-4 M9"
+  },
+  "m9_suggestion_pw_excellent": {
+    "message": "Excellent ! Ce mot de passe est très solide.",
+    "description": "Suggestion mot de passe score 4 M9"
+  },
+  "m9_suggestion_pw_good": {
+    "message": "Bon mot de passe ! Pensez aussi à la phrase de passe : plus longue, plus facile à retenir.",
+    "description": "Suggestion mot de passe score 3 M9"
+  },
+  "m9_suggestion_pw_sequence": {
+    "message": "Évitez les séquences prévisibles (123, abc, azerty…).",
+    "description": "Suggestion séquence détectée M9"
+  },
+  "m9_suggestion_pw_too_short": {
+    "message": "Ajoutez des caractères — visez au moins 12.",
+    "description": "Suggestion mot de passe trop court M9"
+  },
+  "m9_suggestion_pw_no_special": {
+    "message": "Ajoutez un chiffre ou un caractère spécial pour renforcer la force.",
+    "description": "Suggestion absence chiffre/spécial M9"
+  },
+  "m9_suggestion_pw_add_symbol": {
+    "message": "Un caractère spécial (@, #, !) vous ferait passer à Fort.",
+    "description": "Suggestion ajouter symbole M9"
+  },
+  "m9_suggestion_pw_keep_going": {
+    "message": "Continuez à améliorer votre mot de passe.",
+    "description": "Suggestion générique amélioration M9"
+  },
+  "m9_suggestion_pp_excellent": {
+    "message": "Excellente phrase de passe ! Longue et imprévisible.",
+    "description": "Suggestion passphrase score 4 M9"
+  },
+  "m9_suggestion_pp_good": {
+    "message": "Bonne phrase de passe ! Facile à retenir, difficile à deviner.",
+    "description": "Suggestion passphrase score 3 M9"
+  },
+  "m9_suggestion_pp_too_short": {
+    "message": "Ajoutez un ou deux mots pour renforcer votre phrase de passe.",
+    "description": "Suggestion passphrase trop courte M9"
+  },
+  "m9_suggestion_pp_common_words": {
+    "message": "Remplacez les mots très courants par des mots plus originaux.",
+    "description": "Suggestion mots courants passphrase M9"
+  },
+  "m9_suggestion_pp_unusual_words": {
+    "message": "Essayez des mots moins courants ou sans lien logique entre eux.",
+    "description": "Suggestion mots inhabituels passphrase M9"
+  },
+  "m9_suggestion_pp_keep_going": {
+    "message": "Bonne phrase de passe ! Continuez.",
+    "description": "Suggestion générique passphrase M9"
+  },
+  "m17_toast_title": {
+    "message": "Donnée sensible détectée",
+    "description": "Titre du toast M17"
+  },
+  "m17_toast_body_generic": {
+    "message": "Vous venez de coller une donnée sensible dans un champ.",
+    "description": "Corps générique du toast M17"
+  },
+  "m17_toast_body": {
+    "message": "Un $1 vient d'être collé dans un champ. Assurez-vous que ce site est bien celui attendu et que votre presse-papiers ne reste pas accessible.",
+    "description": "Corps du toast M17 avec type de donnée",
+    "placeholders": {
+      "1": { "content": "$1", "example": "numéro de carte bancaire" }
+    }
+  },
+  "m17_toast_btn_close_label": {
+    "message": "Fermer cette notification",
+    "description": "Aria-label bouton fermer M17"
+  },
+  "m17_toast_btn_clear": {
+    "message": "Vider le presse-papiers",
+    "description": "Bouton vider presse-papiers M17"
+  },
+  "m17_toast_btn_ok": {
+    "message": "OK, merci",
+    "description": "Bouton acquittement M17"
+  },
+  "m17_toast_btn_learn": {
+    "message": "En savoir plus",
+    "description": "Bouton en savoir plus M17"
+  },
+  "m17_toast_clipboard_fallback": {
+    "message": "Videz manuellement votre presse-papiers (copiez un texte vide ou appuyez Ctrl+C sur un espace vide).",
+    "description": "Message fallback vidage presse-papiers M17"
+  },
+  "m17_toast_btn_understood": {
+    "message": "Compris",
+    "description": "Bouton compris fallback M17"
+  },
+  "m17_data_type_credit_card": {
+    "message": "numéro de carte bancaire",
+    "description": "Label type donnée carte bancaire M17"
+  },
+  "m17_data_type_iban": {
+    "message": "IBAN",
+    "description": "Label type donnée IBAN M17"
+  },
+  "m17_data_type_api_key": {
+    "message": "clé API",
+    "description": "Label type donnée clé API M17"
+  },
+  "popup_title": {
+    "message": "Sentinel Nudge",
+    "description": "Titre de la popup"
+  },
+  "popup_score_label": {
+    "message": "Score de cyber-hygiène",
+    "description": "Label du score dans la popup"
+  },
+  "popup_score_no_data": {
+    "message": "Premier score lundi",
+    "description": "Message affiché avant le premier calcul de score"
+  },
+  "popup_score_first_monday": {
+    "message": "Votre premier score sera calculé le $1",
+    "description": "Message avec date du premier lundi",
+    "placeholders": {
+      "1": { "content": "$1", "example": "lundi 14 avril" }
+    }
+  },
+  "popup_modules_active": {
+    "message": "$1 modules actifs sur 7",
+    "description": "Nombre de modules actifs",
+    "placeholders": {
+      "1": { "content": "$1", "example": "5" }
+    }
+  },
+  "popup_quota_label": {
+    "message": "Quota du jour",
+    "description": "Label section quota popup"
+  },
+  "popup_quota_remaining": {
+    "message": "$1 nudges restants aujourd'hui",
+    "description": "Nudges restants aujourd'hui",
+    "placeholders": {
+      "1": { "content": "$1", "example": "3" }
+    }
+  },
+  "popup_quota_unlimited": {
+    "message": "Quota illimité activé",
+    "description": "Message quota illimité"
+  },
+  "popup_quota_reached": {
+    "message": "Quota du jour atteint",
+    "description": "Message quota atteint"
+  },
+  "popup_modules_label": {
+    "message": "Modules actifs",
+    "description": "Label de la ligne Modules dans le bloc statut (KPI card)"
+  },
+  "popup_quota_reached_sub": {
+    "message": "limite atteinte",
+    "description": "Complement sous le chiffre 0 quand le quota est atteint"
+  },
+  "popup_quota_unlimited_sub": {
+    "message": "illimité",
+    "description": "Complement sous le symbole infini quand le quota est illimité"
+  },
+  "popup_quota_remaining_sub": {
+    "message": "nudges restants",
+    "description": "Complement sous le chiffre du quota restant"
+  },
+  "popup_status_aria_label": {
+    "message": "Statut rapide",
+    "description": "Aria-label de la section statut de la popup"
+  },
+  "popup_btn_dashboard": {
+    "message": "Voir le détail",
+    "description": "Bouton d'accès au dashboard depuis la popup"
+  },
+  "popup_btn_settings": {
+    "message": "Paramètres",
+    "description": "Bouton d'accès aux paramètres depuis la popup"
+  },
+  "popup_loading": {
+    "message": "Chargement…",
+    "description": "État de chargement de la popup"
+  },
+  "popup_error": {
+    "message": "Impossible de récupérer les données",
+    "description": "Erreur de récupération des données popup"
+  },
+  "options_title": {
+    "message": "Paramètres — Sentinel Nudge",
+    "description": "Titre de la page Options"
+  },
+  "options_section_modules": {
+    "message": "Modules actifs",
+    "description": "Section modules de la page Options"
+  },
+  "options_section_quota": {
+    "message": "Quota journalier",
+    "description": "Section quota de la page Options"
+  },
+  "options_section_profile": {
+    "message": "Profil",
+    "description": "Section profil de la page Options"
+  },
+  "options_section_language": {
+    "message": "Langue",
+    "description": "Section langue de la page Options"
+  },
+  "options_section_data": {
+    "message": "Mes données",
+    "description": "Section données de la page Options"
+  },
+  "options_section_transparency": {
+    "message": "Transparence radicale",
+    "description": "Section transparence de la page Options"
+  },
+  "options_section_about": {
+    "message": "À propos",
+    "description": "Section à propos de la page Options"
+  },
+  "options_quota_warning": {
+    "message": "Attention : en mode Tous, les nudges ne sont pas limités. Cela peut être intrusif.",
+    "description": "Avertissement quota illimité"
+  },
+  "options_profile_beginner": {
+    "message": "Débutant",
+    "description": "Profil débutant"
+  },
+  "options_profile_intermediate": {
+    "message": "Intermédiaire",
+    "description": "Profil intermédiaire"
+  },
+  "options_profile_advanced": {
+    "message": "Avancé",
+    "description": "Profil avancé"
+  },
+  "options_profile_beginner_desc": {
+    "message": "Quiz de niveau basique et intermédiaire. Nudges pédagogiques.",
+    "description": "Description profil débutant"
+  },
+  "options_profile_intermediate_desc": {
+    "message": "Quiz de tous niveaux. Équilibre pédagogie et exigence.",
+    "description": "Description profil intermédiaire"
+  },
+  "options_profile_advanced_desc": {
+    "message": "Quiz de niveau intermédiaire et expert. Priorité aux nouvelles techniques.",
+    "description": "Description profil avancé"
+  },
+  "options_lang_fr": {
+    "message": "Français",
+    "description": "Langue française"
+  },
+  "options_lang_en": {
+    "message": "English",
+    "description": "Langue anglaise"
+  },
+  "options_btn_export": {
+    "message": "Exporter mes données (RGPD Art. 20)",
+    "description": "Bouton export RGPD"
+  },
+  "options_btn_delete": {
+    "message": "Supprimer toutes mes données (RGPD Art. 17)",
+    "description": "Bouton suppression RGPD"
+  },
+  "options_btn_reset_whitelist": {
+    "message": "Réinitialiser la liste de confiance",
+    "description": "Bouton reset whitelist"
+  },
+  "options_delete_confirm_title": {
+    "message": "Supprimer toutes vos données ?",
+    "description": "Titre dialogue confirmation suppression"
+  },
+  "options_delete_confirm_desc": {
+    "message": "Cette action est irréversible. Toutes vos données locales seront définitivement supprimées.",
+    "description": "Description dialogue confirmation suppression"
+  },
+  "options_delete_confirm_btn": {
+    "message": "Confirmer la suppression",
+    "description": "Bouton confirmation suppression dans le dialogue"
+  },
+  "options_delete_cancel_btn": {
+    "message": "Annuler",
+    "description": "Bouton annulation dans le dialogue de suppression"
+  },
+  "options_delete_success": {
+    "message": "Toutes vos données ont été supprimées.",
+    "description": "Confirmation suppression réussie"
+  },
+  "options_whitelist_reset_success": {
+    "message": "La liste de confiance a été réinitialisée.",
+    "description": "Confirmation reset whitelist"
+  },
+  "options_transparency_desc": {
+    "message": "Chaque module est documenté en détail. Cliquez sur les liens ci-dessous pour comprendre comment fonctionne chaque nudge et pourquoi il est utile.",
+    "description": "Description section transparence"
+  },
+  "options_explain_link": {
+    "message": "En savoir plus sur $1",
+    "description": "Lien d'explication d'un module",
+    "placeholders": {
+      "1": { "content": "$1", "example": "M2" }
+    }
+  },
+  "options_about_version": {
+    "message": "Version : $1",
+    "description": "Version de l'extension",
+    "placeholders": {
+      "1": { "content": "$1", "example": "1.0.0" }
+    }
+  },
+  "options_about_license": {
+    "message": "Licence GPL v3",
+    "description": "Licence de l'extension"
+  },
+  "options_about_github": {
+    "message": "Code source sur GitHub",
+    "description": "Lien GitHub"
+  },
+  "options_loading": {
+    "message": "Chargement de la configuration…",
+    "description": "État de chargement des options"
+  },
+  "options_saved": {
+    "message": "Enregistré",
+    "description": "Confirmation de sauvegarde"
+  },
+  "options_accessibility_section": {
+    "message": "Accessibilité",
+    "description": "Section accessibilité des options"
+  },
+  "options_toast_auto_dismiss": {
+    "message": "Masquer automatiquement les notifications",
+    "description": "Option de disparition automatique des toasts"
+  },
+  "onboarding_title": {
+    "message": "Bienvenue sur Sentinel Nudge",
+    "description": "Titre principal de l'onboarding"
+  },
+  "onboarding_step_of": {
+    "message": "Étape $1 sur $2",
+    "description": "Indicateur de progression",
+    "placeholders": {
+      "1": { "content": "$1", "example": "2" },
+      "2": { "content": "$2", "example": "4" }
+    }
+  },
+  "onboarding_btn_next": {
+    "message": "Suivant",
+    "description": "Bouton Suivant de l'onboarding"
+  },
+  "onboarding_btn_prev": {
+    "message": "Précédent",
+    "description": "Bouton Précédent de l'onboarding"
+  },
+  "onboarding_btn_finish": {
+    "message": "Terminer",
+    "description": "Bouton Terminer de l'onboarding"
+  },
+  "onboarding_step1_title": {
+    "message": "Bienvenue sur Sentinel Nudge",
+    "description": "Titre étape 1"
+  },
+  "onboarding_step1_intro": {
+    "message": "Sentinel Nudge vous aide à adopter de meilleures habitudes de sécurité au quotidien. L'extension vous envoie des rappels discrets et personnalisés au bon moment — par exemple quand vous créez un mot de passe trop simple ou visitez un site suspect.",
+    "description": "Introduction étape 1"
+  },
+  "onboarding_step1_privacy_title": {
+    "message": "Privacy by design",
+    "description": "Titre section privacy étape 1"
+  },
+  "onboarding_step1_privacy_desc": {
+    "message": "Tout traitement est effectué localement sur votre ordinateur. Aucune donnée ne quitte votre navigateur. Aucune télémétrie. Code source ouvert et auditable.",
+    "description": "Description privacy étape 1"
+  },
+  "onboarding_step1_opensource": {
+    "message": "Open source — licence GPL v3 — Voir le code sur GitHub",
+    "description": "Mention open source étape 1"
+  },
+  "onboarding_step2_title": {
+    "message": "Choisissez votre profil",
+    "description": "Titre étape 2"
+  },
+  "onboarding_step2_desc": {
+    "message": "Votre profil influence la difficulté des quiz de sensibilisation. Vous pouvez le modifier à tout moment dans les paramètres.",
+    "description": "Description étape 2"
+  },
+  "onboarding_step3_title": {
+    "message": "Sélection des modules",
+    "description": "Titre étape 3"
+  },
+  "onboarding_step3_desc": {
+    "message": "Chaque module surveille un aspect de votre cyber-hygiène. Tous sont actifs par défaut.",
+    "description": "Description étape 3"
+  },
+  "onboarding_step4_title": {
+    "message": "Consentement — Détection de réutilisation de mots de passe",
+    "description": "Titre étape 4"
+  },
+  "onboarding_step4_desc": {
+    "message": "Ce module détecte quand vous réutilisez le même mot de passe sur plusieurs sites. Pour cela, il calcule une empreinte locale de vos mots de passe. Cette empreinte est chiffrée et ne quitte jamais votre navigateur.",
+    "description": "Description étape 4"
+  },
+  "onboarding_step4_consent_label": {
+    "message": "J'accepte que Sentinel Nudge calcule des empreintes locales de mes mots de passe pour détecter les réutilisations",
+    "description": "Label consentement M7"
+  },
+  "onboarding_step4_privacy_link": {
+    "message": "Lire la politique de confidentialité",
+    "description": "Lien politique de confidentialité"
+  },
+  "onboarding_profile_required": {
+    "message": "Veuillez sélectionner un profil avant de continuer.",
+    "description": "Erreur profil manquant"
+  },
+  "module_m2_name": {
+    "message": "Sites suspects",
+    "description": "Nom du module M2"
+  },
+  "module_m2_desc": {
+    "message": "Alerte lors de la saisie d'un mot de passe sur un site potentiellement dangereux (HTTP, typosquatting, certificat auto-signé).",
+    "description": "Description du module M2"
+  },
+  "module_m3_name": {
+    "message": "Score de cyber-hygiène",
+    "description": "Nom du module M3"
+  },
+  "module_m3_desc": {
+    "message": "Calcule votre score de cyber-hygiène chaque lundi et met à jour le badge de l'extension.",
+    "description": "Description du module M3"
+  },
+  "module_m5_name": {
+    "message": "Mise à jour navigateur",
+    "description": "Nom du module M5"
+  },
+  "module_m5_desc": {
+    "message": "Vous rappelle de mettre à jour votre navigateur lorsqu'une mise à jour est disponible.",
+    "description": "Description du module M5"
+  },
+  "module_m6_name": {
+    "message": "Quiz phishing",
+    "description": "Nom du module M6"
+  },
+  "module_m6_desc": {
+    "message": "Mini-quiz périodique pour reconnaître les tentatives de phishing. Utilise la répétition espacée.",
+    "description": "Description du module M6"
+  },
+  "module_m7_name": {
+    "message": "Réutilisation de mots de passe",
+    "description": "Nom du module M7"
+  },
+  "module_m7_desc": {
+    "message": "Détecte si vous réutilisez le même mot de passe sur plusieurs sites. Requiert consentement explicite.",
+    "description": "Description du module M7"
+  },
+  "module_m9_name": {
+    "message": "Force des mots de passe",
+    "description": "Nom du module M9"
+  },
+  "module_m9_desc": {
+    "message": "Affiche un indicateur de force lors de la création d'un mot de passe avec des suggestions d'amélioration.",
+    "description": "Description du module M9"
+  },
+  "module_m17_name": {
+    "message": "Données sensibles presse-papiers",
+    "description": "Nom du module M17"
+  },
+  "module_m17_desc": {
+    "message": "Alerte si vous collez un numéro de carte bancaire, un IBAN ou une clé API dans un formulaire.",
+    "description": "Description du module M17"
+  },
+  "dashboard_title": {
+    "message": "Tableau de bord — Sentinel Nudge",
+    "description": "Titre de la page dashboard"
+  },
+  "dashboard_score_current": {
+    "message": "Score actuel",
+    "description": "Label score courant dashboard"
+  },
+  "dashboard_score_no_data": {
+    "message": "Aucun score disponible",
+    "description": "Score indisponible"
+  },
+  "dashboard_score_delta_up": {
+    "message": "↑ $1 points cette semaine",
+    "description": "Delta score positif",
+    "placeholders": {
+      "1": { "content": "$1", "example": "5" }
+    }
+  },
+  "dashboard_score_delta_down": {
+    "message": "↓ $1 points cette semaine",
+    "description": "Delta score négatif",
+    "placeholders": {
+      "1": { "content": "$1", "example": "3" }
+    }
+  },
+  "dashboard_score_delta_equal": {
+    "message": "= Stable cette semaine",
+    "description": "Delta score nul"
+  },
+  "dashboard_chart_title": {
+    "message": "Score de cyber-hygiène — 52 dernières semaines",
+    "description": "Titre du graphique SVG"
+  },
+  "dashboard_chart_desc": {
+    "message": "Graphique en barres représentant le score hebdomadaire de cyber-hygiène sur les 52 dernières semaines. Les valeurs détaillées sont disponibles dans le tableau ci-dessous.",
+    "description": "Description accessible du graphique SVG"
+  },
+  "dashboard_chart_table_label": {
+    "message": "Données du graphique : scores hebdomadaires",
+    "description": "Aria-label de la table sr-only"
+  },
+  "dashboard_chart_table_caption": {
+    "message": "Score de cyber-hygiène par semaine (52 semaines)",
+    "description": "Caption de la table sr-only"
+  },
+  "dashboard_table_col_week": {
+    "message": "Semaine",
+    "description": "En-tête colonne semaine"
+  },
+  "dashboard_table_col_score": {
+    "message": "Score",
+    "description": "En-tête colonne score"
+  },
+  "dashboard_components_title": {
+    "message": "Détail par composante",
+    "description": "Section détail composantes"
+  },
+  "dashboard_component_m5": {
+    "message": "Mise à jour navigateur",
+    "description": "Composante M5"
+  },
+  "dashboard_component_m6": {
+    "message": "Résistance au phishing",
+    "description": "Composante M6"
+  },
+  "dashboard_component_m2": {
+    "message": "Sites risqués",
+    "description": "Composante M2"
+  },
+  "dashboard_component_m7": {
+    "message": "Diversité des mots de passe",
+    "description": "Composante M7"
+  },
+  "dashboard_component_m9": {
+    "message": "Force des mots de passe",
+    "description": "Composante M9"
+  },
+  "dashboard_action_title": {
+    "message": "Action recommandée",
+    "description": "Section action recommandée"
+  },
+  "dashboard_nudges_title": {
+    "message": "Statistiques des nudges",
+    "description": "Section stats nudges"
+  },
+  "dashboard_nudges_this_week": {
+    "message": "Nudges affichés cette semaine : $1",
+    "description": "Nombre de nudges cette semaine",
+    "placeholders": {
+      "1": { "content": "$1", "example": "7" }
+    }
+  },
+  "dashboard_nudges_response_rate": {
+    "message": "Taux de réponse : $1 %",
+    "description": "Taux de réponse aux nudges",
+    "placeholders": {
+      "1": { "content": "$1", "example": "85" }
+    }
+  },
+  "dashboard_quiz_title": {
+    "message": "Quiz — Résistance au phishing",
+    "description": "Section quiz du dashboard"
+  },
+  "dashboard_quiz_last_score": {
+    "message": "Dernier score : $1 %",
+    "description": "Dernier score quiz",
+    "placeholders": {
+      "1": { "content": "$1", "example": "67" }
+    }
+  },
+  "dashboard_quiz_next_date": {
+    "message": "Prochain quiz : $1",
+    "description": "Date prochain quiz",
+    "placeholders": {
+      "1": { "content": "$1", "example": "21 avril 2026" }
+    }
+  },
+  "dashboard_quiz_no_session": {
+    "message": "Aucun quiz effectué pour l'instant.",
+    "description": "Aucune session quiz"
+  },
+  "dashboard_btn_settings": {
+    "message": "Ouvrir les paramètres",
+    "description": "Bouton paramètres du dashboard"
+  },
+  "dashboard_loading": {
+    "message": "Chargement du tableau de bord…",
+    "description": "État de chargement du dashboard"
+  },
+  "score_level_high": {
+    "message": "Bon",
+    "description": "Niveau score élevé"
+  },
+  "score_level_medium": {
+    "message": "Moyen",
+    "description": "Niveau score moyen"
+  },
+  "score_level_low": {
+    "message": "Faible",
+    "description": "Niveau score faible"
+  }
+}

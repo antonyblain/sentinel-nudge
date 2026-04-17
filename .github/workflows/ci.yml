@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  quality:
+    name: Qualité — Lint, Format, Tests, Build, Licences
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Configuration Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Vérification ESLint (D-SEC-003 — no innerHTML)
+        run: npm run lint
+
+      - name: Vérification format Prettier
+        run: npm run format:check
+
+      - name: Tests unitaires et intégration (Vitest)
+        run: npm run test
+
+      - name: Build de production
+        run: npm run build
+
+      - name: Vérification taille du bundle (< 5 Mo)
+        run: |
+          BUNDLE_SIZE=$(du -sb dist/ | cut -f1)
+          MAX_SIZE=$((5 * 1024 * 1024))
+          echo "Taille du bundle : ${BUNDLE_SIZE} bytes (max : ${MAX_SIZE} bytes)"
+          if [ "$BUNDLE_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "ERREUR : Le bundle dépasse 5 Mo (${BUNDLE_SIZE} > ${MAX_SIZE})"
+            exit 1
+          fi
+          echo "OK : Taille bundle dans les limites"
+
+      - name: Vérification compatibilité licences GPL v3
+        run: npm run check-licenses

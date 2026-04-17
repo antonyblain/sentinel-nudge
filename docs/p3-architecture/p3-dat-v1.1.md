@@ -2,9 +2,9 @@
 ## Phase P3 — Architecte logiciel
 
 **Projet :** Sentinel Nudge
-**Version :** 1.1
-**Date de production :** 2026-04-11
-**Statut :** Intégration corrections comité d'architecture
+**Version :** 1.2
+**Date de production :** 2026-04-12
+**Statut :** Intégration addendum whitelist M2 (ADR-006)
 **Commanditaire :** Antony (RSSI)
 **Niveau de sensibilité :** Exposé
 **Documents de référence :**
@@ -43,7 +43,7 @@
    - 9.1 Content Security Policy
    - 9.2 Permissions minimales
    - 9.3 Sanitisation et intégrité du DOM
-   - 9.4 Décisions de sécurité D-SEC-001 à D-SEC-005
+   - 9.4 Décisions de sécurité D-SEC-001 à D-SEC-006
 10. Performance
     - 10.1 Budget de performance
     - 10.2 Stratégies d'optimisation
@@ -198,6 +198,9 @@ La communication suit exclusivement le modèle de passage de messages Chrome (au
 | Popup/Options/Dashboard | Service Worker | `chrome.runtime.sendMessage()` | Requête/réponse | Lecture état, mise à jour config |
 | Service Worker interne | Service Worker | Appels de fonctions directs | Interne | Chiffrement, calcul M3, gestion quota |
 | Chrome Runtime | Service Worker | `chrome.alarms.onAlarm` | Événement entrant | Déclenchement M3 (lundi 09h), M5 (périodique), M6 (spaced repetition) |
+| Content Script M2 | chrome.storage.local | `browser.storage.local.get/set()` | Direct (sans SW) | Lecture/écriture whitelist M2 (`m2_trusted_domains`) — exception au pattern message-based, justifiée par la race condition MV3 (cf. ADR-006) |
+
+> **Exception documentée (ADR-006) :** le content script du module M2 accède directement à `chrome.storage.local` pour lire et écrire la clé `m2_trusted_domains`. Cet accès est limité à cette clé et à ce module. Il est déclenché uniquement au démarrage du content script (lecture initiale) et lors d'une action "confiance" utilisateur (écriture). Il ne contourne pas le MessageRouter pour la logique de décision (celle-ci reste dans le SW), mais court-circuite la couche de transport pour la persistance du cache whitelist.
 
 **Format de message standardisé :**
 
@@ -324,6 +327,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   - Parcel : support MV3 expérimental, moins mature.
 - **Conséquences positives :** Démarrage dev < 500ms, HMR pour les pages UI, configuration déclarative via `manifest.json` comme source de vérité, multi-entry natif, tree-shaking optimisé.
 - **Conséquences négatives :** `vite-plugin-web-extension` est un plugin communautaire (non officiel Google). Risque de dépréciation à surveiller.
+- **Contraintes d'implémentation (retour P4) :**
+  - Configurer `root: 'src'` dans `vite.config.ts` pour que les chemins du manifest soient résolus relativement à `src/`.
+  - Le manifest source (`src/manifest.json`) doit utiliser des extensions `.ts` (ex: `"service_worker": "background/service-worker.ts"`) — le plugin compile en `.js` dans `dist/`.
+  - Les fichiers HTML doivent référencer les scripts avec l'extension `.ts` (`<script src="popup.ts">`), pas `.js`.
+  - Le `outDir` doit être défini en chemin absolu (`resolve(__dirname, 'dist')`) quand `root` est différent de la racine du projet.
+  - `jsdom` est requis en devDependency pour l'environnement de test Vitest.
+  - SubtleCrypto (Web Crypto API) n'est pas disponible dans jsdom — les tests crypto nécessitent un polyfill ou un mock.
 - **Plan B :** Migration vers Webpack si le plugin Vite n'est plus maintenu. Le code source TypeScript est identique — seule la configuration de build change.
 
 ---
@@ -505,7 +515,7 @@ sentinel-nudge/
 ├── vite.config.ts
 ├── tsconfig.json
 ├── tsconfig.test.json
-├── .eslintrc.json
+├── eslint.config.js
 ├── .prettierrc
 ├── package.json
 ├── .env.example
@@ -626,7 +636,16 @@ flowchart TD
         CRYPTO --> IDB[(IndexedDB\n5 stores chiffrés)]
         STORE --> CSL[(chrome.storage.local\nconfig + quota)]
     end
+
+    subgraph "Détection M2 — court-circuit whitelist"
+        CS_PWD -->|loadTrustedDomains au démarrage| CSL_WL[(chrome.storage.local\nm2_trusted_domains)]
+        CS_PWD -->|persistTrustedDomain si confiance| CSL_WL
+        CSL_WL -.->|cache mémoire chargé| CACHE[Set trustedDomainHashes]
+        CACHE -->|hit synchrone| SKIP_MSG[Skip sendMessage\ndomaine déjà de confiance]
+    end
 ```
+
+> **M2 dispose d'un court-circuit whitelist dans le content script** (accès direct `chrome.storage.local`). Le message `risk_detected` n'est envoyé au SW que si le domaine n'est pas dans le cache mémoire local. La vérification définitive en IndexedDB est réalisée côté SW (couche 3).
 
 **Note sur `domain_hash` :** dans tous les flux, `domain_hash` est calculé par `SHA-256(installation_salt + domain)`. Le sel est propre à chaque installation (16 bytes, cf. D-SEC-001), ce qui empêche la corrélation inter-utilisateurs des hashes de domaine.
 
@@ -665,6 +684,28 @@ sequenceDiagram
     SW->>ST: updateEvent(eventId, {action:'dismissed'})
     SW-->>UI: {success: true}
     UI->>DOM: Retirer overlay du DOM
+```
+
+**Scénario alternatif M2 — domaine de confiance (court-circuit whitelist) :**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant DOM as Page Web (DOM)
+    participant DET as ContentScript M2
+    participant CSL as chrome.storage.local
+    participant SW as Service Worker
+
+    Note over DET: Au démarrage du content script
+    DET->>CSL: browser.storage.local.get(['m2_trusted_domains'])
+    CSL-->>DET: [domain_hash_A, domain_hash_B, ...]
+    Note over DET: Cache mémoire chargé (Set<string>)
+
+    DOM->>DET: focus event sur input[type=password]
+    DET->>DET: Calculer domain_hash = SHA-256(salt + domain)
+    DET->>DET: trustedDomainHashes.has(domain_hash) → true
+    Note over DET: Court-circuit — aucun message envoyé au SW
+    Note over DET: Aucun overlay affiché
 ```
 
 ---
@@ -804,10 +845,16 @@ interface ChromeStorageSchema {
   // Session M2 (domaines déjà nudgés dans la session courante)
   m2_session_domains: string[];  // [domain_hash1, domain_hash2, ...] — SHA-256(salt+domain)
 
+  // Whitelist M2 côté content script (cache persistant inter-sessions)
+  // Court-circuit avant envoi au SW — évite race condition MV3 réveil SW
+  m2_trusted_domains: string[];  // [domain_hash1, ...] — SHA-256(salt+domain)
+
   // Installation salt pour D-SEC-001
   installation_salt: string;  // 16 bytes (128 bits) en hexadécimal (32 caractères), généré via crypto.getRandomValues
 }
 ```
+
+> **Note sur `m2_trusted_domains` :** Cette clé est distincte de `m2_session_domains`. Elle contient les domaines explicitement marqués de confiance par l'utilisateur (persistance permanente jusqu'à effacement volontaire). La clé `m2_session_domains` contient uniquement les domaines déjà nudgés dans la session courante (déduplication session, pas de confiance permanente).
 
 **Bases légales RGPD par store (T-ARCH-09) :**
 
@@ -964,7 +1011,7 @@ La CSP est déclarée dans `manifest.json` sous `content_security_policy`. Elle 
 Cette règle est enforced par ESLint avec une règle custom :
 
 ```json
-// .eslintrc.json
+// eslint.config.js
 {
   "rules": {
     "no-restricted-properties": [
@@ -980,7 +1027,7 @@ Cette règle est enforced par ESLint avec une règle custom :
 
 Les données utilisateur (noms de domaine dans les overlays) sont systématiquement insérées via `textContent`. Les templates HTML des composants Shadow DOM sont construits programmatiquement via `createElement`.
 
-### 9.4 Décisions de sécurité D-SEC-001 à D-SEC-005
+### 9.4 Décisions de sécurité D-SEC-001 à D-SEC-006
 
 #### D-SEC-001 : Hash salé pour les mots de passe (M7)
 
@@ -1016,6 +1063,21 @@ La clé AES-256-GCM est stockée en clair dans `chrome.storage.local`. Ce risque
 Une Analyse d'Impact relative à la Protection des Données (AIPD) est requise pour M7 avant le déploiement. M7 traite des hashes de mots de passe qui, bien que salés par installation et chiffrés au repos (NC-DPO-01), constituent des données potentiellement sensibles. L'AIPD est produite par le DPO en phase P3. Ce DAT ne peut être considéré complet sans l'AIPD associée.
 
 **Statut AIPD M7 :** En attente — DPO à solliciter.
+
+#### D-SEC-006 : Accès direct chrome.storage.local depuis le content script M2
+
+**Contexte :** La race condition MV3 (SW endormi au moment du focus) rend impossible une vérification synchrone de la whitelist via le SW avant l'affichage de l'overlay M2. Le fail-open du MessageRouter aggraverait l'expérience utilisateur sur les domaines de confiance.
+
+**Décision :** Le content script M2 accède directement à `chrome.storage.local` pour la clé `m2_trusted_domains`. Cet accès est strictement limité à cette clé, à ce module, et à deux opérations : lecture au démarrage, écriture sur action "confiance".
+
+**Surface d'attaque :** Toute page web avec un champ password peut exécuter du code dans le content script. Cependant, le content script s'exécute dans un contexte isolé (Isolated World) — la page web n'a pas accès à `chrome.storage.local` ni aux variables du content script. Le risque d'injection via la whitelist est nul.
+
+**Risque résiduel :** Si `chrome.storage.local` est corrompu ou indisponible, `loadTrustedDomains()` retourne silencieusement sans modifier le cache. Le SW conserve la vérification IndexedDB comme autorité de référence. Mode dégradé : un domaine de confiance peut recevoir un overlay si le cache mémoire est vide ET que le SW répond avant le timeout (comportement nominal sans court-circuit).
+
+**Alternatives rejetées :**
+- Vérification synchrone via SW uniquement : impossible en MV3 (SW peut être mort au moment du focus).
+- SharedArrayBuffer : non disponible dans les extensions Chrome.
+- Pré-envoi de la whitelist au démarrage de l'onglet via tabs.sendMessage : fragile (SW peut ne pas être disponible au moment de l'injection du content script).
 
 ---
 
@@ -1429,13 +1491,15 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
 |---------|--------------------|---------|--------------------|
 | typescript | ^5.4.0 | npm | Apache 2.0 — Oui |
 | vite | ^5.2.0 | npm | MIT — Oui |
-| vite-plugin-web-extension | ^0.13.0 | npm | MIT — Oui |
+| vite-plugin-web-extension | ^4.5.0 | npm | MIT — Oui |
 | vitest | ^2.0.0 | npm | MIT — Oui |
 | @playwright/test | ^1.44.0 | npm | Apache 2.0 — Oui |
 | playwright-crx | ^0.2.0 | npm | Apache 2.0 — Oui |
 | @axe-core/playwright | ^4.9.0 | npm | MPL 2.0 — Oui (outillage dev uniquement) |
 | eslint | ^9.0.0 | npm | MIT — Oui |
-| @typescript-eslint/parser | ^7.0.0 | npm | MIT — Oui |
+| @typescript-eslint/eslint-plugin | ^8.0.0 | npm | MIT — Oui |
+| @typescript-eslint/parser | ^8.0.0 | npm | MIT — Oui |
+| jsdom | ^29.0.0 | npm | MIT — Oui |
 | prettier | ^3.2.0 | npm | MIT — Oui |
 | @zxcvbn-ts/core | ^3.0.4 | npm | MIT — Oui |
 | license-checker | ^25.0.1 | npm | BSD-3 — Oui |
@@ -1460,7 +1524,7 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
     "clipboardWrite"
   ],
   "background": {
-    "service_worker": "background/service-worker.js",
+    "service_worker": "background/service-worker.ts",
     "type": "module"
   },
   "action": {
@@ -1489,5 +1553,6 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
 
 ---
 
-*Document produit par l'Architecte logiciel de la Fabrique — Sentinel Nudge v1 — 2026-04-11*
+*Document produit par l'Architecte logiciel de la Fabrique — Sentinel Nudge v1 — 2026-04-12*
 *Version 1.1 : intégration des corrections du comité d'architecture (15 tickets T-ARCH-01 à T-ARCH-15).*
+*Version 1.2 : intégration de l'addendum architecture whitelist M2 triple couche (ADR-006, D-SEC-006).*
