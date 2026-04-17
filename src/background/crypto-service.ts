@@ -12,6 +12,10 @@
  * - IV : 12 bytes (96 bits), généré aléatoirement par opération de chiffrement
  * - Tag d'authentification : 128 bits (défaut AES-GCM)
  *
+ * Note compat (P-021) : globalThis.crypto est utilisé explicitement (pas la référence nue
+ * `crypto`) pour garantir que le polyfill WebCrypto injecté dans les tests (tests/setup.ts)
+ * est correctement résolu sur tous les runtimes Node.js (Node 20, 22, 24) et navigateurs.
+ *
  * Référence : DAT §8.2 (Chiffrement AES-256-GCM), §9.4 (D-SEC-004)
  */
 
@@ -40,7 +44,7 @@ export class CryptoService {
    * @throws DOMException si SubtleCrypto n'est pas disponible
    */
   async generateKey(): Promise<CryptoKey> {
-    return crypto.subtle.generateKey(
+    return globalThis.crypto.subtle.generateKey(
       {
         name: 'AES-GCM',
         length: 256,
@@ -61,7 +65,7 @@ export class CryptoService {
    * @returns ArrayBuffer du matériau de clé brut (32 bytes)
    */
   async exportKey(key: CryptoKey): Promise<ArrayBuffer> {
-    return crypto.subtle.exportKey('raw', key);
+    return globalThis.crypto.subtle.exportKey('raw', key);
   }
 
   /**
@@ -74,7 +78,7 @@ export class CryptoService {
    * @returns CryptoKey AES-256-GCM prête à l'emploi
    */
   async importKey(material: ArrayBuffer): Promise<CryptoKey> {
-    return crypto.subtle.importKey(
+    return globalThis.crypto.subtle.importKey(
       'raw',
       material,
       {
@@ -97,11 +101,11 @@ export class CryptoService {
    * @returns Résultat contenant le ciphertext et l'IV à stocker
    */
   async encrypt(key: CryptoKey, data: object): Promise<EncryptResult> {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
     const encoder = new TextEncoder();
     const plaintext = encoder.encode(JSON.stringify(data));
 
-    const ciphertext = await crypto.subtle.encrypt(
+    const ciphertext = await globalThis.crypto.subtle.encrypt(
       {
         name: 'AES-GCM',
         iv,
@@ -123,7 +127,7 @@ export class CryptoService {
    * @throws DOMException si le déchiffrement échoue (données corrompues ou mauvaise clé)
    */
   async decrypt(key: CryptoKey, ciphertext: ArrayBuffer, iv: Uint8Array): Promise<object> {
-    const plaintext = await crypto.subtle.decrypt(
+    const plaintext = await globalThis.crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
         iv,
