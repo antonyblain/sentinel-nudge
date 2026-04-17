@@ -47,6 +47,7 @@ import { QUOTA_DEFAULT } from '@/shared/constants/quota';
 import { HeartbeatService } from './services/heartbeat-service';
 import { CanaryService } from './services/canary-service';
 import { IncidentService } from './services/incident-service';
+import { initBootM2 } from './services/m2-boot-service';
 import { createLogger, Logger } from '@/shared/utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -220,7 +221,7 @@ function registerModuleHandlers(cryptoKey: CryptoKey): void {
  * Initialise les services post-clé après un premier install ou un réveil SW.
  *
  * Factorise les étapes post-écriture clé AES : flush buffer incidents, init canary,
- * boot success, enregistrement des handlers de modules.
+ * boot success, boot M2 (initBootM2 — TACHE-085), enregistrement des handlers de modules.
  *
  * Appelé **uniquement depuis `onFirstInstall()`** après écriture de la clé AES dans
  * chrome.storage.local. L'IIFE boot sequence ne l'utilise PAS volontairement :
@@ -242,6 +243,11 @@ async function initializeServices(cryptoKey: CryptoKey): Promise<void> {
   // Boot réussi — ready=true, canary_verified=true (INV-01)
   await heartbeatService.onBootSuccess();
 
+  // Boot M2 — ADR-001 R-BOOT-01/04 (TACHE-085) :
+  // Vérification intégrité whitelist typosquatting + publication diagnostics.m2.
+  // Non bloquant : une exception interne est capturée dans initBootM2().
+  await initBootM2(incidentService);
+
   // Enregistrement des handlers de modules
   registerModuleHandlers(cryptoKey);
 }
@@ -257,7 +263,7 @@ async function initializeServices(cryptoKey: CryptoKey): Promise<void> {
  * 3. Créer la configuration par défaut
  * 4. Initialiser la base IndexedDB
  * 5. Configurer les alarmes planifiées
- * 6. Initialiser les services (canary + heartbeat + handlers via initializeServices)
+ * 6. Initialiser les services (canary + heartbeat + initBootM2 + handlers via initializeServices)
  * 7. Ouvrir la page d'onboarding
  * 8. Lever le flag `installation_in_progress` (finally — garanti même en cas d'erreur)
  */
@@ -311,9 +317,9 @@ async function onFirstInstall(): Promise<void> {
     // Configuration des alarmes planifiées
     alarmManager.setupAlarms();
 
-    // Initialisation des services post-clé (canary + heartbeat + handlers)
+    // Initialisation des services post-clé (canary + heartbeat + initBootM2 + handlers)
     // initializeServices() fait : incidentService.initService() + canaryService.init()
-    // + heartbeatService.onBootSuccess() + registerModuleHandlers()
+    // + heartbeatService.onBootSuccess() + initBootM2() + registerModuleHandlers()
     await initializeServices(cryptoKey);
 
     // Ouverture de la page d'onboarding dans un nouvel onglet (ADR-008 — via browser adapter)
@@ -412,7 +418,7 @@ messageRouter.listen();
 // ---------------------------------------------------------------------------
 // Boot sequence principale (module-level IIFE)
 //
-// Séquence (mini-DAT TACHE-061 §2.1 / §5.1) :
+// Séquence (mini-DAT TACHE-061 §2.1 / §5.1 — TACHE-085 étape 6a ajoutée) :
 //   0. Vérifier `installation_in_progress` (TACHE-079) :
 //      si présent → onFirstInstall() est en cours → skip (return early)
 //   1. HeartbeatService.onBootStart()   — incrémente boot_count, last_boot_ts=now, ready=false
@@ -424,7 +430,8 @@ messageRouter.listen();
 //        - ok → heartbeatService.onBootSuccess()
 //        - absent → canaryService.init() + re-verify
 //        - échec → CM-EOP1 (test sur password_hashes) → canary_reinit ou key_regenerated
-//   6. registerModuleHandlers(cryptoKey)
+//   6a. initBootM2() — ADR-001 boot M2 : vérif whitelist + diagnostics.m2 (TACHE-085)
+//   6b. registerModuleHandlers(cryptoKey)
 // ---------------------------------------------------------------------------
 void (async () => {
   // ---------------------------------------------------------------------------
@@ -581,7 +588,13 @@ void (async () => {
       }
     }
 
-    // Étape 6 — Enregistrement des handlers de modules
+    // Étape 6a — Boot M2 : vérification intégrité whitelist + diagnostics.m2 (TACHE-085)
+    // Non bloquant : initBootM2 capture ses propres exceptions (fail-safe).
+    // Doit être exécuté après incidentService.initService() (étape 3) pour que
+    // les incidents whitelist_corrupted / whitelist_regenerated soient persistés en IDB.
+    await initBootM2(incidentService);
+
+    // Étape 6b — Enregistrement des handlers de modules
     registerModuleHandlers(cryptoKey);
 
     const bootMs = Math.round(performance.now() - bootStart);

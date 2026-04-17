@@ -5,13 +5,16 @@
  * Couvre :
  * - analyzeRisks : détection HTTP, HSTS, Levenshtein, exclusions localhost
  * - createM2Handler : validation payload, whitelist, session dedup, signaux insuffisants
+ * - initBootM2 : boot happy path, whitelist absente, whitelist corrompue, diagnostics.m2 (TACHE-085)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { analyzeRisks } from '@/content-scripts/detectors/risk-analyzer';
 import { createM2Handler } from '@/background/handlers/m2-handler';
+import { initBootM2, readM2Diagnostics } from '@/background/services/m2-boot-service';
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
+import type { IncidentService } from '@/background/services/incident-service';
 
 // ---------------------------------------------------------------------------
 // Setup : mock de chrome.storage.local pour la déduplication de session
@@ -33,6 +36,11 @@ global.chrome = {
       }),
       set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
         Object.assign(mockLocalStorage, items);
+        callback?.();
+      }),
+      remove: vi.fn((key: string | string[], callback?: () => void) => {
+        const keys = Array.isArray(key) ? key : [key];
+        keys.forEach((k) => delete mockLocalStorage[k]);
         callback?.();
       }),
     },
@@ -76,6 +84,45 @@ function createMockStorage(options: { isWhitelisted?: boolean }): Partial<Storag
 /** Crée une CryptoKey factice */
 function createFakeKey(): CryptoKey {
   return {} as CryptoKey;
+}
+
+/**
+ * Crée un mock d'IncidentService pour les tests initBootM2.
+ * Capture les incidents loggués dans un tableau pour assertions.
+ */
+function createMockIncidentService(): {
+  service: Partial<IncidentService>;
+  incidents: Array<{ type: string; severity: string }>;
+} {
+  const incidents: Array<{ type: string; severity: string }> = [];
+  const service: Partial<IncidentService> = {
+    log: vi.fn(async (type, severity) => {
+      incidents.push({ type, severity });
+    }),
+  };
+  return { service, incidents };
+}
+
+/** Réinitialise le mock storage et les mocks Vitest */
+function resetStorage(): void {
+  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  vi.clearAllMocks();
+  // Réinitialiser les implémentations chrome.storage.local
+  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
+    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
+      const result: Record<string, unknown> = {};
+      for (const k of keys) {
+        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
+      }
+      callback(result);
+    },
+  );
+  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
+    (items: Record<string, unknown>, callback?: () => void) => {
+      Object.assign(mockLocalStorage, items);
+      callback?.();
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -417,5 +464,232 @@ describe('createM2Handler — overlay_action', () => {
 
     expect(response.success).toBe(false);
     expect(response.reason).toBe('invalid_overlay_payload');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests : initBootM2 — ADR-001 SW-BOOT-CONTRACT (TACHE-085)
+// ---------------------------------------------------------------------------
+
+describe('initBootM2 — boot happy path (whitelist valide présente)', () => {
+  beforeEach(resetStorage);
+
+  it('TC-M2-BOOT-01 : whitelist valide présente → ready=true, pas d\'incident', async () => {
+    // Setup : whitelist valide dans le storage
+    const validWhitelist = ['paypal.com', 'google.com', 'amazon.com'];
+    mockLocalStorage['whitelist_m2'] = validWhitelist;
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM2(service as IncidentService);
+
+    expect(diag.ready).toBe(true);
+    expect(diag.whitelist_size).toBe(3);
+    expect(diag.last_boot_ts).toBeGreaterThan(0);
+    expect(diag.last_incident).toBeUndefined();
+    expect(incidents).toHaveLength(0);
+  });
+
+  it('TC-M2-BOOT-02 : diagnostics.m2 persiste ready=true dans chrome.storage.local', async () => {
+    mockLocalStorage['whitelist_m2'] = ['paypal.com', 'google.com'];
+
+    const { service } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    const stored = mockLocalStorage['diagnostics.m2'] as Record<string, unknown>;
+    expect(stored).toBeDefined();
+    expect(stored['ready']).toBe(true);
+    expect(stored['whitelist_size']).toBe(2);
+    expect(typeof stored['last_boot_ts']).toBe('number');
+  });
+
+  it('TC-M2-BOOT-03 : whitelist valide → whitelist_m2 non modifiée', async () => {
+    const validWhitelist = ['paypal.com', 'amazon.com'];
+    mockLocalStorage['whitelist_m2'] = validWhitelist;
+
+    const { service } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    // La whitelist ne doit pas être réécrite quand elle est valide
+    expect(mockLocalStorage['whitelist_m2']).toEqual(validWhitelist);
+  });
+
+  it('TC-M2-BOOT-04 : readM2Diagnostics retourne l\'état persisté après boot', async () => {
+    mockLocalStorage['whitelist_m2'] = ['paypal.com', 'google.com', 'amazon.com'];
+
+    const { service } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    const diag = await readM2Diagnostics();
+    expect(diag.ready).toBe(true);
+    expect(diag.whitelist_size).toBe(3);
+  });
+});
+
+describe('initBootM2 — whitelist absente (premier boot)', () => {
+  beforeEach(resetStorage);
+
+  it('TC-M2-BOOT-05 : whitelist absente → régénération depuis typosquatting-targets.json', async () => {
+    // Aucune whitelist dans le storage (premier install)
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM2(service as IncidentService);
+
+    // La whitelist doit avoir été régénérée
+    expect(diag.ready).toBe(true);
+    expect(diag.whitelist_size).toBeGreaterThan(0);
+
+    // La whitelist doit être présente dans le storage
+    const stored = mockLocalStorage['whitelist_m2'];
+    expect(Array.isArray(stored)).toBe(true);
+    expect((stored as string[]).length).toBeGreaterThan(0);
+  });
+
+  it('TC-M2-BOOT-06 : whitelist absente → incident whitelist_regenerated (warn)', async () => {
+    const { service, incidents } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    // Doit y avoir un incident whitelist_regenerated
+    const regeneratedIncident = incidents.find((i) => i.type === 'whitelist_regenerated');
+    expect(regeneratedIncident).toBeDefined();
+    expect(regeneratedIncident?.severity).toBe('warn');
+  });
+
+  it('TC-M2-BOOT-07 : whitelist absente → diagnostics.m2.last_incident reflète le warn', async () => {
+    const { service } = createMockIncidentService();
+    const diag = await initBootM2(service as IncidentService);
+
+    expect(diag.last_incident).toBeDefined();
+    expect(diag.last_incident?.type).toBe('whitelist_regenerated');
+    expect(diag.last_incident?.severity).toBe('warn');
+    expect(diag.last_incident?.ts).toBeGreaterThan(0);
+  });
+
+  it('TC-M2-BOOT-08 : whitelist absente → PAS d\'incident whitelist_corrupted', async () => {
+    const { service, incidents } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    const corruptedIncident = incidents.find((i) => i.type === 'whitelist_corrupted');
+    expect(corruptedIncident).toBeUndefined();
+  });
+});
+
+describe('initBootM2 — whitelist corrompue (shape invalide)', () => {
+  beforeEach(resetStorage);
+
+  it('TC-M2-BOOT-09 : whitelist = objet non-tableau → incident whitelist_corrupted (error)', async () => {
+    // Corruption : l'entrée est un objet au lieu d'un tableau
+    mockLocalStorage['whitelist_m2'] = { corrupted: true };
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM2(service as IncidentService);
+
+    const corruptedIncident = incidents.find((i) => i.type === 'whitelist_corrupted');
+    expect(corruptedIncident).toBeDefined();
+    expect(corruptedIncident?.severity).toBe('error');
+
+    // Après corruption → régénération → ready=true
+    expect(diag.ready).toBe(true);
+  });
+
+  it('TC-M2-BOOT-10 : whitelist corrompue → incident whitelist_regenerated (warn) après corruption', async () => {
+    mockLocalStorage['whitelist_m2'] = 'not-an-array';
+
+    const { service, incidents } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    const regeneratedIncident = incidents.find((i) => i.type === 'whitelist_regenerated');
+    expect(regeneratedIncident).toBeDefined();
+    expect(regeneratedIncident?.severity).toBe('warn');
+  });
+
+  it('TC-M2-BOOT-11 : whitelist = tableau vide → traitée comme invalide → régénération', async () => {
+    // Un tableau vide ne satisfait pas l'invariant INV-M2-01 (whitelist_size > 0 si ready=true)
+    mockLocalStorage['whitelist_m2'] = [];
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM2(service as IncidentService);
+
+    // Tableau vide = invalide (isValidWhitelist retourne false si length=0)
+    // → régénération depuis le JSON embarqué
+    expect(diag.whitelist_size).toBeGreaterThan(0);
+    const regeneratedIncident = incidents.find((i) => i.type === 'whitelist_regenerated');
+    expect(regeneratedIncident).toBeDefined();
+  });
+
+  it('TC-M2-BOOT-12 : whitelist corrompue → whitelist_m2 régénérée dans storage', async () => {
+    mockLocalStorage['whitelist_m2'] = 42; // nombre = shape invalide
+
+    const { service } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    const stored = mockLocalStorage['whitelist_m2'];
+    expect(Array.isArray(stored)).toBe(true);
+    expect((stored as string[]).length).toBeGreaterThan(0);
+    // Vérifier que ce sont bien des strings de domaines
+    expect(typeof (stored as string[])[0]).toBe('string');
+  });
+
+  it('TC-M2-BOOT-13 : whitelist corrompue → diagnostics.m2.last_incident de type whitelist_corrupted', async () => {
+    mockLocalStorage['whitelist_m2'] = { invalid: 'object' };
+
+    const { service } = createMockIncidentService();
+    const diag = await initBootM2(service as IncidentService);
+
+    expect(diag.last_incident).toBeDefined();
+    expect(diag.last_incident?.type).toBe('whitelist_corrupted');
+    expect(diag.last_incident?.severity).toBe('error');
+  });
+
+  it('TC-M2-BOOT-14 : whitelist avec entrées non-string → régénération', async () => {
+    // Tableau avec entrées non conformes (nombres au lieu de strings)
+    mockLocalStorage['whitelist_m2'] = [1, 2, 3];
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM2(service as IncidentService);
+
+    expect(diag.ready).toBe(true);
+    const stored = mockLocalStorage['whitelist_m2'] as string[];
+    expect(typeof stored[0]).toBe('string');
+    expect(incidents.some((i) => i.type === 'whitelist_corrupted')).toBe(true);
+  });
+});
+
+describe('initBootM2 — état initial conservatif', () => {
+  beforeEach(resetStorage);
+
+  it('TC-M2-BOOT-15 : diagnostics.m2 posé à ready=false au début du boot (état conservatif)', async () => {
+    // Whitelist valide — vérifie que l'état conservatif est posé avant la validation
+    mockLocalStorage['whitelist_m2'] = ['paypal.com'];
+
+    let conservativeStateObserved = false;
+    const originalSet = (global.chrome.storage.local.set as ReturnType<typeof vi.fn>);
+
+    // Intercepter le premier appel à set (état conservatif) avant que le résultat final soit écrit
+    let callCount = 0;
+    originalSet.mockImplementation((items: Record<string, unknown>, callback?: () => void) => {
+      callCount++;
+      if (callCount === 1 && items['diagnostics.m2']) {
+        const diag = items['diagnostics.m2'] as Record<string, unknown>;
+        if (diag['ready'] === false) {
+          conservativeStateObserved = true;
+        }
+      }
+      Object.assign(mockLocalStorage, items);
+      callback?.();
+    });
+
+    const { service } = createMockIncidentService();
+    await initBootM2(service as IncidentService);
+
+    expect(conservativeStateObserved).toBe(true);
+  });
+
+  it('TC-M2-BOOT-16 : readM2Diagnostics retourne défaut si diagnostics.m2 absent', async () => {
+    // Aucun diagnostics dans le storage
+    const diag = await readM2Diagnostics();
+
+    expect(diag.ready).toBe(false);
+    expect(diag.last_boot_ts).toBe(0);
+    expect(diag.whitelist_size).toBe(0);
   });
 });
