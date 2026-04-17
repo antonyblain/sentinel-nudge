@@ -1,9 +1,11 @@
 # Mini-DAT — TACHE-072 : Toggle Show/Hide password (UC-05)
 
-**Version** : 1.0
+**Version** : 1.1
 **Date** : 2026-04-17
 **Auteur** : Architecte logiciel
-**Statut** : Soumis au référent qualité
+**Revue Commanditaire** : ARB-072-01 Option A + ARB-072-02 Option A tranchés — 2026-04-17
+**Contrôle qualité** : Référent qualité — Validé avec commentaires (5 NB non bloquantes, NB-04 traitée par cette v1.1)
+**Statut** : Validé — implémentation TACHE-072 produite et testée (13 tests)
 **Décision à l'origine** : D-PM-05 (PV post-mortem M7 — UC-05 bloquant v1)
 **Tâches couvertes** : TACHE-072 (Must bloquant) — consolide TACHE-067 (Could)
 **Phase** : P5
@@ -12,9 +14,10 @@
 
 ## Historique des versions
 
-| Version | Date | Modifications |
-|---------|------|---------------|
-| 1.0 | 2026-04-17 | Version initiale Architecte logiciel |
+| Version | Date       | Modifications                                                                                                                                                                                                                                                                                |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2026-04-17 | Version initiale Architecte logiciel                                                                                                                                                                                                                                                         |
+| 1.1     | 2026-04-17 | Révision suite ARB-072-02 Option A tranchée : §2.4 Cas B (inputs `text → password` capturés au lieu d'ignorés), INV-UC05-02 inversé (capture élargie), TC-UC05-02 verdict PASS au lieu de "non capturé". Implémentation code livrée et validée par QC (NB-04 traitée par ce renommage v1.1). |
 
 ---
 
@@ -26,12 +29,12 @@ Le post-mortem M7 (2026-04-14) identifie UC-05 comme bloquant v1 : lorsqu'un sit
 
 L'analyse du code existant (`password-detector.ts`) confirme quatre points de rupture concrets :
 
-| Point de rupture | Ligne(s) concernées | Mécanisme cassé |
-|---|---|---|
-| Listener `focusin` | 1639 | `if (target.type !== 'password') return` — champ déjà togglé avant focus → raté |
-| `attachSubmitListeners` | 1494 | `querySelectorAll('input[type="password"]')` au moment du submit — si togglé → raté |
-| `attachOrphanPasswordListeners` | 1391, 1433 | Même filtre statique `type="password"` en deux endroits |
-| `observeDynamicForms` | 1525 | MutationObserver surveille uniquement `childList` (nœuds) — pas l'attribut `type` |
+| Point de rupture                | Ligne(s) concernées | Mécanisme cassé                                                                     |
+| ------------------------------- | ------------------- | ----------------------------------------------------------------------------------- |
+| Listener `focusin`              | 1639                | `if (target.type !== 'password') return` — champ déjà togglé avant focus → raté     |
+| `attachSubmitListeners`         | 1494                | `querySelectorAll('input[type="password"]')` au moment du submit — si togglé → raté |
+| `attachOrphanPasswordListeners` | 1391, 1433          | Même filtre statique `type="password"` en deux endroits                             |
+| `observeDynamicForms`           | 1525                | MutationObserver surveille uniquement `childList` (nœuds) — pas l'attribut `type`   |
 
 Le chemin d'échec type est : `type="password"` au chargement → utilisateur clique "voir" → `type="text"` → submit → M7 ne capture rien.
 
@@ -58,6 +61,7 @@ Ce principe est non négociable. Il conditionne toute décision de conception du
 **Décision** : observer l'attribut `type` sur **tous les inputs du document** via `attributeFilter: ['type']` sur `document.body`, plutôt que d'enregistrer un observateur par input individuellement.
 
 **Justification** :
+
 - Un observateur sur `document.body` avec `subtree: true` couvre les inputs injectés dynamiquement (SPA, React, Vue) sans nécessiter de re-registration.
 - Enregistrer un observateur par input est plus coûteux en mémoire et nécessite une gestion de cycle de vie complexe (`disconnect` au retrait du DOM).
 - L'`attributeFilter: ['type']` limite le volume de callbacks aux seules mutations pertinentes.
@@ -79,13 +83,15 @@ L'observateur existant (`childList: true, subtree: true`) est conservé tel quel
 Deux cas :
 
 **Cas A — `type` passe de `"password"` à `"text"`** (toggle "voir mot de passe") :
+
 - Ajouter l'input au `Set` de monitoring `_snPasswordInputs` (voir section 3).
 - Ne pas déclencher de hash immédiatement — le hash n'est calculé qu'au submit.
 - Conséquence : au submit, la recherche des champs à hasher consulte `_snPasswordInputs` en plus du sélecteur `input[type="password"]`.
 
 **Cas B — `type` passe de `"text"` à `"password"`** (toggle "masquer") :
+
 - Si l'input est déjà dans `_snPasswordInputs` : aucune action (déjà couvert).
-- Si l'input n'est **pas** encore dans `_snPasswordInputs` : ne pas l'ajouter automatiquement. Ce cas (champ démarrant en `text` puis repassant en `password`) est ambigu — il pourrait s'agir d'un champ non-password initialement. La décision est d'ignorer ce sous-cas pour v1 (INV-UC05-02).
+- Si l'input n'est **pas** encore dans `_snPasswordInputs` : **l'ajouter** (couverture élargie, ARB-072-02 Option A tranchée 2026-04-17). Justification : les cas de "password field lazy-defined" (React/Vue render tardif + toggle, SPA avec assignation tardive de type) sont des patterns valides modernes. Le risque de faux positif (capture d'un champ non-password transformé) est faible — la transition `text → password` est rare et typiquement intentionnelle. Sécurité prime sur conservatisme. Voir INV-UC05-02 mis à jour en conséquence.
 
 **Cas C — `type` passe de `"text"` à `"password"` pour un input initialement `type="password"`** : déjà couvert par Cas A (l'input est dans `_snPasswordInputs`).
 
@@ -134,9 +140,7 @@ declare function registerPasswordInput(input: HTMLInputElement): void;
  * @param scope - Formulaire (HTMLFormElement) ou document pour les orphelins
  * @returns Tableau d'inputs dédupliqués
  */
-declare function collectPasswordInputs(
-  scope: HTMLFormElement | Document
-): HTMLInputElement[];
+declare function collectPasswordInputs(scope: HTMLFormElement | Document): HTMLInputElement[];
 
 /**
  * Callback MutationObserver pour les mutations d'attribut type.
@@ -144,9 +148,7 @@ declare function collectPasswordInputs(
  *
  * @param mutations - Liste des MutationRecord filtrés sur type='attributes'
  */
-declare function handleTypeAttributeMutation(
-  mutations: MutationRecord[]
-): void;
+declare function handleTypeAttributeMutation(mutations: MutationRecord[]): void;
 ```
 
 **Modification de signature dans les fonctions existantes** :
@@ -167,8 +169,7 @@ const orphans = Array.from(
 ).filter((f) => !f.form && f.value.length > 0);
 
 // Après (contrat) :
-const orphans = collectPasswordInputs(document)
-  .filter((f) => !f.form && f.value.length > 0);
+const orphans = collectPasswordInputs(document).filter((f) => !f.form && f.value.length > 0);
 ```
 
 ---
@@ -177,7 +178,7 @@ const orphans = collectPasswordInputs(document)
 
 **INV-UC05-01** : tout input ayant présenté `type="password"` à un instant quelconque du cycle de vie de la page (y compris après toggle vers `"text"`) reste dans `_snPasswordInputs` jusqu'à navigation ou déchargement du document. Il ne peut pas être retiré du Set par une mutation ultérieure de son attribut `type`.
 
-**INV-UC05-02** : un input dont le `type` initial est `"text"` (et qui n'a jamais été `"password"`) ne doit PAS être ajouté à `_snPasswordInputs`, même s'il est ultérieurement modifié en `"password"` par un script tiers. Cet invariant prévient les faux positifs sur des champs de recherche ou de texte libre transformés dynamiquement.
+**INV-UC05-02** (révisé 2026-04-17 par ARB-072-02 Option A) : un input dont le `type` mute vers `"password"` (depuis `"text"` ou autre) DOIT être ajouté à `_snPasswordInputs`, même si son type initial n'était pas `"password"`. Cet invariant couvre les patterns "password field lazy-defined" (React/Vue, SPA). La version originale du mini-DAT v1.0 précrisait l'inverse (exclusion stricte) ; cette décision a été révisée après analyse du risque faux positif (transition `text → password` rare et typiquement intentionnelle).
 
 **INV-UC05-03** : pour un input donné, un seul hash M7 est calculé et envoyé par événement submit, quelle que soit la séquence de toggles préalables (password → text → password → text → submit). Le guard `submittedFields` (WeakSet existant, ligne 1068) assure cette déduplication ; il est conservé sans modification.
 
@@ -190,6 +191,7 @@ const orphans = collectPasswordInputs(document)
 ### 5.1 Visibilité transitoire du mot de passe en clair
 
 Lorsque l'utilisateur clique "voir", le champ passe en `type="text"` et la valeur devient visible à l'écran. Ce comportement est intentionnel côté site. Du point de vue de M7 :
+
 - M7 ne lit jamais la valeur avant le submit. Le toggle n'aggrave pas l'exposition côté extension.
 - En revanche, si un script tiers lit `input.value` sur un champ `type="text"`, la valeur est accessible. Ce risque est propre au site, pas à M7 — à signaler dans la documentation utilisateur si pertinent.
 - Interaction M17 (clipboard) : si l'utilisateur copie le mot de passe affiché en clair, M17 pourrait potentiellement le capturer via `clipboard` API. Cette interaction est hors périmètre TACHE-072 et doit faire l'objet d'une analyse séparée avec l'architecte sécurité.
@@ -212,13 +214,13 @@ Si l'input est retiré du DOM (navigation SPA intra-page, suppression par le sit
 
 ## 6. Plan de tests
 
-| ID | Scénario | Précondition | Action | Résultat attendu |
-|---|---|---|---|---|
-| TC-UC05-01 | Toggle simple, submit avec type="text" | Page avec `<input type="password">` + bouton toggle | (1) Focus champ (2) Toggle → type="text" (3) Saisie mdp (4) Submit | Hash M7 calculé et envoyé au SW. Toast affiché si réutilisation. |
-| TC-UC05-02 | Input démarre en "text", toggle → "password", submit | `<input type="text" id="pwd">` modifié en `type="password"` par JS après chargement | (1) JS change type→"password" (2) Saisie (3) Submit | Input NON capturé (INV-UC05-02 — n'était pas "password" à l'initialisation). |
-| TC-UC05-03 | Toggle multiple rapide (spam), 1 seul hash | Page avec toggle | Toggle × 5 en < 500ms puis submit | Un seul message M7 envoyé au SW pour cet input (INV-UC05-03, guard `submittedFields`). |
-| TC-UC05-04 | Formulaire avec 2 inputs password, 1 seul togglé | `<form>` avec input-A (password) + input-B (password) | Toggle input-A → type="text". Submit. | 2 hashes capturés : hash(input-A.value) + hash(input-B.value). |
-| TC-UC05-05 | Navigation SPA (React/Vue), formulaire rechargé | SPA avec routeur client, formulaire login rendu/détruit/re-rendu | (1) Route A → formulaire login + toggle (2) Route B (3) Retour route A → nouveau formulaire | Le nouveau formulaire (nouveau DOM) est détecté par `observeDynamicForms()`. L'ancien Set de références est invalide mais un nouveau `_snPasswordInputs` est peuplé. Submit capturé normalement. |
+| ID         | Scénario                                             | Précondition                                                                        | Action                                                                                      | Résultat attendu                                                                                                                                                                                 |
+| ---------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TC-UC05-01 | Toggle simple, submit avec type="text"               | Page avec `<input type="password">` + bouton toggle                                 | (1) Focus champ (2) Toggle → type="text" (3) Saisie mdp (4) Submit                          | Hash M7 calculé et envoyé au SW. Toast affiché si réutilisation.                                                                                                                                 |
+| TC-UC05-02 | Input démarre en "text", toggle → "password", submit | `<input type="text" id="pwd">` modifié en `type="password"` par JS après chargement | (1) JS change type→"password" (2) Saisie (3) Submit                                         | Input **CAPTURÉ** (INV-UC05-02 révisé par ARB-072-02 : patterns "lazy-defined" couverts).                                                                                                        |
+| TC-UC05-03 | Toggle multiple rapide (spam), 1 seul hash           | Page avec toggle                                                                    | Toggle × 5 en < 500ms puis submit                                                           | Un seul message M7 envoyé au SW pour cet input (INV-UC05-03, guard `submittedFields`).                                                                                                           |
+| TC-UC05-04 | Formulaire avec 2 inputs password, 1 seul togglé     | `<form>` avec input-A (password) + input-B (password)                               | Toggle input-A → type="text". Submit.                                                       | 2 hashes capturés : hash(input-A.value) + hash(input-B.value).                                                                                                                                   |
+| TC-UC05-05 | Navigation SPA (React/Vue), formulaire rechargé      | SPA avec routeur client, formulaire login rendu/détruit/re-rendu                    | (1) Route A → formulaire login + toggle (2) Route B (3) Retour route A → nouveau formulaire | Le nouveau formulaire (nouveau DOM) est détecté par `observeDynamicForms()`. L'ancien Set de références est invalide mais un nouveau `_snPasswordInputs` est peuplé. Submit capturé normalement. |
 
 ---
 
@@ -237,14 +239,14 @@ Ce fichier est le seul modifié par TACHE-072.
 
 **Modifications** :
 
-| Localisation | Nature | Lignes actuelles |
-|---|---|---|
-| `initPasswordDetector()` | Appel `registerPasswordInput` sur tous les inputs présents au boot | ~1618 |
-| `observeDynamicForms()` | Ajout `attributes: true, attributeFilter: ['type']` à l'observe, ajout de la branche `type='attributes'` dans le callback | 1525–1547 |
-| `attachSubmitListeners()` — lambda submit | Remplacer `querySelectorAll('input[type="password"]')` par `collectPasswordInputs(form)` | 1494 |
-| `attachOrphanPasswordListeners()` — keydown | Remplacer filtre `target.type !== 'password'` par vérification `_snPasswordInputs.has(target)` | 1391 |
-| `attachOrphanPasswordListeners()` — click | Remplacer `querySelectorAll('input[type="password"]')` par `collectPasswordInputs(document)` | 1433 |
-| `initPasswordDetector()` — listener `focusin` | Ajouter une branche : si `target.type !== 'password'` mais `_snPasswordInputs.has(target)` → traiter quand même | 1639 |
+| Localisation                                  | Nature                                                                                                                    | Lignes actuelles |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `initPasswordDetector()`                      | Appel `registerPasswordInput` sur tous les inputs présents au boot                                                        | ~1618            |
+| `observeDynamicForms()`                       | Ajout `attributes: true, attributeFilter: ['type']` à l'observe, ajout de la branche `type='attributes'` dans le callback | 1525–1547        |
+| `attachSubmitListeners()` — lambda submit     | Remplacer `querySelectorAll('input[type="password"]')` par `collectPasswordInputs(form)`                                  | 1494             |
+| `attachOrphanPasswordListeners()` — keydown   | Remplacer filtre `target.type !== 'password'` par vérification `_snPasswordInputs.has(target)`                            | 1391             |
+| `attachOrphanPasswordListeners()` — click     | Remplacer `querySelectorAll('input[type="password"]')` par `collectPasswordInputs(document)`                              | 1433             |
+| `initPasswordDetector()` — listener `focusin` | Ajouter une branche : si `target.type !== 'password'` mais `_snPasswordInputs.has(target)` → traiter quand même           | 1639             |
 
 ### 7.2 `src/content-scripts/detectors/toast-m7.ts`
 
@@ -265,6 +267,7 @@ Un seul point requiert arbitrage du Commanditaire :
 Contexte : si une SPA retire et re-crée des formulaires fréquemment (navigation intra-page longue, ex. wizard multi-étapes), `_snPasswordInputs` peut accumuler des références à des inputs retirés du DOM. Pour v1, la purge active n'est pas implémentée (rétention bornée à la durée de vie du document, généralement < 30 min).
 
 Options :
+
 - **Option A (recommandée)** : ne pas implémenter de purge en v1. Réévaluer si des rapports terrain signalent une fuite mémoire mesurable. Budget mémoire estimé : < 50 inputs par page, négligeable.
 - **Option B** : implémenter une purge sur `removedNodes` dans le callback `childList` de `observeDynamicForms()`. Coût : +15 lignes, léger risque de purge prématurée si le site retire/réinsère des inputs (pattern React reconciliation).
 
@@ -272,4 +275,4 @@ Recommandation : Option A pour v1.
 
 ---
 
-*Fin du document — TACHE-072 — v1.0*
+_Fin du document — TACHE-072 — v1.0_

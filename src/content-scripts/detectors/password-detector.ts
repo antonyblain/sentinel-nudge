@@ -77,6 +77,98 @@ const m9Contexts = new WeakMap<HTMLInputElement, M9Context>();
 /** Set des champs déjà soumis (pour éviter le double traitement) */
 const submittedFields = new WeakSet<HTMLInputElement>();
 
+// ---------------------------------------------------------------------------
+// UC-05 — Registre des inputs ayant présenté type="password" (TACHE-072)
+// ARB-072-01 : pas de purge active — le Set vit avec le document
+// ---------------------------------------------------------------------------
+
+/**
+ * Registre persistant des inputs ayant présenté type="password" à un instant
+ * quelconque du cycle de vie de la page. Permet de maintenir la détection M7
+ * sur les inputs togglés show/hide (UC-05 — TACHE-072).
+ *
+ * Utilisation d'un Set standard (pas WeakSet) car on doit itérer au submit.
+ * Les éléments DOM sont GC'd lors de la destruction du document : pas de
+ * fuite mémoire au-delà de la durée de vie de la page (INV-UC05-04).
+ *
+ * ARB-072-01 (Option A) : pas de purge active sur removedNodes.
+ * La rétention est bornée à la durée de vie du document.
+ */
+const _snPasswordInputs = new Set<HTMLInputElement>();
+
+/**
+ * Enregistre un input dans le périmètre de monitoring M7/M9.
+ * Idempotent : plusieurs appels avec le même input sont sans effet.
+ *
+ * @param input - Élément input ayant présenté type="password"
+ */
+function registerPasswordInput(input: HTMLInputElement): void {
+  _snPasswordInputs.add(input);
+}
+
+/**
+ * Retourne la liste consolidée des inputs à surveiller au submit :
+ * - Inputs actuellement type="password" dans le scope (DOM)
+ * - Inputs précédemment type="password" enregistrés dans _snPasswordInputs
+ *   (union — sans doublon grâce au Set)
+ *
+ * Couvre les inputs togglés en type="text" (UC-05 — INV-UC05-01).
+ *
+ * @param scope - Formulaire (HTMLFormElement) ou document pour les orphelins
+ * @returns Tableau d'inputs dédupliqués (sans doublon)
+ */
+function collectPasswordInputs(scope: HTMLFormElement | Document): HTMLInputElement[] {
+  // Inputs actuellement password dans le scope
+  const current = Array.from(scope.querySelectorAll<HTMLInputElement>('input[type="password"]'));
+  // Union avec le registre (capte les inputs togglés en type="text")
+  const fromSet = Array.from(_snPasswordInputs).filter((el) => scope.contains(el));
+  // Déduplication via Set
+  const union = new Set<HTMLInputElement>([...current, ...fromSet]);
+  return Array.from(union);
+}
+
+/**
+ * Callback MutationObserver pour les mutations d'attribut type sur les inputs.
+ * Appelé par observeDynamicForms() sur mutation attributeFilter=['type'].
+ *
+ * Logique :
+ * - type → "text" (depuis "password") : enregistrer dans _snPasswordInputs
+ *   (INV-UC05-01 : l'input doit rester dans le périmètre après toggle show)
+ * - type → "password" (depuis "text") : enregistrer dans _snPasswordInputs
+ *   (INV-UC05-02 : inputs démarrant en text + togglés vers password sont capturés)
+ *
+ * Sécurité (R-CLI-07) : ne jamais logger input.value.
+ *
+ * @param mutations - Liste des MutationRecord filtrés sur type='attributes'
+ */
+function handleTypeAttributeMutation(mutations: MutationRecord[]): void {
+  for (const mutation of mutations) {
+    if (mutation.type !== 'attributes' || mutation.attributeName !== 'type') continue;
+    const target = mutation.target;
+    if (!(target instanceof HTMLInputElement)) continue;
+
+    const newType = target.type;
+    // Cas A : type → "text" (toggle show — l'input était password)
+    // Cas B : type → "password" (toggle hide ou démarrage text → password)
+    // Dans les deux cas, on enregistre pour couvrir INV-UC05-01 et INV-UC05-02
+    if (newType === 'text' || newType === 'password') {
+      registerPasswordInput(target);
+      console.info(
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'Sentinel Nudge UC-05: type attribute mutation registered',
+          context: {
+            input_id: target.id || '(none)',
+            input_name: target.name || '(none)',
+            new_type: newType,
+          },
+        }),
+      );
+    }
+  }
+}
+
 /**
  * Set des champs sur lesquels M2 vient d'être affiché.
  * Utilisé comme guard anti-réentrance et pour différer M7 de 5s (SFD §2.1.5).
@@ -1047,15 +1139,18 @@ async function getInstallationSalt(): Promise<string | null> {
  * Traite un submit de formulaire contenant un champ password.
  *
  * Module M7 :
- * 1. Capture la valeur du champ password
- * 2. Calcule SHA-256(sel + mot_de_passe) [D-SEC-001]
- * 3. Nullifie immédiatement la variable (< 5ms)
- * 4. Envoie le hash + domain_hash au service worker
- * 5. Si M2 était actif sur ce champ → différer M7 de 5s (SFD §2.1.5)
+ * 1. Filtre les submits programmatiques (event.isTrusted=false) pour éviter
+ *    les faux positifs lors de l'auto-fill + auto-submit par les gestionnaires
+ *    de mots de passe (UC-02 — ARB-UC02-01)
+ * 2. Capture la valeur du champ password
+ * 3. Calcule SHA-256(sel + mot_de_passe) [D-SEC-001]
+ * 4. Nullifie immédiatement la variable (< 5ms)
+ * 5. Envoie le hash + domain_hash au service worker
+ * 6. Si M2 était actif sur ce champ → différer M7 de 5s (SFD §2.1.5)
  *
  * Module M9 :
- * 6. Envoie le score final au service worker
- * 7. Masque l'overlay M9
+ * 7. Envoie le score final au service worker
+ * 8. Masque l'overlay M9
  *
  * @param event    - Événement submit du formulaire
  * @param pwdField - Champ password soumis
@@ -1064,6 +1159,13 @@ async function handleFormSubmit(
   event: SubmitEvent | Event,
   pwdField: HTMLInputElement,
 ): Promise<void> {
+  // ARB-UC02-01 : filtrer les submits programmatiques (PM auto-fill + auto-submit)
+  // event.isTrusted=false indique un submit déclenché par du code JS (form.submit(),
+  // form.requestSubmit(), click() synthétique) et non par une action utilisateur physique.
+  // Ce filtre est strictement au niveau DOM submit event — il ne filtre PAS les messages
+  // password_submitted envoyés depuis le content script vers le SW (ceux-ci n'ont pas d'event).
+  if (!event.isTrusted) return;
+
   // Éviter le double traitement
   if (submittedFields.has(pwdField)) return;
   submittedFields.add(pwdField);
@@ -1381,14 +1483,18 @@ function showToastM7(domainHash: string): void {
  * que l'eventuel framework JS consomme l'event.
  */
 function attachOrphanPasswordListeners(): void {
-  // Declencher handleFormSubmit sur Enter dans un input password orphelin
+  // Declencher handleFormSubmit sur Enter dans un input password orphelin.
+  // UC-05 (TACHE-072) : vérifier également dans _snPasswordInputs pour capturer
+  // les inputs togglés en type="text" (INV-UC05-01).
   document.addEventListener(
     'keydown',
     (event) => {
       if (event.key !== 'Enter') return;
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
-      if (target.type !== 'password') return;
+      // UC-05 : accepter aussi les inputs dans le registre _snPasswordInputs
+      // (couvre les inputs togglés de type="password" à type="text")
+      if (target.type !== 'password' && !_snPasswordInputs.has(target)) return;
       if (target.form) return; // Deja gere par le listener submit du form
       if (target.value.length === 0) return;
       console.info(
@@ -1428,11 +1534,9 @@ function attachOrphanPasswordListeners(): void {
         if (!looksLikeSubmit) return;
       }
 
-      // Chercher un input password orphelin sur TOUTE la page (pattern SPA : pwd
-      // et bouton peuvent etre dans des containers differents)
-      const orphans = Array.from(
-        document.querySelectorAll<HTMLInputElement>('input[type="password"]'),
-      ).filter((f) => !f.form && f.value.length > 0);
+      // UC-05 (TACHE-072) : chercher les orphelins via collectPasswordInputs
+      // pour inclure les inputs togglés en type="text" (INV-UC05-01)
+      const orphans = collectPasswordInputs(document).filter((f) => !f.form && f.value.length > 0);
       if (orphans.length === 0) return;
 
       // Prendre le premier orphelin visible avec valeur
@@ -1491,7 +1595,9 @@ function attachSubmitListeners(): void {
     if (pwdCount > 0) pwdFormsCount++;
 
     form.addEventListener('submit', (event) => {
-      const pwdFields = form.querySelectorAll<HTMLInputElement>('input[type="password"]');
+      // UC-05 (TACHE-072) : utiliser collectPasswordInputs pour inclure les inputs
+      // togglés en type="text" qui sont dans le registre _snPasswordInputs (INV-UC05-01)
+      const pwdFields = collectPasswordInputs(form);
       console.info(
         JSON.stringify({
           timestamp: new Date().toISOString(),
@@ -1518,13 +1624,28 @@ function attachSubmitListeners(): void {
 }
 
 /**
- * Observe les mutations DOM pour détecter les formulaires ajoutés dynamiquement
- * (SPA — SFD §2.6.3 cas limite MutationObserver).
+ * Observe les mutations DOM pour détecter :
+ * 1. Les formulaires ajoutés dynamiquement (SPA — SFD §2.6.3)
+ * 2. Les mutations d'attribut type sur les inputs (UC-05 — TACHE-072)
+ *
+ * UC-05 : les mutations type="password" → type="text" (et inversement) sont
+ * capturées pour maintenir le registre _snPasswordInputs à jour (INV-UC05-01).
  */
 function observeDynamicForms(): void {
   const observer = new MutationObserver((mutations) => {
     let hasNewForms = false;
-    mutations.forEach((mutation) => {
+
+    // Séparer les mutations childList (nouveaux nœuds) des mutations attributes (type toggle)
+    const attrMutations = mutations.filter((m) => m.type === 'attributes');
+    const childMutations = mutations.filter((m) => m.type === 'childList');
+
+    // UC-05 : traiter les mutations d'attribut type
+    if (attrMutations.length > 0) {
+      handleTypeAttributeMutation(attrMutations);
+    }
+
+    // Détecter les nouveaux formulaires / inputs password ajoutés dynamiquement
+    childMutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (
           node.nodeType === Node.ELEMENT_NODE &&
@@ -1543,6 +1664,10 @@ function observeDynamicForms(): void {
   observer.observe(document.body ?? document.documentElement, {
     childList: true,
     subtree: true,
+    // UC-05 (TACHE-072) : observer les mutations d'attribut type pour capturer
+    // les toggles show/hide (type="password" ↔ type="text") — mini-DAT §2.3
+    attributes: true,
+    attributeFilter: ['type'],
   });
 }
 
@@ -1630,13 +1755,21 @@ function initPasswordDetector(): void {
     }
   });
 
+  // UC-05 (TACHE-072) : enregistrer tous les inputs type="password" déjà présents
+  // dans le DOM au moment de l'injection du content script (INV-UC05-01 bootstrap)
+  document.querySelectorAll<HTMLInputElement>('input[type="password"]').forEach((input) => {
+    registerPasswordInput(input);
+  });
+
   // Listener global focusin pour M2 et M9 — capture pour intercepter avant stopPropagation
+  // UC-05 (TACHE-072) : accepter aussi les inputs dans _snPasswordInputs (togglés en text)
   document.addEventListener(
     'focusin',
     (event: FocusEvent) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
-      if (target.type !== 'password') return;
+      // Accepter : type="password" actuel OU enregistré dans le registre UC-05
+      if (target.type !== 'password' && !_snPasswordInputs.has(target)) return;
 
       void handleFocusOnPasswordField(target);
     },
@@ -1681,12 +1814,29 @@ function initPasswordDetector(): void {
 }
 
 // Démarrage du détecteur
-console.info(
-  JSON.stringify({
-    timestamp: new Date().toISOString(),
-    level: 'info',
-    message: 'Sentinel Nudge password-detector: injected',
-    context: { url: location.hostname, readyState: document.readyState },
-  }),
-);
-initPasswordDetector();
+// Conditionné sur la présence de chrome pour permettre les tests unitaires
+// (import du module sans auto-exécution dans l'environnement vitest/jsdom)
+if (typeof chrome !== 'undefined') {
+  console.info(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      message: 'Sentinel Nudge password-detector: injected',
+      context: { url: location.hostname, readyState: document.readyState },
+    }),
+  );
+  initPasswordDetector();
+}
+
+// ---------------------------------------------------------------------------
+// Exports pour les tests unitaires
+// Tree-shaken par Vite en production (le content script n'a pas d'importeur).
+// Ces exports permettent les tests unitaires de TACHE-069 (UC-02) et TACHE-072 (UC-05).
+// ---------------------------------------------------------------------------
+export {
+  _snPasswordInputs,
+  registerPasswordInput,
+  collectPasswordInputs,
+  handleTypeAttributeMutation,
+  handleFormSubmit,
+};
