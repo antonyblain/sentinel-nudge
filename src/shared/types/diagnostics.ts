@@ -86,7 +86,8 @@ export type M7IncidentType =
   | 'toast_orphan' // pending_m7_toast consommé mais toast non affiché
   | 'storage_write_fail' // Erreur lors d'un browser.storage.local.set critique
   | 'idb_write_fail' // Erreur lors d'une transaction IndexedDB M7
-  | 'key_regenerated'; // Régénération de la clé AES-256-GCM (INV-SEC-03 / INV-SEC-05)
+  | 'key_regenerated' // Régénération de la clé AES-256-GCM (INV-SEC-03 / INV-SEC-05)
+  | 'rate_limit_exceeded'; // Dépassement du rate-limit par (tab.id, module) — INV-UC03-05
 
 /** Sévérité d'un incident M7 */
 export type M7IncidentSeverity = 'info' | 'warn' | 'error';
@@ -119,7 +120,8 @@ export type IncidentContext =
       trigger: 'boot_fail' | 'canary_failed' | 'decrypt_failed';
       previous_boot_count: number;
       hashes_purged_count: number;
-    };
+    }
+  | { type: 'rate_limit_exceeded'; module: string; tab_id: number };
 
 /**
  * Entrée du registre d'incidents IndexedDB (store m7_incidents).

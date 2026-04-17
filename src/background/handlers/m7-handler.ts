@@ -47,6 +47,42 @@ const NUDGE_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
 /** Clé chrome.storage.local pour les timestamps des derniers nudges M7 par domaine */
 const M7_LAST_NUDGE_KEY = 'm7_last_nudge_by_domain';
 
+// ---------------------------------------------------------------------------
+// INV-UC03-04 : déduplication (hash, domain_hash) sur fenêtre 2s
+// Volatile — reset au wake SW, accepté (cf. mini-DAT TACHE-070 §INV-UC03-04)
+// ---------------------------------------------------------------------------
+
+/** Map<"hash|domain_hash", timestamp> des derniers submits reçus */
+const recentSubmits = new Map<string, number>();
+
+/** Durée de la fenêtre de déduplication en millisecondes */
+const DEDUP_WINDOW_MS = 2_000;
+
+/**
+ * Vérifie si un couple (hash, domainHash) est un doublon dans la fenêtre de 2s.
+ * Si non-doublon, enregistre le timestamp.
+ *
+ * @param hash       - SHA-256 du mot de passe soumis
+ * @param domainHash - SHA-256 du domaine source
+ * @returns true si doublon (à dropper), false si nouveau
+ */
+function isDuplicateSubmit(hash: string, domainHash: string): boolean {
+  const key = `${hash}|${domainHash}`;
+  const now = Date.now();
+
+  // Purge opportuniste des entrées expirées
+  for (const [k, ts] of recentSubmits.entries()) {
+    if (now - ts > DEDUP_WINDOW_MS) recentSubmits.delete(k);
+  }
+
+  const lastSeen = recentSubmits.get(key);
+  if (lastSeen !== undefined && now - lastSeen < DEDUP_WINDOW_MS) {
+    return true; // doublon, drop
+  }
+  recentSubmits.set(key, now);
+  return false;
+}
+
 /** Payload attendu du content script pour l'action 'password_submitted' */
 interface M7SubmitPayload {
   /** SHA-256(installation_salt + password_value) */
@@ -239,6 +275,11 @@ async function handlePasswordSubmitted(
   const { hash, domain_hash: domainHash } = payload;
 
   try {
+    // INV-UC03-04 : déduplication — dropper le doublon sans appeler addPasswordHash
+    if (isDuplicateSubmit(hash, domainHash)) {
+      return { success: true, action: 'skip', reason: 'deduplicated' };
+    }
+
     // Étape 1 : Vérifier la réutilisation AVANT de stocker (pour ne pas se comparer à soi-même)
     const reused = await isPasswordReused(storageService, hash, domainHash, cryptoKey);
 
@@ -394,5 +435,12 @@ export function createM7Handler(
 }
 
 // Exports pour les tests
-export { isPasswordReused, storePasswordHash, isDomainSuppressed, MAX_HASHES };
+export {
+  isPasswordReused,
+  storePasswordHash,
+  isDomainSuppressed,
+  isDuplicateSubmit,
+  MAX_HASHES,
+  recentSubmits,
+};
 export type { PasswordHashRecord };

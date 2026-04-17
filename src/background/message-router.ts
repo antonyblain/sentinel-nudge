@@ -10,6 +10,10 @@
  * - Aucune réponse envoyée aux messages invalides (évite la fuite d'info sur la surface d'attaque)
  * - La validation inclut le module contre la liste blanche MODULE_IDS
  *
+ * UC-03 / INV-UC03-05 :
+ * - Rate-limit SW-side par (tab.id, module) : 10 msg / 10s
+ * - Dépassement → drop + incident rate_limit_exceeded severity=warn (coalescé CM-DOS2)
+ *
  * Référence : DAT §3.3 (MessageRouter, usage dans service-worker.ts), §6.1 (diagramme composants)
  */
 
@@ -17,8 +21,10 @@ import { browser } from '@/shared/browser/browser-adapter';
 import { validateNudgeMessage } from '@/shared/utils/message-validator';
 import { CRITICAL_MODULES } from '@/shared/constants/modules';
 import { QuotaManager } from './quota-manager';
+import { RateLimiter } from './services/rate-limiter';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleId } from '@/shared/types/modules';
+import type { IncidentService } from './services/incident-service';
 
 /** Signature d'un handler de module */
 export type ModuleHandler = (
@@ -36,8 +42,31 @@ export class MessageRouter {
   private readonly quotaManager: QuotaManager;
   private readonly handlers: Map<string, ModuleHandler> = new Map();
 
+  /**
+   * Rate-limiter SW-side (INV-UC03-05).
+   * Volatile — reset au wake SW (exception ADR-001 documentée dans mini-DAT TACHE-070).
+   */
+  private readonly rateLimiter: RateLimiter;
+
+  /**
+   * Service d'incidents — optionnel pour rester rétrocompatible avec les tests
+   * existants qui instancient MessageRouter sans incidentService.
+   */
+  private incidentService: IncidentService | null = null;
+
   constructor(quotaManager: QuotaManager) {
     this.quotaManager = quotaManager;
+    this.rateLimiter = new RateLimiter();
+  }
+
+  /**
+   * Injecte le service d'incidents après l'initialisation de la DB.
+   * Doit être appelé depuis service-worker.ts après storageService.initDB().
+   *
+   * @param svc - Instance IncidentService initialisée
+   */
+  setIncidentService(svc: IncidentService): void {
+    this.incidentService = svc;
   }
 
   /**
@@ -73,11 +102,15 @@ export class MessageRouter {
   }
 
   /**
-   * Traite un message validé : vérifie le quota puis dispatche au handler du module.
+   * Traite un message validé : vérifie le rate-limit, vérifie le quota,
+   * puis dispatche au handler du module.
    *
    * L'incrément du quota (M-002) est effectué APRÈS la réponse du handler,
    * et uniquement si le handler répond avec action === 'show'. Cela évite d'incrémenter
    * le quota pour des messages qui n'aboutissent pas à l'affichage d'un nudge.
+   *
+   * UC-03 / INV-UC03-05 : le rate-limit est vérifié avant le quota. Un dépassement
+   * génère un incident rate_limit_exceeded (severity=warn, coalescé par CM-DOS2).
    *
    * @param msg          - Message validé NudgeMessage
    * @param sender       - Contexte d'émission (tabId, frameId)
@@ -88,6 +121,27 @@ export class MessageRouter {
     sender: chrome.runtime.MessageSender,
     sendResponse: (r: unknown) => void,
   ): Promise<void> {
+    const tabId = sender.tab?.id ?? 0;
+
+    // UC-03 / INV-UC03-05 : rate-limit par (tab.id, module) — 10 msg / 10s
+    if (!this.rateLimiter.check(tabId, msg.module)) {
+      // Drop + incident coalescé (CM-DOS2 empêche l'amplification R-M7-08).
+      // Note : si un rate-limit se déclenche PENDANT la fenêtre entre le wake SW
+      // et l'appel `setIncidentService()` (quelques ms), l'incident est
+      // silencieusement perdu (guard null). Acceptable car severity=warn et
+      // fenêtre <100ms — cf. revue Archi sécu TACHE-070 2026-04-17 point 2.
+      if (this.incidentService) {
+        await this.incidentService.log('rate_limit_exceeded', 'warn', {
+          type: 'rate_limit_exceeded',
+          module: msg.module,
+          tab_id: tabId,
+        });
+      }
+      const response: NudgeResponse = { success: false, error: 'rate_limit_exceeded' };
+      sendResponse(response);
+      return;
+    }
+
     const isCritical = (CRITICAL_MODULES as readonly string[]).includes(msg.module);
 
     // Vérification du quota (modules critiques bypassen)
