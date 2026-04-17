@@ -2,13 +2,36 @@
 
 ## Fil rouge (narration courte)
 
-**Où on en est.** Sentinel Nudge entre en P5 après une P4' dense (saga fiabilisation M7 de 7 commits correctifs, post-mortem consolidé avec 15 UC catalogués, brand book Aegis Blue validé). Le mini-DAT TACHE-061 v1.1 a été validé (heartbeat + canary + registre incidents), le code correspondant est produit (239 tests OK) et attend le Référent qualité et le comité de revue code. Une PR rétrospective #3 `feature/p4-developpement → develop` a été ouverte pour figer la masse (68 commits).
+**Où on en est (fin session 2026-04-17).** 🎯 **Tous les UC P0 bloquants v1 sont couverts** + prérequis techniques traités.
 
-**Où on va.** Boucler TACHE-061 (revue code + commit sur nouvelle branche courte), puis TACHE-058 (ADR SW-BOOT-CONTRACT + CROSS-LIFECYCLE-INTENT + audit modules), puis ouvrir le chantier UC P0 bloquants v1 (TACHE-068 à 073 : login multi-étape, password managers, iframes, toggle show/hide, inputs dynamiques) en parallèle des tests E2E.
+**13 PR mergées vers `develop`** (2026-04-17) :
+- PR #3 rétrospective P4/P4' (figée, 68 commits)
+- PR #4 TACHE-061 heartbeat + canary + registre incidents
+- PR #5 TACHE-058 ADR + audit 7 modules
+- PR #6 process correctif LL-021 + specs UC + hook I-009
+- PR #7 TACHE-069+072 UC-02 isTrusted + UC-05 MutationObserver
+- PR #8 TACHE-071 UC-04 iframes cross-origin (doc)
+- PR #9 TACHE-068 UC-01 login multi-étape
+- PR #10 TACHE-079 fix R-M7-09 race onInstalled vs IIFE
+- PR #11 TACHE-070 UC-03 iframes same-origin + dédup + rate-limit
+- PR #12 TACHE-083 factory logger.ts (R-M7-08 mitigation partielle)
+- PR #13 TACHE-073 UC-06 inputs dynamiques + infra Playwright E2E
 
-**Pourquoi.** Option A v1 retenue par le Commanditaire (2026-04-14) : les 6 UC P0 sont bloquants pour la release v1. TACHE-061 pose l'infrastructure de détection amont pour éviter que les incidents type P-016/P-018 se répètent.
+**État tests** : 294/294 Vitest verts + infra Playwright E2E prête (3 tests auto, 5 fixtures HTML, pas encore en CI).
 
-**Règles de flow adoptées (2026-04-16).** Niveau Exposé respecté : chaque tâche P5+ → branche courte + PR vers `develop`. Pas de cumul sur une feature géante.
+**Où on va (reprise prochaine session).** Tâches **post-v1** dans BACKLOG :
+- TACHE-074 DPO AIPD M7 inventaire console + TACHE-075 référentiel ISO 27001
+- TACHE-076 à 093 suivi post-merge TACHE-061/058 (9 tâches)
+- TACHE-094 à 100 suivi post-merge TACHE-069/072 (7 tâches)
+- TACHE-101 code fix F-UC01-01 (inputs racines React non enregistrés)
+- TACHE-102 mini-DAT TACHE-070 v1.0→v1.1 (R-UC03-07)
+- TACHE-103 refactor MessageRouter injection constructeur
+- TACHE-104/105 complétion migration logger (12 sites résiduels SW + 26 sites CS/UI)
+- TACHE-106 intégration `test:e2e` dans CI GitHub Actions
+
+**Gouvernance stable.** 2 branches actives (`develop`, `main`), CI toujours verte, hook I-009 opérationnel (fires sur git push, 0 misfire post-fix). 10 agents Fabrique mobilisés + 6 Skills.
+
+**Règles de flow confirmées.** Niveau Exposé : chaque tâche P5+ → branche courte + PR + `--delete-branch` sur merge. Format/lint/build/test obligatoires. `gh pr checks` systématique après push (I-009 + hook automatique). QC Référent qualité + comité de revue code (Exposé) systématiques.
 
 ## Projet
 - **Nom** : Sentinel Nudge
