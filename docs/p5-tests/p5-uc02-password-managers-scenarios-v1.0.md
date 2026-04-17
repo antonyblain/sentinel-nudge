@@ -42,14 +42,14 @@ SESSION.md stipule : "Gestionnaires mdp : uniquement projets open source nommés
 
 ### 2.2 Priorisation
 
-| Priorité | Gestionnaire | Justification |
-|----------|-------------|---------------|
-| **P0** | Chrome Password Manager (CPM) | Présent par défaut sur tout poste Chrome ; cas le plus fréquent en production |
-| **P0** | Bitwarden | Open source, leader libre ; recommandé par la règle projet |
-| **P1** | 1Password | Très répandu en entreprise ; auto-submit documenté |
-| **P1** | KeePassXC | Open source ; comportement navigateur via extension KeePassXC-Browser |
-| **P2** | Dashlane | Présent dans les logs post-mortem M7 ; comportement auto-submit observé |
-| **P2** | Vaultwarden | Compatible Bitwarden (serveur auto-hébergé) ; comportement identique au client Bitwarden |
+| Priorité | Gestionnaire                  | Justification                                                                            |
+| -------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
+| **P0**   | Chrome Password Manager (CPM) | Présent par défaut sur tout poste Chrome ; cas le plus fréquent en production            |
+| **P0**   | Bitwarden                     | Open source, leader libre ; recommandé par la règle projet                               |
+| **P1**   | 1Password                     | Très répandu en entreprise ; auto-submit documenté                                       |
+| **P1**   | KeePassXC                     | Open source ; comportement navigateur via extension KeePassXC-Browser                    |
+| **P2**   | Dashlane                      | Présent dans les logs post-mortem M7 ; comportement auto-submit observé                  |
+| **P2**   | Vaultwarden                   | Compatible Bitwarden (serveur auto-hébergé) ; comportement identique au client Bitwarden |
 
 **Note Vaultwarden** : Vaultwarden est un serveur back-end auto-hébergé compatible avec le client Bitwarden. L'extension navigateur utilisée est identique à Bitwarden. Les scénarios P2 pour Vaultwarden seront exécutés avec le client Bitwarden pointant sur une instance Vaultwarden locale. Si les résultats sont identiques à Bitwarden P0, les scénarios Vaultwarden peuvent être marqués "couverts par Bitwarden".
 
@@ -77,6 +77,7 @@ Sauf indication contraire dans la pré-condition du scénario, l'état de dépar
 - Suppression_list M7 (whitelist IndexedDB) : vide
 
 **Procédure de réinitialisation entre scénarios** :
+
 1. Ouvrir `chrome://extensions`
 2. Sur la carte Sentinel Nudge, cliquer "Options"
 3. Dans la page Options, utiliser le bouton "Effacer toutes mes données" (si disponible) OU
@@ -92,6 +93,7 @@ Sauf indication contraire dans la pré-condition du scénario, l'état de dépar
 Les logs M7 sont émis en JSON structuré dans la console du content script (DevTools > onglet cible > Console) et dans la console du SW (chrome://extensions > Inspect SW).
 
 Logs attendus au submit :
+
 - `"Sentinel Nudge M7: sending password_submitted to SW"` — le CS a capturé le submit
 - `"Sentinel Nudge M7: SW response received"` avec `{ response: { success: true, action: "skip", reason: "no_reuse" } }` ou `action: "show"`
 
@@ -104,6 +106,7 @@ Absence de ces logs = M7 n'a pas capturé le submit (faux négatif).
 ### Référence des identifiants de scénarios
 
 Format : `S-UC02-[XX]-[NN]`
+
 - `XX` : code gestionnaire (CP=Chrome PM, BW=Bitwarden, 1P=1Password, KX=KeePassXC, DL=Dashlane, VW=Vaultwarden)
 - `NN` : numéro de scénario (01 à 04)
 
@@ -114,6 +117,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Pré-requis d'installation** : Chrome PM est actif par défaut si l'utilisateur est connecté à un compte Google avec des mots de passe sauvegardés. Pour le test, utiliser un profil Chrome dédié avec un mot de passe sauvegardé pour `saucedemo.com`.
 
 **Procédure de préparation du profil de test** :
+
 1. Créer un nouveau profil Chrome (pas de synchronisation compte Google nécessaire)
 2. Naviguer sur `https://saucedemo.com`
 3. Saisir manuellement `standard_user` / `secret_sauce` et valider
@@ -129,6 +133,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Objectif** : Vérifier que M7 ne se déclenche pas sur un auto-remplissage sans soumission.
 
 **Pré-conditions** :
+
 - Chrome PM a sauvegardé les credentials pour `saucedemo.com`
 - Storage M7 vide (§3.2)
 - La page `https://saucedemo.com` est ouverte
@@ -138,6 +143,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur clique sur le champ password ou sur la suggestion de complétion automatique de Chrome PM (icône clé dans le champ), et Chrome PM remplit les deux champs — sans que l'utilisateur appuie sur Entrée ou clique sur le bouton de connexion.
 
 **Then** :
+
 - Aucun log `"Sentinel Nudge M7: sending password_submitted to SW"` n'apparaît dans la console
 - Aucun toast M7 n'apparaît
 - `pending_m7_toast` est absent de `chrome.storage.local` (vérifiable en DevTools Application > Storage > Local Storage)
@@ -148,6 +154,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si échec** : P0 — Faux positif systématique avec Chrome PM → extension inutilisable pour tout utilisateur Chrome avec PM actif.
 
 **Comportement à documenter** :
+
 - Valeur de `event.isTrusted` observée dans la console lors du remplissage (si un event submit est journalisé)
 - Le remplissage auto se fait-il via un `input` event, un `change` event, ou directement par mutation de `.value` sans event ?
 
@@ -160,6 +167,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Objectif** : Vérifier que M7 capture correctement le hash après auto-remplissage suivi d'un submit manuel.
 
 **Pré-conditions** :
+
 - Chrome PM a sauvegardé les credentials pour `saucedemo.com`
 - Storage M7 vide (§3.2)
 - La page `https://saucedemo.com` est ouverte
@@ -169,6 +177,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur clique manuellement sur le bouton "Login" (ou appuie sur Entrée).
 
 **Then** :
+
 - Le log `"Sentinel Nudge M7: sending password_submitted to SW"` apparaît dans la console (CS a capturé le submit)
 - Le log `"M7Handler: message recu"` apparaît dans la console SW
 - La réponse SW contient `{ success: true, action: "skip", reason: "no_reuse" }` (premier usage, pas de réutilisation)
@@ -180,6 +189,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si échec** : P0 — Si M7 ne capture pas : faux négatif permanent pour les utilisateurs Chrome PM (protection désactivée de facto pour la majorité des utilisateurs).
 
 **Comportement à documenter** :
+
 - Valeur de `event.isTrusted` du submit event capturé (visible dans le log `"submit event captured"`)
 - Chrome PM modifie-t-il le submit event de quelque façon ?
 
@@ -194,6 +204,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Note préalable** : Chrome PM (natif) ne déclenche pas d'auto-submit dans sa version standard. Ce scénario s'applique si une version future ou une configuration spécifique (ex. Single Sign-On Chrome Enterprise) déclenche un submit programmatique. Si le comportement ne peut pas être reproduit avec Chrome PM natif, le scénario est marqué "Non reproductible — comportement documenté uniquement".
 
 **Pré-conditions** :
+
 - Chrome PM a sauvegardé les credentials pour `saucedemo.com`
 - Storage M7 vide (§3.2)
 - La page `https://saucedemo.com` est ouverte
@@ -212,6 +223,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si échec** : P1 — Toast affiché sans action utilisateur = nuisance ; capture manquée = faux négatif limité (cas rare).
 
 **Comportement à documenter** :
+
 - `event.isTrusted` du submit event observé
 - Méthode de soumission utilisée par Chrome PM (`form.submit()` vs `form.requestSubmit()` vs click bouton)
 - Timing entre auto-fill et submit (délai en ms)
@@ -225,6 +237,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Objectif** : Vérifier qu'une deuxième connexion au même site avec le même mot de passe ne déclenche pas d'alerte (la réutilisation intra-domaine est explicitement ignorée).
 
 **Pré-conditions** :
+
 - Le scénario S-UC02-CP-02 a été exécuté avec succès (un hash pour `saucedemo.com` est stocké)
 - `pending_m7_toast` : absent
 - `m7_last_nudge_by_domain` : absent (pas de cooldown actif)
@@ -235,6 +248,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur ouvre à nouveau `saucedemo.com`, Chrome PM auto-remplit, et l'utilisateur soumet manuellement le formulaire.
 
 **Then** :
+
 - Le log `"Sentinel Nudge M7: SW response received"` contient `{ action: "skip", reason: "no_reuse" }` (le handler M7 a ignoré la comparaison intra-domaine conformément à l'algorithme `isPasswordReused`)
 - Aucun toast M7 n'apparaît
 
@@ -249,6 +263,7 @@ Format : `S-UC02-[XX]-[NN]`
 ### 4.2 Bitwarden — P0
 
 **Pré-requis d'installation** :
+
 - Installer l'extension Bitwarden depuis le Chrome Web Store
 - Créer un compte Bitwarden gratuit (ou utiliser un serveur Vaultwarden local)
 - Enregistrer les credentials de test (`standard_user` / `secret_sauce` pour `saucedemo.com`) dans le coffre Bitwarden
@@ -263,6 +278,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Objectif** : Vérifier que M7 ne se déclenche pas sur un auto-remplissage Bitwarden sans soumission.
 
 **Pré-conditions** :
+
 - Bitwarden déverrouillé, credentials `saucedemo.com` enregistrés
 - Storage M7 vide (§3.2)
 - Page `https://saucedemo.com` ouverte
@@ -272,6 +288,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur clique sur le bouton Bitwarden dans la toolbar ou utilise le raccourci clavier Bitwarden (`Ctrl+Shift+L`) pour déclencher le remplissage automatique des champs — sans soumettre le formulaire ensuite.
 
 **Then** :
+
 - Aucun log `"Sentinel Nudge M7: sending password_submitted to SW"` dans la console
 - Aucun toast M7
 - `pending_m7_toast` absent
@@ -281,6 +298,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si échec** : P0.
 
 **Comportement à documenter** :
+
 - Bitwarden déclenche-t-il un event `input`, `change` ou aucun event lors du remplissage ?
 - Bitwarden utilise-t-il `element.value = ...` (sans event) ou `InputEvent` synthétique ?
 
@@ -293,6 +311,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Objectif** : Vérifier que M7 capture le hash après remplissage Bitwarden + submit manuel.
 
 **Pré-conditions** :
+
 - Bitwarden déverrouillé, credentials `saucedemo.com` enregistrés
 - Storage M7 vide (§3.2)
 
@@ -301,6 +320,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur clique manuellement sur "Login".
 
 **Then** :
+
 - Log `"Sentinel Nudge M7: sending password_submitted to SW"` présent
 - Réponse SW : `{ success: true, action: "skip", reason: "no_reuse" }`
 - Un hash enregistré en IndexedDB `password_hashes`
@@ -311,6 +331,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si échec** : P0.
 
 **Comportement à documenter** :
+
 - `event.isTrusted` du submit : attendu `true` (action utilisateur physique)
 - Bitwarden ajoute-t-il des attributs DOM (`data-form-type`, `data-bwautofill`, etc.) ? Ceux-ci pourraient interférer avec la détection `hasPasswordManagerHint()` qui filtre `data-form-type`.
 
@@ -325,6 +346,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Objectif** : Tester le comportement de M7 quand Bitwarden effectue un auto-submit (option "Auto-fill on page load" activée dans les paramètres Bitwarden).
 
 **Pré-conditions** :
+
 - Bitwarden déverrouillé, credentials `saucedemo.com` enregistrés
 - **Activer** l'option Bitwarden "Auto-fill on page load" (Paramètres Bitwarden > Options > Auto-fill on page load)
 - Storage M7 vide (§3.2)
@@ -334,6 +356,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : Bitwarden détecte le formulaire connu, remplit les champs et soumet automatiquement le formulaire sans action utilisateur.
 
 **Then — comportement attendu (cf. §5 ARB-UC02-01)** :
+
 - Observer si un `submit` event est déclenché
 - Observer la valeur de `event.isTrusted` dans le log `"submit event captured"`
 - Si Bitwarden utilise `form.submit()` : `event.isTrusted = false` ou pas d'event submit du tout
@@ -345,6 +368,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si comportement non défini** : P0 — Ce scénario est le coeur de la problématique UC-02.
 
 **Comportement à documenter** :
+
 - `event.isTrusted` observé
 - Méthode de soumission (form.submit, form.requestSubmit, click bouton)
 - Délai entre affichage de la page et auto-submit (ms)
@@ -359,6 +383,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Objectif** : Vérifier l'absence de faux positif sur un site revisité avec Bitwarden.
 
 **Pré-conditions** :
+
 - S-UC02-BW-02 exécuté avec succès (hash `saucedemo.com` en IndexedDB)
 - `pending_m7_toast` absent
 - Cooldown non actif
@@ -368,6 +393,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur ouvre `saucedemo.com`, Bitwarden remplit, l'utilisateur soumet manuellement.
 
 **Then** :
+
 - Réponse SW : `{ action: "skip", reason: "no_reuse" }`
 - Aucun toast
 
@@ -380,6 +406,7 @@ Format : `S-UC02-[XX]-[NN]`
 ### 4.3 1Password — P1
 
 **Pré-requis d'installation** :
+
 - Installer l'extension 1Password pour Chrome (extension officielle)
 - Disposer d'un compte 1Password (version d'essai acceptée)
 - Enregistrer les credentials de test dans 1Password
@@ -400,11 +427,13 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur utilise l'interface 1Password (popup ou inline suggestion) pour remplir les champs sans soumettre.
 
 **Then** :
+
 - Aucun log M7 send, aucun toast.
 
 **Sévérité si échec** : P1.
 
 **Comportement à documenter** :
+
 - 1Password injecte-t-il `data-form-type` sur le champ ? Si oui, M7 sera aveugle au focus sur ce champ (impact sur M2 et M9 également).
 - 1Password déclenche-t-il un event `input` synthétique ?
 
@@ -423,6 +452,7 @@ Format : `S-UC02-[XX]-[NN]`
 **When** : L'utilisateur clique sur "Login".
 
 **Then** :
+
 - Log M7 send présent, réponse `no_reuse`, hash stocké.
 
 **Sévérité si échec** : P1.
@@ -450,6 +480,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si comportement non défini** : P1.
 
 **Comportement à documenter** :
+
 - `event.isTrusted` observé
 - 1Password clique-t-il le bouton ou appelle `form.requestSubmit()` ?
 - Délai fill → submit (ms)
@@ -473,6 +504,7 @@ Format : `S-UC02-[XX]-[NN]`
 ### 4.4 KeePassXC — P1
 
 **Pré-requis d'installation** :
+
 - Installer KeePassXC (version Windows, open source)
 - Installer l'extension KeePassXC-Browser pour Chrome
 - Créer une base de données KeePassXC avec credentials de test
@@ -498,6 +530,7 @@ Format : `S-UC02-[XX]-[NN]`
 **Sévérité si échec** : P1.
 
 **Comportement à documenter** :
+
 - KeePassXC-Browser injecte-t-il `data-form-type` ou d'autres attributs ?
 - Le remplissage se fait-il via événements synthétiques ou mutation directe de `.value` ?
 
@@ -542,6 +575,7 @@ Format : `S-UC02-[XX]-[NN]`
 ### 4.5 Dashlane — P2
 
 **Pré-requis d'installation** :
+
 - Installer l'extension Dashlane pour Chrome
 - Compte Dashlane (version d'essai acceptée)
 - Credentials de test enregistrés dans Dashlane
@@ -595,6 +629,7 @@ Format : `S-UC02-[XX]-[NN]`
 ### 4.6 Vaultwarden — P2
 
 **Pré-requis d'installation** :
+
 - Docker Desktop installé (pour l'instance Vaultwarden locale)
 - Lancer Vaultwarden : `docker run -d --name vaultwarden -p 8080:80 vaultwarden/server:latest`
 - Configurer le client Bitwarden pour pointer sur `http://localhost:8080` (Settings > Self-hosted environment)
@@ -642,31 +677,37 @@ Le code actuel contient une protection partielle via `submittedFields` (WeakSet)
 **Option A — Filtrer `event.isTrusted=false` (ne capturer que les submits humains)**
 
 Avantages :
+
 - Élimine les faux positifs lors d'auto-submit par PM (toast non sollicité)
 - Respecte l'intention de M7 : alerter l'utilisateur sur un comportement qu'il a consciemment effectué
 - Règle propre, facile à auditer
 
 Inconvénients :
+
 - Les PM qui simulent un clic humain sur le bouton submit (ex. 1Password clique le bouton via automation script) peuvent générer `event.isTrusted=true` même si c'est programmatique — le filtre serait contourné
 - Si `form.submit()` est utilisé (pas d'event du tout), le filtre est sans effet de toute façon
 
 **Option B — Conserver le comportement actuel (pas de filtre)**
 
 Avantages :
+
 - Capture maximale — aucun hash manqué
 - Simplicité
 
 Inconvénients :
+
 - Toast M7 potentiellement déclenché sans action consciente de l'utilisateur (lors d'auto-submit PM)
 - Risque de faux positifs sur formulaires cachés (§5.2)
 
 **Option C — Ajouter un flag "dernière soumission = auto-fill" pour différer la décision**
 
 Avantages :
+
 - Permet de capturer le hash (utile pour les analyses futures) tout en indiquant au toast qu'il doit adapter son message
 - Plus nuancé
 
 Inconvénients :
+
 - Complexité accrue
 - La détection d'auto-fill elle-même est heuristique (§5.4)
 
@@ -684,13 +725,13 @@ Un tel flag nécessiterait de détecter l'auto-fill avant le submit. La détecti
 
 **Comportements connus (à confirmer lors des scénarios -03) :**
 
-| PM | Méthode de submit probable | Impact sur M7 |
-|----|---------------------------|---------------|
-| Chrome PM | Pas d'auto-submit en standard | Sans objet |
-| Bitwarden | `form.requestSubmit()` ou clic simulé | `isTrusted=false` attendu |
-| 1Password | Clic programmé sur bouton submit | `isTrusted=false` attendu |
-| KeePassXC | Dépend de l'option "Auto-Type" (simulation clavier) | Peut générer `isTrusted=true` via simulation clavier bas niveau |
-| Dashlane | `form.requestSubmit()` (observé dans les logs post-mortem) | `isTrusted=false` attendu |
+| PM        | Méthode de submit probable                                 | Impact sur M7                                                   |
+| --------- | ---------------------------------------------------------- | --------------------------------------------------------------- |
+| Chrome PM | Pas d'auto-submit en standard                              | Sans objet                                                      |
+| Bitwarden | `form.requestSubmit()` ou clic simulé                      | `isTrusted=false` attendu                                       |
+| 1Password | Clic programmé sur bouton submit                           | `isTrusted=false` attendu                                       |
+| KeePassXC | Dépend de l'option "Auto-Type" (simulation clavier)        | Peut générer `isTrusted=true` via simulation clavier bas niveau |
+| Dashlane  | `form.requestSubmit()` (observé dans les logs post-mortem) | `isTrusted=false` attendu                                       |
 
 **Cas KeePassXC particulier** : L'option "Auto-Type" de KeePassXC simule des frappes clavier au niveau système, ce qui peut produire des events avec `isTrusted=true` dans certaines configurations. Ce comportement doit être vérifié lors du scénario S-UC02-KX-03.
 
@@ -704,11 +745,11 @@ Un tel flag nécessiterait de détecter l'auto-fill avant le submit. La détecti
 
 **Options** :
 
-| Option | Description | Avantages | Inconvénients |
-|--------|-------------|-----------|---------------|
-| **A — Filtrer `isTrusted=false`** | Ajouter dans `handleFormSubmit` : `if ('isTrusted' in event && !event.isTrusted) return;` | Élimine les faux positifs auto-submit PM ; cohérent avec l'intention de M7 | Ne capture pas les submits auto-PM (faux négatifs limités mais réels) ; contournable si PM simule clic |
-| **B — Conserver le comportement actuel** | Aucune modification | Capture maximale | Toast M7 potentiellement déclenché sans action utilisateur |
-| **C — Capturer + flag auto-fill** | Capturer tous les submits mais annoter avec flag `isTrusted` pour adapter le message toast | Nuancé, information riche | Complexité ; détection auto-fill heuristique non fiable |
+| Option                                   | Description                                                                                | Avantages                                                                  | Inconvénients                                                                                          |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **A — Filtrer `isTrusted=false`**        | Ajouter dans `handleFormSubmit` : `if ('isTrusted' in event && !event.isTrusted) return;`  | Élimine les faux positifs auto-submit PM ; cohérent avec l'intention de M7 | Ne capture pas les submits auto-PM (faux négatifs limités mais réels) ; contournable si PM simule clic |
+| **B — Conserver le comportement actuel** | Aucune modification                                                                        | Capture maximale                                                           | Toast M7 potentiellement déclenché sans action utilisateur                                             |
+| **C — Capturer + flag auto-fill**        | Capturer tous les submits mais annoter avec flag `isTrusted` pour adapter le message toast | Nuancé, information riche                                                  | Complexité ; détection auto-fill heuristique non fiable                                                |
 
 **Recommandation QA** : Option A.
 
@@ -720,29 +761,29 @@ Un tel flag nécessiterait de détecter l'auto-fill avant le submit. La détecti
 
 ## 6. Tableau de synthèse des scénarios
 
-| ID scénario | Gestionnaire | Type | Priorité | Sévérité échec |
-|-------------|-------------|------|----------|----------------|
-| S-UC02-CP-01 | Chrome PM | Auto-fill sans submit | P0 | P0 |
-| S-UC02-CP-02 | Chrome PM | Auto-fill + submit manuel | P0 | P0 |
-| S-UC02-CP-03 | Chrome PM | Auto-fill + auto-submit | P1 | P1 |
-| S-UC02-CP-04 | Chrome PM | Connexion répétée (no_reuse) | P0 | P0 |
-| S-UC02-BW-01 | Bitwarden | Auto-fill sans submit | P0 | P0 |
-| S-UC02-BW-02 | Bitwarden | Auto-fill + submit manuel | P0 | P0 |
-| S-UC02-BW-03 | Bitwarden | Auto-fill + auto-submit | P0 | P0 |
-| S-UC02-BW-04 | Bitwarden | Connexion répétée (no_reuse) | P0 | P0 |
-| S-UC02-1P-01 | 1Password | Auto-fill sans submit | P1 | P1 |
-| S-UC02-1P-02 | 1Password | Auto-fill + submit manuel | P1 | P1 |
-| S-UC02-1P-03 | 1Password | Auto-fill + auto-submit | P1 | P1 |
-| S-UC02-1P-04 | 1Password | Connexion répétée (no_reuse) | P1 | P1 |
-| S-UC02-KX-01 | KeePassXC | Auto-fill sans submit | P1 | P1 |
-| S-UC02-KX-02 | KeePassXC | Auto-fill + submit manuel | P1 | P1 |
-| S-UC02-KX-03 | KeePassXC | Auto-fill + auto-submit | P1 | P1 |
-| S-UC02-KX-04 | KeePassXC | Connexion répétée (no_reuse) | P1 | P1 |
-| S-UC02-DL-01 | Dashlane | Auto-fill sans submit | P2 | P2 |
-| S-UC02-DL-02 | Dashlane | Auto-fill + submit manuel | P2 | P2 |
-| S-UC02-DL-03 | Dashlane | Auto-fill + auto-submit | P2 | P2 |
-| S-UC02-DL-04 | Dashlane | Connexion répétée (no_reuse) | P2 | P2 |
-| S-UC02-VW-01 à 04 | Vaultwarden | (cf. Bitwarden) | P2 | P2 |
+| ID scénario       | Gestionnaire | Type                         | Priorité | Sévérité échec |
+| ----------------- | ------------ | ---------------------------- | -------- | -------------- |
+| S-UC02-CP-01      | Chrome PM    | Auto-fill sans submit        | P0       | P0             |
+| S-UC02-CP-02      | Chrome PM    | Auto-fill + submit manuel    | P0       | P0             |
+| S-UC02-CP-03      | Chrome PM    | Auto-fill + auto-submit      | P1       | P1             |
+| S-UC02-CP-04      | Chrome PM    | Connexion répétée (no_reuse) | P0       | P0             |
+| S-UC02-BW-01      | Bitwarden    | Auto-fill sans submit        | P0       | P0             |
+| S-UC02-BW-02      | Bitwarden    | Auto-fill + submit manuel    | P0       | P0             |
+| S-UC02-BW-03      | Bitwarden    | Auto-fill + auto-submit      | P0       | P0             |
+| S-UC02-BW-04      | Bitwarden    | Connexion répétée (no_reuse) | P0       | P0             |
+| S-UC02-1P-01      | 1Password    | Auto-fill sans submit        | P1       | P1             |
+| S-UC02-1P-02      | 1Password    | Auto-fill + submit manuel    | P1       | P1             |
+| S-UC02-1P-03      | 1Password    | Auto-fill + auto-submit      | P1       | P1             |
+| S-UC02-1P-04      | 1Password    | Connexion répétée (no_reuse) | P1       | P1             |
+| S-UC02-KX-01      | KeePassXC    | Auto-fill sans submit        | P1       | P1             |
+| S-UC02-KX-02      | KeePassXC    | Auto-fill + submit manuel    | P1       | P1             |
+| S-UC02-KX-03      | KeePassXC    | Auto-fill + auto-submit      | P1       | P1             |
+| S-UC02-KX-04      | KeePassXC    | Connexion répétée (no_reuse) | P1       | P1             |
+| S-UC02-DL-01      | Dashlane     | Auto-fill sans submit        | P2       | P2             |
+| S-UC02-DL-02      | Dashlane     | Auto-fill + submit manuel    | P2       | P2             |
+| S-UC02-DL-03      | Dashlane     | Auto-fill + auto-submit      | P2       | P2             |
+| S-UC02-DL-04      | Dashlane     | Connexion répétée (no_reuse) | P2       | P2             |
+| S-UC02-VW-01 à 04 | Vaultwarden  | (cf. Bitwarden)              | P2       | P2             |
 
 **Total : 24 scénarios** (20 détaillés + 4 Vaultwarden par référence à Bitwarden)
 
@@ -752,16 +793,16 @@ Un tel flag nécessiterait de détecter l'auto-fill avant le submit. La détecti
 
 ### 7.1 Postes et environnements requis
 
-| Ressource | Détails |
-|-----------|---------|
-| Poste Windows 11 | Chrome stable ≥ 120, DevTools accessibles |
-| Compte Google de test | Pour Chrome PM — ne pas utiliser de compte personnel |
-| Compte Bitwarden de test | Gratuit — ne pas utiliser de compte personnel |
-| Compte 1Password de test | Version d'essai — ne pas utiliser de compte personnel |
-| KeePassXC installé | Version Windows, open source |
-| Compte Dashlane de test | Version d'essai |
-| Docker Desktop | Pour Vaultwarden (P2 uniquement) |
-| Build Sentinel Nudge | `npm run build` exécuté, `dist/` chargée en mode développeur |
+| Ressource                | Détails                                                      |
+| ------------------------ | ------------------------------------------------------------ |
+| Poste Windows 11         | Chrome stable ≥ 120, DevTools accessibles                    |
+| Compte Google de test    | Pour Chrome PM — ne pas utiliser de compte personnel         |
+| Compte Bitwarden de test | Gratuit — ne pas utiliser de compte personnel                |
+| Compte 1Password de test | Version d'essai — ne pas utiliser de compte personnel        |
+| KeePassXC installé       | Version Windows, open source                                 |
+| Compte Dashlane de test  | Version d'essai                                              |
+| Docker Desktop           | Pour Vaultwarden (P2 uniquement)                             |
+| Build Sentinel Nudge     | `npm run build` exécuté, `dist/` chargée en mode développeur |
 
 ### 7.2 Données de test
 
@@ -777,40 +818,40 @@ Un tel flag nécessiterait de détecter l'auto-fill avant le submit. La détecti
 
 ### 7.4 Durée estimée d'exécution
 
-| Session | Périmètre | Durée estimée |
-|---------|-----------|--------------|
-| Session 1 | Chrome PM (P0) + Bitwarden (P0) | 2h |
-| Session 2 | 1Password + KeePassXC (P1) | 2h |
-| Session 3 | Dashlane + Vaultwarden (P2) | 2h |
-| **Total** | | **6h** |
+| Session   | Périmètre                       | Durée estimée |
+| --------- | ------------------------------- | ------------- |
+| Session 1 | Chrome PM (P0) + Bitwarden (P0) | 2h            |
+| Session 2 | 1Password + KeePassXC (P1)      | 2h            |
+| Session 3 | Dashlane + Vaultwarden (P2)     | 2h            |
+| **Total** |                                 | **6h**        |
 
 ---
 
 ## 8. Grille de résultats d'exécution (à remplir lors de la recette)
 
-| ID scénario | Date | Résultat (PASS/FAIL/BLOQUÉ) | `event.isTrusted` observé | Submit méthode observée | Défaut créé | Notes |
-|-------------|------|-----------------------------|-----------------------------|--------------------------|-------------|-------|
-| S-UC02-CP-01 | | | | | | |
-| S-UC02-CP-02 | | | | | | |
-| S-UC02-CP-03 | | Dépend ARB-UC02-01 | | | | |
-| S-UC02-CP-04 | | | | | | |
-| S-UC02-BW-01 | | | | | | |
-| S-UC02-BW-02 | | | | | | |
-| S-UC02-BW-03 | | Dépend ARB-UC02-01 | | | | |
-| S-UC02-BW-04 | | | | | | |
-| S-UC02-1P-01 | | | | | | |
-| S-UC02-1P-02 | | | | | | |
-| S-UC02-1P-03 | | Dépend ARB-UC02-01 | | | | |
-| S-UC02-1P-04 | | | | | | |
-| S-UC02-KX-01 | | | | | | |
-| S-UC02-KX-02 | | | | | | |
-| S-UC02-KX-03 | | Dépend ARB-UC02-01 | | | | |
-| S-UC02-KX-04 | | | | | | |
-| S-UC02-DL-01 | | | | | | |
-| S-UC02-DL-02 | | | | | | |
-| S-UC02-DL-03 | | Dépend ARB-UC02-01 | | | | |
-| S-UC02-DL-04 | | | | | | |
-| S-UC02-VW-01 à 04 | | Référence BW | | | | |
+| ID scénario       | Date | Résultat (PASS/FAIL/BLOQUÉ)                                                                                                                                                                                                                          | `event.isTrusted` observé  | Submit méthode observée | Défaut créé | Notes |
+| ----------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ----------------------- | ----------- | ----- |
+| S-UC02-CP-01      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-CP-02      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-CP-03      |      | PASS attendu : aucun log M7, aucun hash (filtre isTrusted=false ARB-UC02-01 Option A)                                                                                                                                                                |                            |                         |             |       |
+| S-UC02-CP-04      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-BW-01      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-BW-02      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-BW-03      |      | PASS attendu : aucun log M7, aucun hash (filtre isTrusted=false ARB-UC02-01 Option A)                                                                                                                                                                |                            |                         |             |       |
+| S-UC02-BW-04      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-1P-01      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-1P-02      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-1P-03      |      | PASS attendu : aucun log M7, aucun hash (filtre isTrusted=false ARB-UC02-01 Option A)                                                                                                                                                                |                            |                         |             |       |
+| S-UC02-1P-04      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-KX-01      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-KX-02      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-KX-03      |      | **Conditionnel** : si `isTrusted=false` observé → PASS (aucun hash, filtre actif). Si `isTrusted=true` observé (Auto-Type simulant frappes bas niveau) → PASS (M7 capture normalement, comportement voulu — Auto-Type équivaut à une action humaine) | À observer obligatoirement |                         |             |       |
+| S-UC02-KX-04      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-DL-01      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-DL-02      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-DL-03      |      | PASS attendu : aucun log M7, aucun hash (filtre isTrusted=false ARB-UC02-01 Option A)                                                                                                                                                                |                            |                         |             |       |
+| S-UC02-DL-04      |      |                                                                                                                                                                                                                                                      |                            |                         |             |       |
+| S-UC02-VW-01 à 04 |      | Référence BW                                                                                                                                                                                                                                         |                            |                         |             |       |
 
 ---
 
@@ -836,4 +877,4 @@ Un tel flag nécessiterait de détecter l'auto-fill avant le submit. La détecti
 
 ---
 
-*Fin du document — Version 1.0 — TACHE-069 — 2026-04-17*
+_Fin du document — Version 1.0 — TACHE-069 — 2026-04-17_
