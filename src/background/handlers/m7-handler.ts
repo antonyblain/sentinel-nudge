@@ -32,11 +32,15 @@
 import { StorageService } from '@/background/storage-service';
 import { browser } from '@/shared/browser/browser-adapter';
 import { extractTag } from '@/shared/utils/hash';
+import { createLogger, Logger } from '@/shared/utils/logger';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
 import type { PasswordHashRecord } from '@/shared/types/storage';
 import type { HeartbeatService } from '@/background/services/heartbeat-service';
 import type { IncidentService } from '@/background/services/incident-service';
+
+/** Logger scopé M7Handler — mitigation R-M7-08 / TACHE-083 */
+const logger = createLogger('M7Handler');
 
 /** Nombre maximum de hashes stockés en IndexedDB (FIFO) */
 const MAX_HASHES = 100;
@@ -251,8 +255,8 @@ async function handleToastAction(
 
     return { success: true, action: 'skip' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M7Handler] Erreur toast action: ${message}`);
+    // R-M7-08 / TACHE-083 : ne pas logger err.message — utiliser Error.name uniquement
+    logger.error('Erreur toast action', { error_name: Logger.errorName(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -340,8 +344,8 @@ async function handlePasswordSubmitted(
       data: { domain_hash: domainHash },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M7Handler] Erreur traitement: ${message}`);
+    // R-M7-08 / TACHE-083 : ne pas logger err.message — utiliser Error.name uniquement
+    logger.error('Erreur traitement', { error_name: Logger.errorName(err) });
     // Instrumentation TACHE-061 : log incident submit_detect_fail (INV-SEC-02 : code_path, pas message brut)
     await incidentService.log('submit_detect_fail', 'error', {
       type: 'submit_detect_fail',
@@ -374,15 +378,8 @@ export function createM7Handler(
     msg: NudgeMessage,
     _sender: chrome.runtime.MessageSender,
   ): Promise<NudgeResponse> => {
-    // Log diagnostic : tout message M7 recu
-    console.info(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'M7Handler: message recu',
-        context: { action: msg.action, origin: _sender.tab?.id ?? 'unknown' },
-      }),
-    );
+    // Log diagnostic : tout message M7 recu (R-M7-08 / TACHE-083 — tab_id uniquement, pas url)
+    logger.info('message recu', { action: msg.action, tab_id: _sender.tab?.id });
 
     // L'action 'toast_action' a un payload différent (user_action + domain_hash, pas de hash)
     // → traiter en premier, avant la validation du champ 'hash'
