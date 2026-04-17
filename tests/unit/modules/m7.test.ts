@@ -11,28 +11,46 @@
  * - Rejet des payloads invalides (hash malformé)
  * - Réponse 'show' quand toutes les conditions sont remplies
  *
- * Note : les tests ne testent pas la comparaison cryptographique réelle
- * (SubtleCrypto non disponible en jsdom) — ils testent la logique de décision.
+ * TACHE-091 (R-CLI-03) — tests migration pending_m7_toast :
+ * - TC-M7-MIG-LEGACY-01 : lecture format legacy (timestamp) → migration + retour nouveau format
+ * - TC-M7-MIG-EXPIRES-AT-01 : lecture format nouveau (expires_at) → retour direct
+ * - TC-M7-RCLI-05 : cross-lifecycle — pending_m7_toast survive au kill SW et est consommable
+ * - TC-M7-ADR-04 : double consommation empêchée — deuxième lecture retourne null
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createM7Handler, recentSubmits } from '@/background/handlers/m7-handler';
+import { createM7Handler, recentSubmits, verifyExpiresAt, readPendingM7Toast } from '@/background/handlers/m7-handler';
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
 import type { PasswordHashRecord } from '@/shared/types/storage';
 import type { HeartbeatService } from '@/background/services/heartbeat-service';
 import type { IncidentService } from '@/background/services/incident-service';
+import { PENDING_M7_TOAST_KEY, PENDING_M7_TOAST_TTL_MS } from '@/shared/types/diagnostics';
 
-// Mock de chrome.storage.local pour les tests des timestamps de nudge
+// Mock de chrome.storage.local pour les tests des timestamps de nudge et pending toast
 const mockLocalStorage: Record<string, unknown> = {};
+const removedKeys: string[] = [];
+
 global.chrome = {
   storage: {
     local: {
       get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        callback(mockLocalStorage);
+        const result: Record<string, unknown> = {};
+        _keys.forEach((k) => {
+          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
+        });
+        callback(result);
       }),
       set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
         Object.assign(mockLocalStorage, items);
+        callback?.();
+      }),
+      remove: vi.fn((key: string | string[], callback?: () => void) => {
+        const keys = Array.isArray(key) ? key : [key];
+        keys.forEach((k) => {
+          removedKeys.push(k);
+          delete mockLocalStorage[k];
+        });
         callback?.();
       }),
     },
@@ -49,6 +67,9 @@ global.chrome = {
 // La Map est module-level dans m7-handler.ts — elle persiste entre les tests du même fichier.
 beforeEach(() => {
   recentSubmits.clear();
+  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  removedKeys.length = 0;
+  vi.clearAllMocks();
 });
 
 /** Hash valide (64 chars hex) pour les tests */
@@ -384,11 +405,6 @@ describe('createM7Handler — gestion des erreurs de stockage', () => {
 });
 
 describe('createM7Handler — cooldown 30 jours', () => {
-  beforeEach(() => {
-    // Réinitialiser le mock localStorage
-    Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
-  });
-
   it('ne montre pas de nudge si dernier nudge < 30 jours', async () => {
     // Simuler un nudge M7 récent (il y a 1 heure) pour ce domaine
     const recentTimestamp = Date.now() - 60 * 60 * 1000; // 1 heure
@@ -411,5 +427,184 @@ describe('createM7Handler — cooldown 30 jours', () => {
 
     // Avec 0 candidats → no_reuse (cooldown non atteint dans ce cas)
     expect(response.action).toBe('skip');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TACHE-091 — Tests migration pending_m7_toast (R-CLI-03)
+// ---------------------------------------------------------------------------
+
+describe('verifyExpiresAt — helper TTL', () => {
+  it('retourne true si expires_at est dans le futur', () => {
+    const toast = {
+      domain_hash: DOMAIN_HASH_1,
+      expires_at: Date.now() + 60_000,
+    };
+    expect(verifyExpiresAt(toast)).toBe(true);
+  });
+
+  it('retourne false si expires_at est dans le passé', () => {
+    const toast = {
+      domain_hash: DOMAIN_HASH_1,
+      expires_at: Date.now() - 60_000,
+    };
+    expect(verifyExpiresAt(toast)).toBe(false);
+  });
+
+  it('retourne false si expires_at est exactement maintenant (frontière)', () => {
+    // Date.now() - 1 pour garantir que c'est dans le passé même avec un clock drift infime
+    const toast = {
+      domain_hash: DOMAIN_HASH_1,
+      expires_at: Date.now() - 1,
+    };
+    expect(verifyExpiresAt(toast)).toBe(false);
+  });
+});
+
+describe('TC-M7-MIG-EXPIRES-AT-01 — pending_m7_toast nouveau format (expires_at)', () => {
+  it('lit et retourne un toast au nouveau format valide', async () => {
+    const expiresAt = Date.now() + PENDING_M7_TOAST_TTL_MS;
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      expires_at: expiresAt,
+    };
+
+    const result = await readPendingM7Toast();
+
+    expect(result).not.toBeNull();
+    expect(result?.domain_hash).toBe(DOMAIN_HASH_1);
+    expect(result?.expires_at).toBe(expiresAt);
+  });
+
+  it('retourne null si le toast est expiré (expires_at passé)', async () => {
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      expires_at: Date.now() - 60_000, // expiré il y a 1 minute
+    };
+
+    const result = await readPendingM7Toast();
+
+    expect(result).toBeNull();
+    // Le toast expiré doit être supprimé
+    expect(removedKeys).toContain(PENDING_M7_TOAST_KEY);
+  });
+});
+
+describe('TC-M7-MIG-LEGACY-01 — pending_m7_toast format legacy (timestamp → migration)', () => {
+  it('lit un toast legacy (timestamp) et le migre vers expires_at', async () => {
+    const legacyTs = Date.now() - 1_000; // créé il y a 1 seconde
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      timestamp: legacyTs,
+    };
+
+    const result = await readPendingM7Toast();
+
+    // Le toast legacy doit être retourné en nouveau format
+    expect(result).not.toBeNull();
+    expect(result?.domain_hash).toBe(DOMAIN_HASH_1);
+    // expires_at doit être timestamp + TTL
+    expect(result?.expires_at).toBe(legacyTs + PENDING_M7_TOAST_TTL_MS);
+    // Le storage doit être mis à jour en nouveau format (migration)
+    const stored = mockLocalStorage[PENDING_M7_TOAST_KEY] as Record<string, unknown>;
+    expect(stored['expires_at']).toBe(legacyTs + PENDING_M7_TOAST_TTL_MS);
+    expect(stored['timestamp']).toBeUndefined();
+  });
+
+  it('retourne null si le toast legacy est expiré (timestamp trop ancien)', async () => {
+    // Toast créé il y a 15 minutes — TTL 10 minutes → expiré
+    const legacyTs = Date.now() - 15 * 60 * 1000;
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      timestamp: legacyTs,
+    };
+
+    const result = await readPendingM7Toast();
+
+    expect(result).toBeNull();
+    // Toast expiré supprimé
+    expect(removedKeys).toContain(PENDING_M7_TOAST_KEY);
+  });
+
+  it('retourne null si la shape est invalide (ni expires_at ni timestamp)', async () => {
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      unknown_field: 12345,
+    };
+
+    const result = await readPendingM7Toast();
+
+    expect(result).toBeNull();
+    expect(removedKeys).toContain(PENDING_M7_TOAST_KEY);
+  });
+});
+
+describe('TC-M7-RCLI-05 — cross-lifecycle : pending_m7_toast survit au kill SW', () => {
+  it('R-CLI-05 : toast écrit avant kill SW, consommable après re-démarrage', async () => {
+    // Simuler l'écriture du toast par le handler M7 (avant kill SW)
+    const expiresAt = Date.now() + PENDING_M7_TOAST_TTL_MS;
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      expires_at: expiresAt,
+    };
+
+    // Simuler le kill SW : les variables en mémoire sont perdues mais
+    // chrome.storage.local (mockLocalStorage) persiste.
+    // Après re-démarrage SW, le content script lit le pending toast.
+
+    // Lecture après "re-démarrage" SW
+    const result = await readPendingM7Toast();
+
+    expect(result).not.toBeNull();
+    expect(result?.domain_hash).toBe(DOMAIN_HASH_1);
+    expect(result?.expires_at).toBe(expiresAt);
+    // Le toast doit avoir expires_at valide (pas consommé-depuis-legacy)
+    expect(result?.expires_at).toBeGreaterThan(Date.now());
+  });
+
+  it('R-CLI-05 : toast legacy survit au kill SW et est migré au re-démarrage', async () => {
+    // Cas : toast legacy écrit avant TACHE-091, lu après migration
+    const legacyTs = Date.now() - 2_000; // créé il y a 2 secondes
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      timestamp: legacyTs,
+    };
+
+    // Lecture après "re-démarrage" SW
+    const result = await readPendingM7Toast();
+
+    expect(result).not.toBeNull();
+    // Doit être en nouveau format (expires_at) — pas consommé-depuis-legacy
+    expect(result?.expires_at).toBeDefined();
+    expect(result?.expires_at).toBe(legacyTs + PENDING_M7_TOAST_TTL_MS);
+    expect(result?.expires_at).toBeGreaterThan(Date.now());
+  });
+});
+
+describe('TC-M7-ADR-04 — double consommation empêchée (R-ADR-04)', () => {
+  it('R-ADR-04 : après lecture du toast, une seconde lecture retourne null (clé absente)', async () => {
+    // Écriture du toast
+    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
+      domain_hash: DOMAIN_HASH_1,
+      expires_at: Date.now() + PENDING_M7_TOAST_TTL_MS,
+    };
+
+    // Première consommation : lit le toast et le supprime (simulé par suppression manuelle)
+    const firstRead = await readPendingM7Toast();
+    expect(firstRead).not.toBeNull();
+
+    // Simuler la consommation : suppression de la clé (ce que fait le content script)
+    delete mockLocalStorage[PENDING_M7_TOAST_KEY];
+    removedKeys.push(PENDING_M7_TOAST_KEY);
+
+    // Deuxième consommation : doit retourner null (toast déjà consommé)
+    const secondRead = await readPendingM7Toast();
+    expect(secondRead).toBeNull();
+  });
+
+  it('R-ADR-04 : toast absent → readPendingM7Toast retourne null silencieusement', async () => {
+    // Aucun toast en storage
+    const result = await readPendingM7Toast();
+    expect(result).toBeNull();
   });
 });

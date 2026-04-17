@@ -6,12 +6,58 @@
  * - Enregistrement de l'évaluation correcte au submit
  * - Rejet des payloads invalides (score hors plage, type inconnu)
  * - Réponse 'skip' correcte (M9 ne déclenche pas d'affichage côté SW)
+ *
+ * TACHE-089 — diagnostics M9 (Option B) :
+ * - TC-M9-DIAG-READ-01 : readM9Diagnostics retourne la valeur par défaut si absent
+ * - TC-M9-DIAG-UPDATE-01 : updateM9DiagnosticsOnAction met à jour diagnostics.m9 (succès)
+ * - TC-M9-DIAG-UPDATE-02 : updateM9DiagnosticsOnAction émet incident m9_handler_error (échec)
+ * - TC-M9-DIAG-HANDLER-01 : handler M9 met à jour diagnostics si incidentService fourni
+ * - TC-M9-DIAG-HANDLER-02 : handler M9 sans incidentService — fonctionne sans diagnostic
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createM9Handler } from '@/background/handlers/m9-handler';
+import { createM9Handler, readM9Diagnostics } from '@/background/handlers/m9-handler';
+import { readM9Diagnostics as readM9DiagnosticsService, updateM9DiagnosticsOnAction } from '@/background/services/m9-boot-service';
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
+import type { IncidentService } from '@/background/services/incident-service';
+import { DIAGNOSTICS_M9_KEY, M9_DIAGNOSTICS_DEFAULT } from '@/shared/types/diagnostics';
+
+// ---------------------------------------------------------------------------
+// Mock chrome.storage.local
+// ---------------------------------------------------------------------------
+const mockLocalStorage: Record<string, unknown> = {};
+const removedKeys: string[] = [];
+
+global.chrome = {
+  storage: {
+    local: {
+      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
+        const result: Record<string, unknown> = {};
+        _keys.forEach((k) => {
+          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
+        });
+        callback(result);
+      }),
+      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
+        Object.assign(mockLocalStorage, items);
+        callback?.();
+      }),
+      remove: vi.fn((key: string | string[], callback?: () => void) => {
+        const keys = Array.isArray(key) ? key : [key];
+        keys.forEach((k) => {
+          removedKeys.push(k);
+          delete mockLocalStorage[k];
+        });
+        callback?.();
+      }),
+    },
+  },
+} as unknown as typeof chrome;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 /** Crée un mock minimal de StorageService pour les tests M9 */
 function createMockStorage(): Partial<StorageService> {
@@ -34,6 +80,27 @@ function buildM9Message(payload: Record<string, unknown>): NudgeMessage {
     timestamp: Date.now(),
   };
 }
+
+/** Crée un mock de IncidentService */
+function createMockIncidentService(): Partial<IncidentService> {
+  return {
+    log: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+
+beforeEach(() => {
+  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  removedKeys.length = 0;
+  vi.clearAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// Tests handler M9 existants
+// ---------------------------------------------------------------------------
 
 describe('createM9Handler', () => {
   let mockStorage: Partial<StorageService>;
@@ -181,5 +248,202 @@ describe('createM9Handler', () => {
       expect(response.action).toBe('error');
       expect(response.reason).toBe('storage_error');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TACHE-089 — Tests diagnostics M9 (Option B)
+// ---------------------------------------------------------------------------
+
+describe('TC-M9-DIAG-READ-01 — readM9Diagnostics retourne valeur par défaut si absent', () => {
+  it('retourne M9_DIAGNOSTICS_DEFAULT si clé absente du storage', async () => {
+    const diag = await readM9DiagnosticsService();
+
+    expect(diag.ready).toBe(M9_DIAGNOSTICS_DEFAULT.ready);
+    expect(diag.last_action_ts).toBe(M9_DIAGNOSTICS_DEFAULT.last_action_ts);
+    expect(diag.last_incident).toBeUndefined();
+  });
+
+  it('retourne M9_DIAGNOSTICS_DEFAULT si la shape est corrompue', async () => {
+    mockLocalStorage[DIAGNOSTICS_M9_KEY] = { corrupt: true };
+
+    const diag = await readM9DiagnosticsService();
+
+    expect(diag.ready).toBe(false);
+    expect(diag.last_action_ts).toBe(0);
+  });
+
+  it('lit un diagnostics.m9 valide depuis le storage', async () => {
+    mockLocalStorage[DIAGNOSTICS_M9_KEY] = {
+      ready: true,
+      last_action_ts: 1234567890,
+    };
+
+    const diag = await readM9DiagnosticsService();
+
+    expect(diag.ready).toBe(true);
+    expect(diag.last_action_ts).toBe(1234567890);
+    expect(diag.last_incident).toBeUndefined();
+  });
+
+  it('lit un diagnostics.m9 avec last_incident', async () => {
+    const incidentTs = Date.now() - 5000;
+    mockLocalStorage[DIAGNOSTICS_M9_KEY] = {
+      ready: false,
+      last_action_ts: incidentTs,
+      last_incident: {
+        type: 'm9_handler_error',
+        severity: 'error',
+        ts: incidentTs,
+      },
+    };
+
+    const diag = await readM9DiagnosticsService();
+
+    expect(diag.ready).toBe(false);
+    expect(diag.last_incident?.type).toBe('m9_handler_error');
+    expect(diag.last_incident?.severity).toBe('error');
+  });
+});
+
+describe('TC-M9-DIAG-UPDATE-01 — updateM9DiagnosticsOnAction (succès)', () => {
+  it('met à jour diagnostics.m9 avec ready=true sur action réussie', async () => {
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    const result = await updateM9DiagnosticsOnAction(incidentService, true);
+
+    expect(result.ready).toBe(true);
+    expect(result.last_action_ts).toBeGreaterThan(0);
+    expect(result.last_incident).toBeUndefined();
+
+    // Vérifie la persistance dans le storage
+    const stored = mockLocalStorage[DIAGNOSTICS_M9_KEY] as Record<string, unknown>;
+    expect(stored['ready']).toBe(true);
+
+    // Aucun incident émis
+    expect(incidentService.log).not.toHaveBeenCalled();
+  });
+});
+
+describe('TC-M9-DIAG-UPDATE-02 — updateM9DiagnosticsOnAction (échec + incident)', () => {
+  it('émet un incident m9_handler_error et met diagnostics ready=false sur échec', async () => {
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    const result = await updateM9DiagnosticsOnAction(incidentService, false, 'IDBTransactionError');
+
+    expect(result.ready).toBe(false);
+    expect(result.last_action_ts).toBeGreaterThan(0);
+    expect(result.last_incident?.type).toBe('m9_handler_error');
+    expect(result.last_incident?.severity).toBe('error');
+
+    // Incident émis avec le bon contexte
+    expect(incidentService.log).toHaveBeenCalledWith(
+      'm9_handler_error',
+      'error',
+      expect.objectContaining({
+        type: 'm9_handler_error',
+        error_name: 'IDBTransactionError',
+      }),
+    );
+  });
+
+  it('utilise "UnknownError" si errorName absent', async () => {
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    await updateM9DiagnosticsOnAction(incidentService, false);
+
+    expect(incidentService.log).toHaveBeenCalledWith(
+      'm9_handler_error',
+      'error',
+      expect.objectContaining({ error_name: 'UnknownError' }),
+    );
+  });
+});
+
+describe('TC-M9-DIAG-HANDLER-01 — handler M9 avec incidentService', () => {
+  it('met à jour diagnostics.m9 après logEvent réussi', async () => {
+    const storage = createMockStorage();
+    const fakeKey = createFakeKey();
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    const handler = createM9Handler(storage as StorageService, fakeKey, incidentService);
+    const msg = buildM9Message({ score: 3, type: 'password' });
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(true);
+    // Laisser le microtask queue se vider (void updateM9DiagnosticsOnAction)
+    await new Promise((r) => setTimeout(r, 0));
+
+    const diag = await readM9DiagnosticsService();
+    expect(diag.ready).toBe(true);
+  });
+
+  it('émet m9_handler_error si logEvent échoue', async () => {
+    const failingStorage: Partial<StorageService> = {
+      logEvent: vi.fn().mockRejectedValue(new Error('IDB fail')),
+    };
+    const fakeKey = createFakeKey();
+    const incidentService = createMockIncidentService() as IncidentService;
+
+    const handler = createM9Handler(failingStorage as StorageService, fakeKey, incidentService);
+    const msg = buildM9Message({ score: 2, type: 'password' });
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(false);
+    expect(response.action).toBe('error');
+    // Laisser le microtask queue se vider
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(incidentService.log).toHaveBeenCalledWith(
+      'm9_handler_error',
+      'error',
+      expect.objectContaining({ type: 'm9_handler_error' }),
+    );
+  });
+});
+
+describe('TC-M9-DIAG-HANDLER-02 — handler M9 sans incidentService (rétro-compatibilité)', () => {
+  it('fonctionne correctement sans incidentService (paramètre optionnel)', async () => {
+    const storage = createMockStorage();
+    const fakeKey = createFakeKey();
+
+    // Sans incidentService — rétro-compat service-worker.ts
+    const handler = createM9Handler(storage as StorageService, fakeKey);
+    const msg = buildM9Message({ score: 4, type: 'passphrase' });
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(true);
+    expect(response.action).toBe('skip');
+    expect(storage.logEvent).toHaveBeenCalledOnce();
+  });
+
+  it('retourne une erreur sans incidentService si logEvent échoue', async () => {
+    const failingStorage: Partial<StorageService> = {
+      logEvent: vi.fn().mockRejectedValue(new Error('IDB fail')),
+    };
+    const fakeKey = createFakeKey();
+
+    const handler = createM9Handler(failingStorage as StorageService, fakeKey);
+    const msg = buildM9Message({ score: 1, type: 'password' });
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(false);
+    expect(response.action).toBe('error');
+    // Aucune exception non gérée — ne doit pas rejeter
+  });
+});
+
+// Export réexporté depuis le handler
+describe('readM9Diagnostics — export du handler', () => {
+  it('readM9Diagnostics (export handler) est identique à readM9Diagnostics (service)', async () => {
+    mockLocalStorage[DIAGNOSTICS_M9_KEY] = {
+      ready: true,
+      last_action_ts: 999,
+    };
+
+    const fromHandler = await readM9Diagnostics();
+    const fromService = await readM9DiagnosticsService();
+
+    expect(fromHandler).toEqual(fromService);
   });
 });
