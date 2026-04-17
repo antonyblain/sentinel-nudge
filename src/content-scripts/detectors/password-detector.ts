@@ -39,6 +39,31 @@ import { zxcvbn } from '@zxcvbn-ts/core';
 // content scripts Chrome MV3 (isolated world — "Illegal constructor").
 // Les overlays M2, M9 et le toast M7 sont construits directement en DOM + Shadow DOM.
 
+// ---------------------------------------------------------------------------
+// UC-03 / INV-UC03-01 : filtre same-origin fail-closed
+// Référence : mini-DAT TACHE-070 §INV-UC03-01
+// Évalué une seule fois au boot du content script (niveau module).
+// fail-closed : toute exception (SecurityError cross-origin) → false.
+// ---------------------------------------------------------------------------
+
+/**
+ * true si ce content script s'exécute dans le top frame OU dans une iframe
+ * dont l'origine est identique à celle du top frame (same-origin).
+ *
+ * Toute exception lors de l'accès à window.top.location (SecurityError cross-origin)
+ * est interceptée et produit false — comportement fail-closed (INV-UC03-01).
+ *
+ * NE PAS logguer ici : en cas d'injection dans N iframes, un console.info par iframe
+ * amplifierait le bruit de manière incontrôlée (R-M7-08 amplification).
+ */
+let _snIsSameOriginOrTop = false;
+try {
+  _snIsSameOriginOrTop = window.top?.location.origin === window.location.origin;
+} catch {
+  // Cross-origin SecurityError — fail-closed
+  _snIsSameOriginOrTop = false;
+}
+
 /** Délai de debounce pour l'évaluation zxcvbn (ms) */
 const DEBOUNCE_MS = 150;
 
@@ -1686,6 +1711,10 @@ const PENDING_M7_TOAST_TTL_MS = 10 * 60 * 1000;
  *  - Sur storage.onChanged (pour les pages SPA sans rechargement)
  */
 async function checkAndShowPendingM7Toast(): Promise<void> {
+  // INV-UC03-03 : le toast doit être affiché uniquement dans le top frame.
+  // Dans une iframe (même same-origin), un toast fixed bottom-right serait invisible.
+  if (window.top !== window) return;
+
   try {
     const stored = (await browser.storage.local.get(['pending_m7_toast'])) as {
       pending_m7_toast?: { domain_hash: string; timestamp: number };
@@ -1739,8 +1768,14 @@ async function checkAndShowPendingM7Toast(): Promise<void> {
 /**
  * Initialise le détecteur de champs mot de passe.
  * Appelé une seule fois à l'injection du content script.
+ *
+ * UC-03 / INV-UC03-01 : retour anticipé si le script est exécuté dans une iframe
+ * cross-origin. Aucun listener, aucun log, aucun message SW (INV-UC03-03).
  */
 function initPasswordDetector(): void {
+  // UC-03 / INV-UC03-01 : guard same-origin — fail-closed
+  if (!_snIsSameOriginOrTop) return;
+
   // Charger la whitelist M2 persistée (chrome.storage.local)
   void loadTrustedDomains();
 
@@ -1834,6 +1869,7 @@ if (typeof chrome !== 'undefined') {
 // Ces exports permettent les tests unitaires de TACHE-069 (UC-02) et TACHE-072 (UC-05).
 // ---------------------------------------------------------------------------
 export {
+  _snIsSameOriginOrTop,
   _snPasswordInputs,
   registerPasswordInput,
   collectPasswordInputs,

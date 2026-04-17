@@ -29,6 +29,26 @@
 
 import { browser } from '@/shared/browser/browser-adapter';
 
+// ---------------------------------------------------------------------------
+// UC-03 / INV-UC03-01 : filtre same-origin fail-closed
+// Référence : mini-DAT TACHE-070 §INV-UC03-01
+// Évalué une seule fois au boot du content script (niveau module).
+// NE PAS logguer ici : amplification R-M7-08 dans N iframes.
+// ---------------------------------------------------------------------------
+
+/**
+ * true si ce content script s'exécute dans le top frame OU dans une iframe
+ * dont l'origine est identique à celle du top frame (same-origin).
+ * Toute exception (SecurityError cross-origin) → false (fail-closed).
+ */
+let _snIsSameOriginOrTop = false;
+try {
+  _snIsSameOriginOrTop = window.top?.location.origin === window.location.origin;
+} catch {
+  // Cross-origin SecurityError — fail-closed
+  _snIsSameOriginOrTop = false;
+}
+
 /** Types de données sensibles détectées */
 type SensitiveDataType = 'credit_card' | 'iban' | 'api_key';
 
@@ -56,8 +76,14 @@ const PATTERNS = {
 /**
  * Initialise le détecteur de presse-papiers.
  * Appelé une seule fois à l'injection du content script.
+ *
+ * UC-03 / INV-UC03-01 : retour anticipé si le script est exécuté dans une iframe
+ * cross-origin. Aucun listener, aucun log, aucun message SW (INV-UC03-03).
  */
 function initPasteDetector(): void {
+  // UC-03 / INV-UC03-01 : guard same-origin — fail-closed
+  if (!_snIsSameOriginOrTop) return;
+
   // {capture: true} : interception en phase de capture, avant tout stopPropagation()
   // Google Search et d'autres sites modernes bloquent la remontée de l'événement paste.
   // Sans capture, le listener n'est jamais déclenché sur ces inputs enrichis.

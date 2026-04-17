@@ -459,6 +459,8 @@ void (async () => {
 
     // Étape 3 — Flush du buffer pré-init (ARB-061-02)
     await incidentService.initService(storageService.getDB());
+    // UC-03 / INV-UC03-05 : injecter le service d'incidents dans le routeur pour les incidents rate_limit_exceeded
+    messageRouter.setIncidentService(incidentService);
 
     // Étape 4 — Chargement de la clé AES
     let cryptoKey = await loadCryptoKey();
