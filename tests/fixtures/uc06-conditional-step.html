@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>UC-06 S-UC06-03 — Input password conditionnel post-email</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #app { max-width: 380px; margin: auto; }
+    input { display: block; width: 100%; padding: 0.5rem; margin: 0.5rem 0; box-sizing: border-box; }
+    button { padding: 0.5rem 1.5rem; cursor: pointer; }
+    #status { margin-top: 1rem; color: #555; font-size: 0.9rem; }
+    .step-indicator { font-size: 0.8rem; color: #888; margin-bottom: 1rem; }
+    .error-msg { color: #c00; font-size: 0.85rem; margin: 0.25rem 0; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="status">Étape 1 — aucun input password dans le DOM</div>
+
+  <!-- React 18 via CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+  <script>
+    /**
+     * Simulation d'un formulaire multi-étape (pattern Google-like) :
+     * - Étape 1 : saisie email + bouton Suivant
+     * - Étape 2 : saisie password + bouton Se connecter (input password absent de l'étape 1)
+     *
+     * UC-06 — Scénario S-UC06-03
+     * Objectif : vérifier que M7 détecte l'input password inséré dynamiquement
+     * lors du passage de l'étape 1 à l'étape 2.
+     */
+    const { useState } = React;
+
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function MultiStepLogin() {
+      const [step, setStep] = useState(1);
+      const [email, setEmail] = useState('');
+      const [emailError, setEmailError] = useState('');
+
+      function handleNext(e) {
+        e.preventDefault();
+        if (!EMAIL_REGEX.test(email)) {
+          setEmailError('Adresse email invalide');
+          return;
+        }
+        setEmailError('');
+        setStep(2);
+        document.getElementById('status').textContent =
+          'Étape 2 — input password inséré dans le DOM après validation email';
+      }
+
+      function handleSubmit(e) {
+        e.preventDefault();
+        document.getElementById('status').textContent =
+          'Formulaire soumis (étape 2 — observez la Console pour les logs M7)';
+      }
+
+      if (step === 1) {
+        return React.createElement(
+          'div',
+          null,
+          React.createElement('p', { className: 'step-indicator' }, 'Étape 1 / 2 — Saisir votre email'),
+          React.createElement('h2', null, 'Connexion'),
+          React.createElement(
+            'form',
+            { onSubmit: handleNext },
+            React.createElement('label', { htmlFor: 'email' }, 'Adresse email'),
+            React.createElement('input', {
+              id: 'email',
+              type: 'email',
+              name: 'email',
+              autoComplete: 'email',
+              placeholder: 'votre@email.com',
+              value: email,
+              onChange: function(e) { setEmail(e.target.value); }
+            }),
+            emailError
+              ? React.createElement('p', { className: 'error-msg' }, emailError)
+              : null,
+            React.createElement('button', { type: 'submit' }, 'Suivant')
+          )
+        );
+      }
+
+      // Étape 2 : l'input password apparaît ici pour la première fois
+      return React.createElement(
+        'div',
+        null,
+        React.createElement('p', { className: 'step-indicator' }, 'Étape 2 / 2 — Saisir votre mot de passe'),
+        React.createElement('h2', null, 'Connexion'),
+        React.createElement('p', null, React.createElement('strong', null, email)),
+        React.createElement(
+          'form',
+          { onSubmit: handleSubmit },
+          React.createElement('label', { htmlFor: 'password' }, 'Mot de passe'),
+          React.createElement('input', {
+            id: 'password',
+            type: 'password',
+            name: 'password',
+            autoComplete: 'current-password',
+            placeholder: 'Mot de passe'
+          }),
+          React.createElement('button', { type: 'submit' }, 'Se connecter')
+        )
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(React.createElement(MultiStepLogin));
+  </script>
+</body>
+</html>

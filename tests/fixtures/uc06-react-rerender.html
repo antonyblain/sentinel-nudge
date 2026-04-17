@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>UC-06 S-UC06-04 — Re-render React après Wrong Password</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #app { max-width: 380px; margin: auto; }
+    input { display: block; width: 100%; padding: 0.5rem; margin: 0.5rem 0; box-sizing: border-box; }
+    button { padding: 0.5rem 1.5rem; cursor: pointer; }
+    #status { margin-top: 1rem; color: #555; font-size: 0.9rem; }
+    .error-banner {
+      background: #fee; border: 1px solid #c00; padding: 0.5rem 1rem;
+      border-radius: 4px; color: #c00; margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .attempt-counter { font-size: 0.8rem; color: #888; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="status">Formulaire initial — première tentative</div>
+
+  <!-- React 18 via CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+  <script>
+    /**
+     * Simulation du pattern "Wrong Password" dans une SPA React :
+     * après une erreur de connexion, React détruit et recrée intégralement
+     * le composant form (via changement de clé React, qui force le remontage).
+     *
+     * Le nœud DOM de l'input password est DIFFÉRENT entre les deux tentatives.
+     * M7 doit le détecter via le MutationObserver.
+     *
+     * UC-06 — Scénario S-UC06-04
+     * Objectif : vérifier que M7 capte la soumission sur le NOUVEAU nœud DOM
+     * (après re-render React complet via key rotation).
+     *
+     * Simulation du re-render :
+     * - Tentative avec "wrong" → simule une erreur serveur → React change la clé
+     *   du composant form → React démonte le vieux form, monte un nouveau
+     * - Tentative avec le bon mot de passe → M7 doit capter
+     */
+    const { useState, useCallback } = React;
+
+    // Mot de passe qui simule l'erreur (tout le reste "passe")
+    const WRONG_PASSWORD_TRIGGER = 'wrong-password';
+
+    function LoginForm({ attempt, onWrongPassword, onSuccess }) {
+      function handleSubmit(e) {
+        e.preventDefault();
+        const pwd = e.target.elements['password'].value;
+        if (pwd === WRONG_PASSWORD_TRIGGER) {
+          onWrongPassword();
+        } else {
+          onSuccess();
+        }
+      }
+
+      return React.createElement(
+        'form',
+        { onSubmit: handleSubmit },
+        React.createElement('p', { className: 'attempt-counter' },
+          'Tentative #' + attempt + ' — (saisir "wrong-password" pour simuler une erreur)'
+        ),
+        React.createElement('label', { htmlFor: 'username' }, 'Identifiant'),
+        React.createElement('input', {
+          id: 'username',
+          type: 'text',
+          name: 'username',
+          autoComplete: 'username',
+          placeholder: 'Identifiant'
+        }),
+        React.createElement('label', { htmlFor: 'password' }, 'Mot de passe'),
+        React.createElement('input', {
+          id: 'password',
+          type: 'password',
+          name: 'password',
+          autoComplete: 'current-password',
+          placeholder: 'Mot de passe'
+        }),
+        React.createElement('button', { type: 'submit' }, 'Se connecter')
+      );
+    }
+
+    function App() {
+      const [attempt, setAttempt] = useState(1);
+      const [showError, setShowError] = useState(false);
+
+      const handleWrongPassword = useCallback(function() {
+        setShowError(true);
+        // Incrémenter l'attempt force React à changer la clé du composant LoginForm
+        // → React démonte le vieux form et monte un NOUVEAU form avec un NOUVEAU nœud DOM
+        setAttempt(function(n) { return n + 1; });
+        document.getElementById('status').textContent =
+          'Erreur "Wrong password" — React recrée le form (nouveau nœud DOM, attempt #' + (attempt + 1) + ')';
+      }, [attempt]);
+
+      const handleSuccess = useCallback(function() {
+        setShowError(false);
+        document.getElementById('status').textContent =
+          'Soumission réussie (observez la Console pour les logs M7)';
+      }, []);
+
+      return React.createElement(
+        'div',
+        null,
+        React.createElement('h2', null, 'Connexion (React re-render test)'),
+        showError
+          ? React.createElement('div', { className: 'error-banner' },
+              'Mot de passe incorrect. Veuillez réessayer.'
+            )
+          : null,
+        // La clé `attempt` force le remontage complet du composant form à chaque erreur
+        React.createElement(LoginForm, {
+          key: attempt,
+          attempt: attempt,
+          onWrongPassword: handleWrongPassword,
+          onSuccess: handleSuccess
+        })
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>

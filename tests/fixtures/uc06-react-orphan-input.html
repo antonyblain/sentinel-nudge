@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>UC-06 S-UC06-05 — Input orphelin sans form (F-UC01-01)</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #container { max-width: 380px; margin: auto; }
+    button { padding: 0.5rem 1.5rem; cursor: pointer; margin: 0.25rem; }
+    #status { margin-top: 1rem; color: #555; font-size: 0.9rem; }
+    .warn-box {
+      background: #fffbe6; border: 1px solid #f0ad00; padding: 0.5rem 1rem;
+      border-radius: 4px; margin-bottom: 1rem; font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h2>Test UC-06 — Input orphelin sans &lt;form&gt; (F-UC01-01)</h2>
+
+    <div class="warn-box">
+      <strong>Cas F-UC01-01</strong> : L'input password sera inséré DIRECTEMENT dans
+      <code>document.body</code> sans wrapper <code>&lt;div&gt;</code> ni <code>&lt;form&gt;</code>.
+      Ce cas est attendu ÉCHOUER avant TACHE-101 (correctif MutationObserver).
+      Le fallback Enter de <code>attachOrphanPasswordListeners</code> peut néanmoins fonctionner.
+    </div>
+
+    <p>
+      Cliquer sur "Charger le formulaire" pour insérer l'input password directement dans
+      <code>document.body</code> (simule <code>React.createElement</code> sans wrapping).
+    </p>
+
+    <button type="button" id="btn-load">Charger le formulaire</button>
+    <div id="status">En attente — aucun input password dans le DOM</div>
+  </div>
+
+  <script>
+    /**
+     * Simulation du cas F-UC01-01 :
+     * React (ou un autre framework) insère un input password DIRECTEMENT
+     * comme enfant de document.body, sans conteneur <div> intermédiaire.
+     *
+     * Dans observeDynamicForms(), le MutationObserver voit :
+     *   mutation.addedNodes = [inputElement]
+     *
+     * Puis :
+     *   (node as Element).querySelector?.('input[type="password"]')
+     *   → ne retourne pas l'input car querySelector ne teste PAS le nœud racine lui-même
+     *
+     * Résultat AVANT TACHE-101 :
+     *   - observeDynamicForms() NE re-scanne PAS l'input
+     *   - attachOrphanPasswordListeners() (posé sur document, capture phase) PEUT
+     *     néanmoins capter le Enter/click si l'utilisateur interagit avec l'input
+     *
+     * Résultat APRÈS TACHE-101 :
+     *   - La ligne ajoutée : if (node.matches && node.matches('input[type="password"]')) registerPasswordInput(node);
+     *   - observeDynamicForms() enregistre l'input directement
+     *   - attachSubmitListeners() est appelé → listener submit posé
+     *
+     * UC-06 — Scénario S-UC06-05
+     * Instruction testeur : après insertion de l'input, saisir un mot de passe
+     * et appuyer sur Enter. Observer les logs M7 dans la Console.
+     */
+
+    document.getElementById('btn-load').addEventListener('click', function() {
+      // Créer l'input DIRECTEMENT sans wrapper — simule React.createElement sans container
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.id = 'password';
+      input.name = 'password';
+      input.placeholder = 'Mot de passe (appuyer sur Enter pour soumettre)';
+      input.setAttribute('autocomplete', 'current-password');
+      input.style.cssText = 'display:block;width:340px;padding:0.5rem;margin:1rem 0;';
+
+      // Insertion DIRECTE dans document.body (sans <div> parent)
+      // C'est ce pattern qui déclenche F-UC01-01
+      document.body.appendChild(input);
+
+      document.getElementById('status').textContent =
+        'Input password inséré directement dans document.body — appuyer sur Enter pour tester M7';
+
+      // Optionnel : bouton de soumission séparé
+      const btnSubmit = document.createElement('button');
+      btnSubmit.type = 'button';
+      btnSubmit.textContent = 'Soumettre (clic — fallback click listener)';
+      btnSubmit.style.cssText = 'display:block;margin:0.5rem 0;padding:0.5rem 1.5rem;cursor:pointer;';
+      document.body.appendChild(btnSubmit);
+
+      input.focus();
+    });
+  </script>
+</body>
+</html>
