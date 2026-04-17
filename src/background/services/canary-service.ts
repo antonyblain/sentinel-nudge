@@ -24,6 +24,10 @@
  * - INV-06  : stockage en Array<number>, jamais ArrayBuffer ni Uint8Array (leçon P-018)
  * - INV-SEC-01 : IV généré par crypto.getRandomValues à chaque init() — jamais réutilisé
  *
+ * Note compat (P-021) : globalThis.crypto est utilisé explicitement (pas la référence nue
+ * `crypto`) pour garantir que le polyfill WebCrypto injecté dans les tests (tests/setup.ts)
+ * est correctement résolu sur tous les runtimes Node.js (Node 20, 22, 24) et navigateurs.
+ *
  * Référence : Mini-DAT TACHE-061 §3.2, §6 (INV-04/06), §6bis (INV-SEC-01), §11.1/11.5
  */
 
@@ -91,9 +95,14 @@ export class CanaryService {
     const plaintext = encoder.encode(CANARY_PLAINTEXT);
 
     // IV généré aléatoirement à chaque init — INV-SEC-01 (jamais réutilisé)
-    const iv = crypto.getRandomValues(new Uint8Array(12));
+    // globalThis.crypto explicite pour compatibilité Node 20/22/24 avec polyfill jsdom (P-021)
+    const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
 
-    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+    const ciphertext = await globalThis.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      plaintext,
+    );
 
     // Conversion ArrayBuffer → Array<number> (JSON-safe, INV-06 / leçon P-018)
     const ciphertextArray = Array.from(new Uint8Array(ciphertext));
@@ -135,7 +144,8 @@ export class CanaryService {
     const ciphertextBuffer = new Uint8Array(storedCiphertext as number[]).buffer;
 
     try {
-      const decryptedBuffer = await crypto.subtle.decrypt(
+      // globalThis.crypto explicite pour compatibilité Node 20/22/24 avec polyfill jsdom (P-021)
+      const decryptedBuffer = await globalThis.crypto.subtle.decrypt(
         { name: 'AES-GCM', iv: ivBytes },
         key,
         ciphertextBuffer,
