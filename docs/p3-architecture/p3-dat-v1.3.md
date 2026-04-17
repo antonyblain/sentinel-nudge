@@ -1,13 +1,15 @@
 # Document d'Architecture Technique — Sentinel Nudge v1
+
 ## Phase P3 — Architecte logiciel
 
 **Projet :** Sentinel Nudge
-**Version :** 1.2
-**Date de production :** 2026-04-12
-**Statut :** Intégration addendum whitelist M2 (ADR-006)
+**Version :** 1.3
+**Date de production :** 2026-04-17
+**Statut :** Ajout section 16 — Limitations techniques connues (iframes cross-origin Same-Origin Policy, TACHE-071)
 **Commanditaire :** Antony (RSSI)
 **Niveau de sensibilité :** Exposé
 **Documents de référence :**
+
 - `p1-cahier-des-charges-v1.1.md`
 - `p2-sfd-v1.0.md`
 - `gouvernance-pv-securite-p2-v1.0.md`
@@ -56,13 +58,15 @@
     - 11.5 Dashboard — accessibilité des graphiques SVG
 12. Internationalisation
     - 12.1 Architecture i18n
-    - 12.2 Structure _locales
+    - 12.2 Structure \_locales
 13. Déploiement
     - 13.1 Pipeline CI/CD
     - 13.2 SBOM
     - 13.3 Chrome Web Store
 14. Matrice de traçabilité DAT → SFD → CdC
 15. Risques techniques
+16. Limitations techniques connues
+    - 16.1 Iframes cross-origin — Same-Origin Policy
 
 ---
 
@@ -85,13 +89,13 @@ Ce DAT couvre les 7 modules v1 (M2, M3, M5, M6, M7, M9, M17) et les composants t
 
 ### 1.3 Postulats fondateurs
 
-| # | Postulat | Source |
-|---|----------|--------|
-| A1 | Aucune donnée ne quitte le poste de l'utilisateur, sauf l'appel natif MV3 de M5 (chrome.runtime.requestUpdateCheck) | CdC §3.1 |
-| A2 | Manifest V3 obligatoire — pas de background page persistante | CdC §4.1 |
-| A3 | Licence GPL v3 — toute dépendance doit être compatible | p1-analyse-licences v1.0 |
-| A4 | Permissions minimales — aucune permission inutile même si elle faciliterait l'implémentation | CdC §4.1 |
-| A5 | Tout embarqué — corpus quiz, HSTS preload list, zxcvbn, pas de CDN | SFD §3.2, D-SEC |
+| #   | Postulat                                                                                                            | Source                   |
+| --- | ------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| A1  | Aucune donnée ne quitte le poste de l'utilisateur, sauf l'appel natif MV3 de M5 (chrome.runtime.requestUpdateCheck) | CdC §3.1                 |
+| A2  | Manifest V3 obligatoire — pas de background page persistante                                                        | CdC §4.1                 |
+| A3  | Licence GPL v3 — toute dépendance doit être compatible                                                              | p1-analyse-licences v1.0 |
+| A4  | Permissions minimales — aucune permission inutile même si elle faciliterait l'implémentation                        | CdC §4.1                 |
+| A5  | Tout embarqué — corpus quiz, HSTS preload list, zxcvbn, pas de CDN                                                  | SFD §3.2, D-SEC          |
 
 ---
 
@@ -99,14 +103,14 @@ Ce DAT couvre les 7 modules v1 (M2, M3, M5, M6, M7, M9, M17) et les composants t
 
 ### 2.1 Principes directeurs
 
-| Principe | Description | Impact |
-|----------|-------------|--------|
-| **Privacy by design** | Tout traitement dans le contexte du navigateur de l'utilisateur. Aucune API externe, aucune télémétrie. | Aucun appel réseau sortant sauf M5 (API native Chrome) |
-| **Défense en profondeur** | CSP stricte, sanitisation DOM, chiffrement au repos, permissions minimales | Architecture sécurité multicouche |
-| **Paternalisme libertarien** | Chaque module est désactivable, aucune action n'est bloquée | Design modulaire avec interrupteurs |
-| **Dégradation gracieuse** | Absence d'un composant (ex. HSTS list non chargée) ne bloque pas le reste | Gestion d'erreur par module |
-| **Legèreté** | Extension < 5 Mo, CPU < 0.1 %, mémoire < 20 Mo | Pas de framework UI lourd, lazy loading |
-| **Portabilité** | Couche d'abstraction navigateur dès v1 | Compatibilité Firefox/Edge préparée |
+| Principe                     | Description                                                                                             | Impact                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **Privacy by design**        | Tout traitement dans le contexte du navigateur de l'utilisateur. Aucune API externe, aucune télémétrie. | Aucun appel réseau sortant sauf M5 (API native Chrome) |
+| **Défense en profondeur**    | CSP stricte, sanitisation DOM, chiffrement au repos, permissions minimales                              | Architecture sécurité multicouche                      |
+| **Paternalisme libertarien** | Chaque module est désactivable, aucune action n'est bloquée                                             | Design modulaire avec interrupteurs                    |
+| **Dégradation gracieuse**    | Absence d'un composant (ex. HSTS list non chargée) ne bloque pas le reste                               | Gestion d'erreur par module                            |
+| **Legèreté**                 | Extension < 5 Mo, CPU < 0.1 %, mémoire < 20 Mo                                                          | Pas de framework UI lourd, lazy loading                |
+| **Portabilité**              | Couche d'abstraction navigateur dès v1                                                                  | Compatibilité Firefox/Edge préparée                    |
 
 ### 2.2 Diagramme de contexte (C4 — Niveau 1)
 
@@ -137,15 +141,15 @@ C4Context
 
 Manifest V3 impose un modèle d'exécution radicalement différent de MV2 :
 
-| Composant MV3 | Rôle | Durée de vie | Contraintes |
-|---------------|------|-------------|-------------|
-| **Service Worker** | Cerveau de l'extension. Gère le quota, le stockage, les alarmes, les calculs M3/M7, la communication | Éphémère — tué après ~30s d'inactivité | Pas d'accès au DOM, pas de variables persistantes en mémoire |
-| **Content Scripts** | Injectés dans les pages web. Détectent les événements DOM (password focus, paste, input) | Vie de la page | Accès DOM uniquement, pas aux API Chrome complètes |
-| **Popup** | Interface de l'icône de la barre d'outils — score rapide + statut modules | Vie de l'ouverture de la popup | Fenêtre détruite à la fermeture |
-| **Options Page** | Page paramètres (chrome://extensions) — configuration complète | Onglet Chrome standard | Accès complet aux API Chrome |
-| **Dashboard** | Tableau de bord — historique 52 semaines, stats | Onglet Chrome standard | Accès complet aux API Chrome |
-| **Onboarding** | 4 étapes obligatoires au premier lancement | Onglet Chrome standard | Accès complet aux API Chrome |
-| **Pages statiques** | Explication des mécanismes comportementaux par module | Onglets Chrome statiques | HTML statique, aucun script externe |
+| Composant MV3       | Rôle                                                                                                 | Durée de vie                           | Contraintes                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
+| **Service Worker**  | Cerveau de l'extension. Gère le quota, le stockage, les alarmes, les calculs M3/M7, la communication | Éphémère — tué après ~30s d'inactivité | Pas d'accès au DOM, pas de variables persistantes en mémoire |
+| **Content Scripts** | Injectés dans les pages web. Détectent les événements DOM (password focus, paste, input)             | Vie de la page                         | Accès DOM uniquement, pas aux API Chrome complètes           |
+| **Popup**           | Interface de l'icône de la barre d'outils — score rapide + statut modules                            | Vie de l'ouverture de la popup         | Fenêtre détruite à la fermeture                              |
+| **Options Page**    | Page paramètres (chrome://extensions) — configuration complète                                       | Onglet Chrome standard                 | Accès complet aux API Chrome                                 |
+| **Dashboard**       | Tableau de bord — historique 52 semaines, stats                                                      | Onglet Chrome standard                 | Accès complet aux API Chrome                                 |
+| **Onboarding**      | 4 étapes obligatoires au premier lancement                                                           | Onglet Chrome standard                 | Accès complet aux API Chrome                                 |
+| **Pages statiques** | Explication des mécanismes comportementaux par module                                                | Onglets Chrome statiques               | HTML statique, aucun script externe                          |
 
 **Conséquence architecturale critique du Service Worker éphémère :**
 Toute donnée d'état doit être persistée dans `chrome.storage.local` ou IndexedDB avant la fin de chaque opération. Le Service Worker ne peut pas supposer que ses variables en mémoire survivent entre deux appels. Les opérations longues (calcul M3) sont décomposées en étapes atomiques avec persistance intermédiaire.
@@ -191,14 +195,14 @@ C4Container
 
 La communication suit exclusivement le modèle de passage de messages Chrome (aucun accès direct entre contextes).
 
-| Source | Destination | API | Direction | Usage |
-|--------|-------------|-----|-----------|-------|
-| Content Script | Service Worker | `chrome.runtime.sendMessage()` | Unidirectionnel avec réponse | Envoi d'événements détectés (M2, M7, M9, M17) |
-| Service Worker | Content Script | `chrome.tabs.sendMessage(tabId)` | Unidirectionnel | Instruction d'affichage de nudge |
-| Popup/Options/Dashboard | Service Worker | `chrome.runtime.sendMessage()` | Requête/réponse | Lecture état, mise à jour config |
-| Service Worker interne | Service Worker | Appels de fonctions directs | Interne | Chiffrement, calcul M3, gestion quota |
-| Chrome Runtime | Service Worker | `chrome.alarms.onAlarm` | Événement entrant | Déclenchement M3 (lundi 09h), M5 (périodique), M6 (spaced repetition) |
-| Content Script M2 | chrome.storage.local | `browser.storage.local.get/set()` | Direct (sans SW) | Lecture/écriture whitelist M2 (`m2_trusted_domains`) — exception au pattern message-based, justifiée par la race condition MV3 (cf. ADR-006) |
+| Source                  | Destination          | API                               | Direction                    | Usage                                                                                                                                        |
+| ----------------------- | -------------------- | --------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Content Script          | Service Worker       | `chrome.runtime.sendMessage()`    | Unidirectionnel avec réponse | Envoi d'événements détectés (M2, M7, M9, M17)                                                                                                |
+| Service Worker          | Content Script       | `chrome.tabs.sendMessage(tabId)`  | Unidirectionnel              | Instruction d'affichage de nudge                                                                                                             |
+| Popup/Options/Dashboard | Service Worker       | `chrome.runtime.sendMessage()`    | Requête/réponse              | Lecture état, mise à jour config                                                                                                             |
+| Service Worker interne  | Service Worker       | Appels de fonctions directs       | Interne                      | Chiffrement, calcul M3, gestion quota                                                                                                        |
+| Chrome Runtime          | Service Worker       | `chrome.alarms.onAlarm`           | Événement entrant            | Déclenchement M3 (lundi 09h), M5 (périodique), M6 (spaced repetition)                                                                        |
+| Content Script M2       | chrome.storage.local | `browser.storage.local.get/set()` | Direct (sans SW)             | Lecture/écriture whitelist M2 (`m2_trusted_domains`) — exception au pattern message-based, justifiée par la race condition MV3 (cf. ADR-006) |
 
 > **Exception documentée (ADR-006) :** le content script du module M2 accède directement à `chrome.storage.local` pour lire et écrire la clé `m2_trusted_domains`. Cet accès est limité à cette clé et à ce module. Il est déclenché uniquement au démarrage du content script (lecture initiale) et lors d'une action "confiance" utilisateur (écriture). Il ne contourne pas le MessageRouter pour la logique de décision (celle-ci reste dans le SW), mais court-circuite la couche de transport pour la persistance du cache whitelist.
 
@@ -283,21 +287,21 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 ### 4.1 Tableau récapitulatif
 
-| Catégorie | Technologie | Version | Licence | Gratuit |
-|-----------|-------------|---------|---------|---------|
-| Langage | TypeScript | 5.x | Apache 2.0 | Oui |
-| Build | Vite + vite-plugin-web-extension | 5.x / 0.x | MIT | Oui |
-| UI | Vanilla TypeScript + Shadow DOM natif | — | — | Oui |
-| Tests unitaires | Vitest | 2.x | MIT | Oui |
-| Tests E2E extension | Playwright + playwright-crx | 1.x | Apache 2.0 | Oui |
-| Tests accessibilité | @axe-core/playwright | 4.x | MPL 2.0 | Oui |
-| Linting | ESLint 9 + @typescript-eslint | 9.x | MIT | Oui |
-| Formatage | Prettier | 3.x | MIT | Oui |
-| Force mdp | zxcvbn-ts | 3.x | MIT | Oui |
-| Crypto | SubtleCrypto (Web Crypto API native) | — | — | Oui (natif) |
-| i18n | chrome.i18n (API native MV3) | — | — | Oui (natif) |
-| CI/CD | GitHub Actions | — | Gratuit (2 000 min/mois sur dépôt privé, illimité sur public) | Oui |
-| SBOM | Syft (Anchore) | latest | Apache 2.0 | Oui |
+| Catégorie           | Technologie                           | Version   | Licence                                                       | Gratuit     |
+| ------------------- | ------------------------------------- | --------- | ------------------------------------------------------------- | ----------- |
+| Langage             | TypeScript                            | 5.x       | Apache 2.0                                                    | Oui         |
+| Build               | Vite + vite-plugin-web-extension      | 5.x / 0.x | MIT                                                           | Oui         |
+| UI                  | Vanilla TypeScript + Shadow DOM natif | —         | —                                                             | Oui         |
+| Tests unitaires     | Vitest                                | 2.x       | MIT                                                           | Oui         |
+| Tests E2E extension | Playwright + playwright-crx           | 1.x       | Apache 2.0                                                    | Oui         |
+| Tests accessibilité | @axe-core/playwright                  | 4.x       | MPL 2.0                                                       | Oui         |
+| Linting             | ESLint 9 + @typescript-eslint         | 9.x       | MIT                                                           | Oui         |
+| Formatage           | Prettier                              | 3.x       | MIT                                                           | Oui         |
+| Force mdp           | zxcvbn-ts                             | 3.x       | MIT                                                           | Oui         |
+| Crypto              | SubtleCrypto (Web Crypto API native)  | —         | —                                                             | Oui (natif) |
+| i18n                | chrome.i18n (API native MV3)          | —         | —                                                             | Oui (natif) |
+| CI/CD               | GitHub Actions                        | —         | Gratuit (2 000 min/mois sur dépôt privé, illimité sur public) | Oui         |
+| SBOM                | Syft (Anchore)                        | latest    | Apache 2.0                                                    | Oui         |
 
 **Note `@axe-core/playwright` :** Intégré dans le workflow `ci.yml` pour la vérification automatisée des critères WCAG 2.1 AA à chaque PR. Licence MPL 2.0 compatible avec la distribution GPL v3 de l'extension (licence distincte pour l'outillage de développement).
 
@@ -389,16 +393,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 #### ADR-007 : Exigences non fonctionnelles → décisions architecturales
 
-| ENF | Valeur cible | Décision architecturale |
-|-----|-------------|------------------------|
-| CPU repos | < 0.1 % | Service Worker éphémère (ne tourne pas en arrière-plan continu), alarmes Chrome pour les tâches périodiques |
-| Mémoire | < 20 Mo | Pas de framework UI, lazy loading content scripts par module, zxcvbn chargé uniquement sur activation M9 |
-| Taille extension | < 5 Mo | Corpus quiz JSON compressé, HSTS list en format compact (domaines hachés), zxcvbn-ts (~400 Ko) |
-| Nudge < 500 ms | P99 | Content script préchargé à `document_idle`, décision de quota en mémoire locale (cache 60s), UI Shadow DOM sans reflow |
-| zxcvbn < 100 ms | P99 | zxcvbn-ts est synchrone et local — 100 ms atteint sur CPU moyen dès v1 de la bibliothèque |
-| WCAG 2.1 AA | — | Shadow DOM + ARIA live regions, focus trap dans overlays modaux, cibles 44×44px, contraste 4.5:1 enforced en tokens CSS |
-| 99.9% dispo locale | — | Extension locale = disponibilité = Chrome disponible. Dégradation gracieuse si un store IndexedDB échoue |
-| Volumétrie 10 GB/an | N/A | Traitement 100% local, IndexedDB par utilisateur. Purge 90j/52 semaines garantit < 50 Mo par utilisateur |
+| ENF                 | Valeur cible | Décision architecturale                                                                                                 |
+| ------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| CPU repos           | < 0.1 %      | Service Worker éphémère (ne tourne pas en arrière-plan continu), alarmes Chrome pour les tâches périodiques             |
+| Mémoire             | < 20 Mo      | Pas de framework UI, lazy loading content scripts par module, zxcvbn chargé uniquement sur activation M9                |
+| Taille extension    | < 5 Mo       | Corpus quiz JSON compressé, HSTS list en format compact (domaines hachés), zxcvbn-ts (~400 Ko)                          |
+| Nudge < 500 ms      | P99          | Content script préchargé à `document_idle`, décision de quota en mémoire locale (cache 60s), UI Shadow DOM sans reflow  |
+| zxcvbn < 100 ms     | P99          | zxcvbn-ts est synchrone et local — 100 ms atteint sur CPU moyen dès v1 de la bibliothèque                               |
+| WCAG 2.1 AA         | —            | Shadow DOM + ARIA live regions, focus trap dans overlays modaux, cibles 44×44px, contraste 4.5:1 enforced en tokens CSS |
+| 99.9% dispo locale  | —            | Extension locale = disponibilité = Chrome disponible. Dégradation gracieuse si un store IndexedDB échoue                |
+| Volumétrie 10 GB/an | N/A          | Traitement 100% local, IndexedDB par utilisateur. Purge 90j/52 semaines garantit < 50 Mo par utilisateur                |
 
 ---
 
@@ -738,7 +742,9 @@ export interface BrowserAdapter {
   runtime: {
     sendMessage(message: unknown): Promise<unknown>;
     onMessage: {
-      addListener(callback: (msg: unknown, sender: unknown, respond: (r: unknown) => void) => void): void;
+      addListener(
+        callback: (msg: unknown, sender: unknown, respond: (r: unknown) => void) => void,
+      ): void;
     };
     requestUpdateCheck(): Promise<{ status: string }>;
   };
@@ -775,28 +781,28 @@ L'extension utilise une base IndexedDB nommée `sentinel-nudge-db` avec 5 object
 
 **Base : `sentinel-nudge-db`, version initiale : 1**
 
-| Store | Clé primaire | Index | Description | Rétention |
-|-------|-------------|-------|-------------|-----------|
-| `events` | `id` (auto-increment) | `timestamp`, `module` | Tous les événements de nudge (affichés, silencieux, actions utilisateur) | 90 jours |
-| `password_hashes` | `id` (auto-increment) | `tag`, `domain_hash`, `first_seen` | Hashes des mots de passe détectés pour M7 (réutilisation) — FIFO max 100 entrées. Hash chiffré AES-256-GCM, index `tag` (4 premiers bytes) en clair pour pré-filtration | 90 jours |
-| `quiz_sessions` | `id` (auto-increment) | `module`, `quiz_date` | Sessions quiz M6 (questions, réponses, scores) | 52 semaines |
-| `weekly_scores` | `week_key` (YYYY-Www) | `week_key` | Score M3 hebdomadaire et détail des 5 composantes | 52 semaines |
-| `whitelist` | `domain_hash` | — | Domaines marqués comme de confiance par l'utilisateur (M2). `domain_hash` = SHA-256(installation_salt + domain) | Permanent jusqu'à effacement |
+| Store             | Clé primaire          | Index                              | Description                                                                                                                                                             | Rétention                    |
+| ----------------- | --------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `events`          | `id` (auto-increment) | `timestamp`, `module`              | Tous les événements de nudge (affichés, silencieux, actions utilisateur)                                                                                                | 90 jours                     |
+| `password_hashes` | `id` (auto-increment) | `tag`, `domain_hash`, `first_seen` | Hashes des mots de passe détectés pour M7 (réutilisation) — FIFO max 100 entrées. Hash chiffré AES-256-GCM, index `tag` (4 premiers bytes) en clair pour pré-filtration | 90 jours                     |
+| `quiz_sessions`   | `id` (auto-increment) | `module`, `quiz_date`              | Sessions quiz M6 (questions, réponses, scores)                                                                                                                          | 52 semaines                  |
+| `weekly_scores`   | `week_key` (YYYY-Www) | `week_key`                         | Score M3 hebdomadaire et détail des 5 composantes                                                                                                                       | 52 semaines                  |
+| `whitelist`       | `domain_hash`         | —                                  | Domaines marqués comme de confiance par l'utilisateur (M2). `domain_hash` = SHA-256(installation_salt + domain)                                                         | Permanent jusqu'à effacement |
 
 **Schéma du store `events` (champ `value` chiffré) :**
 
 ```typescript
 interface EventRecord {
-  id: number;           // auto-increment, en clair
-  timestamp: number;    // Date.now(), en clair pour index
-  module: string;       // 'M2'|'M3'|'M5'|'M6'|'M7'|'M9'|'M17', en clair pour index
-  value: ArrayBuffer;   // Contenu chiffré AES-256-GCM
-  iv: Uint8Array;       // IV (12 bytes), en clair pour déchiffrement
+  id: number; // auto-increment, en clair
+  timestamp: number; // Date.now(), en clair pour index
+  module: string; // 'M2'|'M3'|'M5'|'M6'|'M7'|'M9'|'M17', en clair pour index
+  value: ArrayBuffer; // Contenu chiffré AES-256-GCM
+  iv: Uint8Array; // IV (12 bytes), en clair pour déchiffrement
 }
 
 // Contenu déchiffré de value :
 interface EventPayload {
-  domain_hash?: string;  // SHA-256(installation_salt + domain)
+  domain_hash?: string; // SHA-256(installation_salt + domain)
   signals?: string[];
   action?: string;
   score_delta?: number;
@@ -810,13 +816,13 @@ Le hash du mot de passe est stocké chiffré (AES-256-GCM) dans le champ `value`
 
 ```typescript
 interface PasswordHashRecord {
-  id: number;           // auto-increment, clé primaire — en clair
-  tag: string;          // 4 premiers bytes du hash SHA-256 en hex (ex: "a3f2c1b0") — en clair, index secondaire pour pré-filtration
-  value: ArrayBuffer;   // SHA-256(installation_salt + password) chiffré AES-256-GCM
-  iv: Uint8Array;       // IV (12 bytes) pour déchiffrement du champ value
-  domain_hash: string;  // SHA-256(installation_salt + domain) — en clair, index
-  first_seen: number;   // Date.now() — en clair, index pour purge FIFO
-  count: number;        // Nombre de fois détecté — en clair
+  id: number; // auto-increment, clé primaire — en clair
+  tag: string; // 4 premiers bytes du hash SHA-256 en hex (ex: "a3f2c1b0") — en clair, index secondaire pour pré-filtration
+  value: ArrayBuffer; // SHA-256(installation_salt + password) chiffré AES-256-GCM
+  iv: Uint8Array; // IV (12 bytes) pour déchiffrement du champ value
+  domain_hash: string; // SHA-256(installation_salt + domain) — en clair, index
+  first_seen: number; // Date.now() — en clair, index pour purge FIFO
+  count: number; // Nombre de fois détecté — en clair
 }
 ```
 
@@ -826,31 +832,31 @@ interface PasswordHashRecord {
 interface ChromeStorageSchema {
   // Configuration utilisateur
   config: {
-    modules: Record<ModuleId, boolean>;  // modules actifs/inactifs
-    quota_limit: 3 | 5 | 10 | null;     // null = Tous
+    modules: Record<ModuleId, boolean>; // modules actifs/inactifs
+    quota_limit: 3 | 5 | 10 | null; // null = Tous
     profile: 'beginner' | 'intermediate' | 'advanced';
     onboarding_complete: boolean;
     language: 'fr' | 'en';
   };
 
   // Clé de chiffrement IndexedDB (voir D-SEC-004)
-  encryption_key_material: ArrayBuffer;  // Matériau exporté de la CryptoKey AES-256-GCM
+  encryption_key_material: ArrayBuffer; // Matériau exporté de la CryptoKey AES-256-GCM
 
   // État quota journalier (réinitialisé à minuit)
   quota_state: {
-    date: string;   // YYYY-MM-DD
-    count: number;  // Nudges affichés aujourd'hui
+    date: string; // YYYY-MM-DD
+    count: number; // Nudges affichés aujourd'hui
   };
 
   // Session M2 (domaines déjà nudgés dans la session courante)
-  m2_session_domains: string[];  // [domain_hash1, domain_hash2, ...] — SHA-256(salt+domain)
+  m2_session_domains: string[]; // [domain_hash1, domain_hash2, ...] — SHA-256(salt+domain)
 
   // Whitelist M2 côté content script (cache persistant inter-sessions)
   // Court-circuit avant envoi au SW — évite race condition MV3 réveil SW
-  m2_trusted_domains: string[];  // [domain_hash1, ...] — SHA-256(salt+domain)
+  m2_trusted_domains: string[]; // [domain_hash1, ...] — SHA-256(salt+domain)
 
   // Installation salt pour D-SEC-001
-  installation_salt: string;  // 16 bytes (128 bits) en hexadécimal (32 caractères), généré via crypto.getRandomValues
+  installation_salt: string; // 16 bytes (128 bits) en hexadécimal (32 caractères), généré via crypto.getRandomValues
 }
 ```
 
@@ -858,13 +864,13 @@ interface ChromeStorageSchema {
 
 **Bases légales RGPD par store (T-ARCH-09) :**
 
-| Store | Base légale | Justification |
-|-------|------------|---------------|
-| `events` | Intérêt légitime (Art. 6.1.f) | Nécessaire au fonctionnement de l'extension installée volontairement |
-| `password_hashes` | Consentement explicite (Art. 6.1.a) | Opt-in lors de l'onboarding (étape dédiée M7) |
-| `quiz_sessions` | Intérêt légitime (Art. 6.1.f) | Nécessaire au fonctionnement M6 |
-| `weekly_scores` | Intérêt légitime (Art. 6.1.f) | Nécessaire au fonctionnement M3 |
-| `whitelist` | Intérêt légitime (Art. 6.1.f) | Action volontaire et explicite de l'utilisateur |
+| Store             | Base légale                         | Justification                                                        |
+| ----------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| `events`          | Intérêt légitime (Art. 6.1.f)       | Nécessaire au fonctionnement de l'extension installée volontairement |
+| `password_hashes` | Consentement explicite (Art. 6.1.a) | Opt-in lors de l'onboarding (étape dédiée M7)                        |
+| `quiz_sessions`   | Intérêt légitime (Art. 6.1.f)       | Nécessaire au fonctionnement M6                                      |
+| `weekly_scores`   | Intérêt légitime (Art. 6.1.f)       | Nécessaire au fonctionnement M3                                      |
+| `whitelist`       | Intérêt légitime (Art. 6.1.f)       | Action volontaire et explicite de l'utilisateur                      |
 
 ### 8.2 Chiffrement AES-256-GCM
 
@@ -883,6 +889,7 @@ flowchart LR
 ```
 
 **Paramètres de chiffrement :**
+
 - Algorithme : AES-GCM
 - Longueur de clé : 256 bits
 - IV : 12 bytes (96 bits) généré aléatoirement par opération (`crypto.getRandomValues`)
@@ -893,13 +900,13 @@ flowchart LR
 
 ### 8.3 Politique de purge
 
-| Store | Rétention | Déclenchement purge | Méthode |
-|-------|-----------|--------------------|---------| 
-| `events` | 90 jours | À chaque réveil du SW, vérification hebdomadaire via alarme | Suppression enregistrements dont `timestamp < now - 90j` |
-| `password_hashes` | 90 jours + FIFO max 100 | Alarme hebdomadaire M3 (lundi 09h) | Suppression enregistrements dont `first_seen < now - 90 jours` + suppression des plus anciens si > 100 entrées |
-| `quiz_sessions` | 52 semaines | Alarme hebdomadaire M3 | Suppression enregistrements dont `quiz_date < now - 52 semaines` |
-| `weekly_scores` | 52 semaines | Alarme hebdomadaire M3 | Suppression scores dont `week_key < semaine courante - 52` |
-| `whitelist` | Permanent | Droit d'effacement (Options page) uniquement | Suppression manuelle par l'utilisateur |
+| Store             | Rétention               | Déclenchement purge                                         | Méthode                                                                                                        |
+| ----------------- | ----------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `events`          | 90 jours                | À chaque réveil du SW, vérification hebdomadaire via alarme | Suppression enregistrements dont `timestamp < now - 90j`                                                       |
+| `password_hashes` | 90 jours + FIFO max 100 | Alarme hebdomadaire M3 (lundi 09h)                          | Suppression enregistrements dont `first_seen < now - 90 jours` + suppression des plus anciens si > 100 entrées |
+| `quiz_sessions`   | 52 semaines             | Alarme hebdomadaire M3                                      | Suppression enregistrements dont `quiz_date < now - 52 semaines`                                               |
+| `weekly_scores`   | 52 semaines             | Alarme hebdomadaire M3                                      | Suppression scores dont `week_key < semaine courante - 52`                                                     |
+| `whitelist`       | Permanent               | Droit d'effacement (Options page) uniquement                | Suppression manuelle par l'utilisateur                                                                         |
 
 **Droit d'effacement (RGPD Art. 17) :** La page Options expose un bouton « Supprimer toutes mes données » qui effectue `indexedDB.deleteDatabase('sentinel-nudge-db')` et `chrome.storage.local.clear()`. Un bouton « Réinitialiser la whitelist » efface uniquement le store `whitelist`.
 
@@ -909,20 +916,21 @@ Structure du fichier d'export :
 
 ```typescript
 interface ExportPayload {
-  version: string;                  // Version du schéma d'export
-  exported_at: string;              // ISO 8601
-  extension_version: string;        // Version de l'extension
+  version: string; // Version du schéma d'export
+  exported_at: string; // ISO 8601
+  extension_version: string; // Version de l'extension
   config: ChromeStorageSchema['config']; // Configuration utilisateur
   data: {
-    events: EventPayload[];         // Événements déchiffrés (90j)
-    password_hashes: {              // Métadonnées uniquement — pas les hashes
+    events: EventPayload[]; // Événements déchiffrés (90j)
+    password_hashes: {
+      // Métadonnées uniquement — pas les hashes
       count: number;
-      oldest: string;              // ISO 8601
-      newest: string;              // ISO 8601
+      oldest: string; // ISO 8601
+      newest: string; // ISO 8601
     };
-    quiz_sessions: QuizSession[];   // Sessions quiz déchiffrées
-    weekly_scores: WeeklyScore[];   // Scores hebdomadaires déchiffrés
-    whitelist: WhitelistEntry[];    // Domaines hashés (non réversibles)
+    quiz_sessions: QuizSession[]; // Sessions quiz déchiffrées
+    weekly_scores: WeeklyScore[]; // Scores hebdomadaires déchiffrés
+    whitelist: WhitelistEntry[]; // Domaines hashés (non réversibles)
   };
 }
 ```
@@ -938,10 +946,15 @@ IndexedDB gère les migrations via le mécanisme `onupgradeneeded`. Le `StorageS
 const MIGRATIONS: Record<number, (db: IDBDatabase) => void> = {
   1: (db) => {
     // Création des 5 stores v1
-    db.createObjectStore('events', { keyPath: 'id', autoIncrement: true })
-      .createIndex('timestamp', 'timestamp');
-    const pwdStore = db.createObjectStore('password_hashes', { keyPath: 'id', autoIncrement: true });
-    pwdStore.createIndex('tag', 'tag');          // pré-filtration en clair
+    db.createObjectStore('events', { keyPath: 'id', autoIncrement: true }).createIndex(
+      'timestamp',
+      'timestamp',
+    );
+    const pwdStore = db.createObjectStore('password_hashes', {
+      keyPath: 'id',
+      autoIncrement: true,
+    });
+    pwdStore.createIndex('tag', 'tag'); // pré-filtration en clair
     pwdStore.createIndex('domain_hash', 'domain_hash');
     pwdStore.createIndex('first_seen', 'first_seen');
     db.createObjectStore('quiz_sessions', { keyPath: 'id', autoIncrement: true });
@@ -976,28 +989,22 @@ La CSP est déclarée dans `manifest.json` sous `content_security_policy`. Elle 
 
 ```json
 {
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting",
-    "alarms",
-    "tabs",
-    "clipboardWrite"
-  ],
+  "permissions": ["activeTab", "storage", "scripting", "alarms", "tabs", "clipboardWrite"],
   "host_permissions": []
 }
 ```
 
-| Permission | Module(s) | Justification |
-|------------|-----------|---------------|
-| `activeTab` | M2, M7, M9, M17 | Accès à l'onglet actif pour injection et URL |
-| `storage` | Tous | chrome.storage.local pour config et état |
-| `scripting` | Tous CS | Injection des content scripts |
-| `alarms` | M3, M5, M6 | Alarmes planifiées |
-| `tabs` | M2, M3 | Lecture URL, envoi message vers onglet |
-| `clipboardWrite` | M17 | Nullification du presse-papiers (D-SEC-002) |
+| Permission       | Module(s)       | Justification                                |
+| ---------------- | --------------- | -------------------------------------------- |
+| `activeTab`      | M2, M7, M9, M17 | Accès à l'onglet actif pour injection et URL |
+| `storage`        | Tous            | chrome.storage.local pour config et état     |
+| `scripting`      | Tous CS         | Injection des content scripts                |
+| `alarms`         | M3, M5, M6      | Alarmes planifiées                           |
+| `tabs`           | M2, M3          | Lecture URL, envoi message vers onglet       |
+| `clipboardWrite` | M17             | Nullification du presse-papiers (D-SEC-002)  |
 
 **Permissions explicitement absentes :**
+
 - `clipboardRead` : non requis — la détection se fait via l'événement `paste` dans les content scripts, pas par lecture active du presse-papiers.
 - `webRequest` / `webRequestBlocking` : non requis — la détection HTTP/HSTS est faite dans les content scripts sur l'URL courante.
 - `history` : non requis.
@@ -1016,10 +1023,26 @@ Cette règle est enforced par ESLint avec une règle custom :
   "rules": {
     "no-restricted-properties": [
       "error",
-      { "object": "Element", "property": "innerHTML", "message": "D-SEC-003: Utiliser textContent, createElement et appendChild uniquement." },
-      { "object": "Element", "property": "outerHTML", "message": "D-SEC-003: outerHTML interdit — utiliser createElement et remplacement de noeud." },
-      { "object": "Element", "property": "insertAdjacentHTML", "message": "D-SEC-003: insertAdjacentHTML interdit — utiliser insertAdjacentElement ou appendChild." },
-      { "object": "document", "property": "write", "message": "D-SEC-003: document.write interdit." }
+      {
+        "object": "Element",
+        "property": "innerHTML",
+        "message": "D-SEC-003: Utiliser textContent, createElement et appendChild uniquement."
+      },
+      {
+        "object": "Element",
+        "property": "outerHTML",
+        "message": "D-SEC-003: outerHTML interdit — utiliser createElement et remplacement de noeud."
+      },
+      {
+        "object": "Element",
+        "property": "insertAdjacentHTML",
+        "message": "D-SEC-003: insertAdjacentHTML interdit — utiliser insertAdjacentElement ou appendChild."
+      },
+      {
+        "object": "document",
+        "property": "write",
+        "message": "D-SEC-003: document.write interdit."
+      }
     ]
   }
 }
@@ -1034,6 +1057,7 @@ Les données utilisateur (noms de domaine dans les overlays) sont systématiquem
 **Décision :** `hash = SHA-256(installation_salt + password)` au lieu de `SHA-256(password)` seul.
 
 **Implémentation :**
+
 - `installation_salt` : **16 bytes (128 bits)** générés via `crypto.getRandomValues` au premier lancement, stockés dans `chrome.storage.local` en représentation hexadécimale (32 caractères).
 - Le sel est unique par installation — deux installations distinctes du même mot de passe produisent des hashes différents. Cela empêche la corrélation entre utilisateurs même en cas d'accès aux données locales.
 - Le sel n'est jamais transmis ni partagé.
@@ -1053,6 +1077,7 @@ Cf. §9.3 ci-dessus.
 #### D-SEC-004 : Risque AES key dans profil Chrome — accepté et documenté
 
 La clé AES-256-GCM est stockée en clair dans `chrome.storage.local`. Ce risque est :
+
 - Documenté dans la page Options (section Transparence radicale)
 - Documenté dans le README et la page d'explication technique
 - Mitigé par le fait qu'un accès au profil Chrome implique déjà un accès complet aux données du navigateur
@@ -1062,7 +1087,7 @@ La clé AES-256-GCM est stockée en clair dans `chrome.storage.local`. Ce risque
 
 Une Analyse d'Impact relative à la Protection des Données (AIPD) est requise pour M7 avant le déploiement. M7 traite des hashes de mots de passe qui, bien que salés par installation et chiffrés au repos (NC-DPO-01), constituent des données potentiellement sensibles. L'AIPD est produite par le DPO en phase P3. Ce DAT ne peut être considéré complet sans l'AIPD associée.
 
-**Statut AIPD M7 :** En attente — DPO à solliciter.
+**Statut AIPD M7 :** Produite et validée — `docs/p3-architecture/p3-aipd-m7-v1.0.md` (2026-04-11).
 
 #### D-SEC-006 : Accès direct chrome.storage.local depuis le content script M2
 
@@ -1075,6 +1100,7 @@ Une Analyse d'Impact relative à la Protection des Données (AIPD) est requise p
 **Risque résiduel :** Si `chrome.storage.local` est corrompu ou indisponible, `loadTrustedDomains()` retourne silencieusement sans modifier le cache. Le SW conserve la vérification IndexedDB comme autorité de référence. Mode dégradé : un domaine de confiance peut recevoir un overlay si le cache mémoire est vide ET que le SW répond avant le timeout (comportement nominal sans court-circuit).
 
 **Alternatives rejetées :**
+
 - Vérification synchrone via SW uniquement : impossible en MV3 (SW peut être mort au moment du focus).
 - SharedArrayBuffer : non disponible dans les extensions Chrome.
 - Pré-envoi de la whitelist au démarrage de l'onglet via tabs.sendMessage : fragile (SW peut ne pas être disponible au moment de l'injection du content script).
@@ -1085,28 +1111,28 @@ Une Analyse d'Impact relative à la Protection des Données (AIPD) est requise p
 
 ### 10.1 Budget de performance
 
-| Métrique | Cible | Mesure | Outil de vérification |
-|----------|-------|--------|-----------------------|
-| CPU au repos | < 0.1 % | Gestionnaire des tâches Chrome | Test manuel + CI profiling |
-| Mémoire totale extension | < 20 Mo | chrome://memory-internals | Test manuel |
-| Taille bundle distribué | < 5 Mo | `du -sh dist/` | Vite build output + CI gate |
-| Délai affichage nudge | < 500 ms P99 | Performance.now() dans CS | Vitest + Playwright |
-| Calcul zxcvbn (M9) | < 100 ms P99 | Performance.now() | Vitest benchmark |
-| Calcul score M3 | < 200 ms | Performance.now() | Vitest benchmark |
-| Réveil Service Worker | < 200 ms | chrome://tracing | Test manuel |
+| Métrique                 | Cible        | Mesure                         | Outil de vérification       |
+| ------------------------ | ------------ | ------------------------------ | --------------------------- |
+| CPU au repos             | < 0.1 %      | Gestionnaire des tâches Chrome | Test manuel + CI profiling  |
+| Mémoire totale extension | < 20 Mo      | chrome://memory-internals      | Test manuel                 |
+| Taille bundle distribué  | < 5 Mo       | `du -sh dist/`                 | Vite build output + CI gate |
+| Délai affichage nudge    | < 500 ms P99 | Performance.now() dans CS      | Vitest + Playwright         |
+| Calcul zxcvbn (M9)       | < 100 ms P99 | Performance.now()              | Vitest benchmark            |
+| Calcul score M3          | < 200 ms     | Performance.now()              | Vitest benchmark            |
+| Réveil Service Worker    | < 200 ms     | chrome://tracing               | Test manuel                 |
 
 ### 10.2 Stratégies d'optimisation
 
-| Stratégie | Description | Modules concernés |
-|-----------|-------------|-------------------|
-| **Service Worker éphémère** | Le SW ne tourne pas en continu. Il est réveillé uniquement sur événement (message, alarme). Au repos : 0 CPU, 0 mémoire. | Tous |
-| **Alarmes Chrome** | Les tâches planifiées (M3, M5, M6) utilisent `chrome.alarms` — le SW est dormant entre les alarmes. | M3, M5, M6 |
-| **Cache quota en mémoire** | L'état quota est mis en cache dans le SW pendant 60s pour éviter un accès chrome.storage à chaque événement DOM. | Tous CS |
-| **HSTS list compacte** | La HSTS preload list est stockée sous forme d'un Set de hashes SHA-256 (pas les domaines en clair) — recherche O(1), empreinte minimale. | M2 |
-| **Levenshtein limité** | L'algorithme Levenshtein ne compare qu'avec une liste de ~500 domaines cibles (typosquatting connu) — pas la liste Alexa complète. | M2 |
-| **zxcvbn lazy** | La bibliothèque zxcvbn-ts (~400 Ko) n'est importée que dans le content script UI de M9, et uniquement si M9 est activé. | M9 |
-| **Corpus quiz lazy** | Le JSON du corpus quiz M6 (~50 Ko) est chargé uniquement au déclenchement du quiz, pas au démarrage. | M6 |
-| **Shadow DOM natif** | Pas de virtual DOM, pas de réconciliateur, pas de diff — mise à jour DOM ciblée et minimale. | M2, M7, M9, M17 |
+| Stratégie                   | Description                                                                                                                              | Modules concernés |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **Service Worker éphémère** | Le SW ne tourne pas en continu. Il est réveillé uniquement sur événement (message, alarme). Au repos : 0 CPU, 0 mémoire.                 | Tous              |
+| **Alarmes Chrome**          | Les tâches planifiées (M3, M5, M6) utilisent `chrome.alarms` — le SW est dormant entre les alarmes.                                      | M3, M5, M6        |
+| **Cache quota en mémoire**  | L'état quota est mis en cache dans le SW pendant 60s pour éviter un accès chrome.storage à chaque événement DOM.                         | Tous CS           |
+| **HSTS list compacte**      | La HSTS preload list est stockée sous forme d'un Set de hashes SHA-256 (pas les domaines en clair) — recherche O(1), empreinte minimale. | M2                |
+| **Levenshtein limité**      | L'algorithme Levenshtein ne compare qu'avec une liste de ~500 domaines cibles (typosquatting connu) — pas la liste Alexa complète.       | M2                |
+| **zxcvbn lazy**             | La bibliothèque zxcvbn-ts (~400 Ko) n'est importée que dans le content script UI de M9, et uniquement si M9 est activé.                  | M9                |
+| **Corpus quiz lazy**        | Le JSON du corpus quiz M6 (~50 Ko) est chargé uniquement au déclenchement du quiz, pas au démarrage.                                     | M6                |
+| **Shadow DOM natif**        | Pas de virtual DOM, pas de réconciliateur, pas de diff — mise à jour DOM ciblée et minimale.                                             | M2, M7, M9, M17   |
 
 ### 10.3 Lazy loading modules
 
@@ -1142,17 +1168,18 @@ async function injectContentScripts(tabId: number): Promise<void> {
 
 Tous les composants nudge respectent les patterns ARIA 1.2 appropriés à leur type d'UI. Les corrections ci-dessous intègrent les remarques NC-ACC-01, 02, 05 et 06 du comité d'architecture.
 
-| Composant | Pattern ARIA | Rôle | Live Region | Notes |
-|-----------|-------------|------|-------------|-------|
-| Overlay M2 (interstitiel) | Dialog | `role="alertdialog"` `aria-modal="true"` `aria-labelledby` `aria-describedby` | Non (prise de focus) | `alertdialog` pour les avertissements nécessitant une réponse immédiate |
-| Overlay M6 (quiz) | Dialog | `role="dialog"` `aria-modal="true"` `aria-labelledby` | Non (prise de focus) | Groupes réponses : `fieldset` + `legend` (cf. §6.1) |
-| Overlay M9 (inline force) | Status | `role="status"` | `aria-live="polite"` | Pas de prise de focus — l'utilisateur reste dans le champ |
-| Barre progression M9 | Meter | `role="meter"` `aria-label="Force du mot de passe"` `aria-valuenow` `aria-valuemin` `aria-valuemax` `aria-valuetext` | — | `aria-valuetext` : valeur textuelle dynamique (ex: "Faible", "Moyen", "Fort", "Très fort") |
-| Toast M5 (mise à jour) | Status | `role="status"` `aria-live="polite"` `aria-atomic="true"` | `aria-live="polite"` | Notification non urgente |
-| Toast M7 (réutilisation mdp) | Status | `role="status"` `aria-live="polite"` `aria-atomic="true"` | `aria-live="polite"` | Notification non urgente |
-| Toast M17 (clipboard) | Alert | `role="alert"` `aria-live="assertive"` `aria-atomic="true"` | `aria-live="assertive"` | Urgence : données sensibles détectées dans le presse-papiers |
+| Composant                    | Pattern ARIA | Rôle                                                                                                                 | Live Region             | Notes                                                                                      |
+| ---------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------ |
+| Overlay M2 (interstitiel)    | Dialog       | `role="alertdialog"` `aria-modal="true"` `aria-labelledby` `aria-describedby`                                        | Non (prise de focus)    | `alertdialog` pour les avertissements nécessitant une réponse immédiate                    |
+| Overlay M6 (quiz)            | Dialog       | `role="dialog"` `aria-modal="true"` `aria-labelledby`                                                                | Non (prise de focus)    | Groupes réponses : `fieldset` + `legend` (cf. §6.1)                                        |
+| Overlay M9 (inline force)    | Status       | `role="status"`                                                                                                      | `aria-live="polite"`    | Pas de prise de focus — l'utilisateur reste dans le champ                                  |
+| Barre progression M9         | Meter        | `role="meter"` `aria-label="Force du mot de passe"` `aria-valuenow` `aria-valuemin` `aria-valuemax` `aria-valuetext` | —                       | `aria-valuetext` : valeur textuelle dynamique (ex: "Faible", "Moyen", "Fort", "Très fort") |
+| Toast M5 (mise à jour)       | Status       | `role="status"` `aria-live="polite"` `aria-atomic="true"`                                                            | `aria-live="polite"`    | Notification non urgente                                                                   |
+| Toast M7 (réutilisation mdp) | Status       | `role="status"` `aria-live="polite"` `aria-atomic="true"`                                                            | `aria-live="polite"`    | Notification non urgente                                                                   |
+| Toast M17 (clipboard)        | Alert        | `role="alert"` `aria-live="assertive"` `aria-atomic="true"`                                                          | `aria-live="assertive"` | Urgence : données sensibles détectées dans le presse-papiers                               |
 
 **Notes de correction (NC-ACC-01, 02, 05, 06) :**
+
 - L'overlay M2 utilise `role="alertdialog"` (et non `dialog`) car il présente un avertissement de sécurité nécessitant une décision de l'utilisateur. `aria-describedby` pointe vers le paragraphe d'explication des signaux détectés.
 - Les toasts M5 et M7 utilisent `role="status"` avec `aria-live="polite"` (et non `alert`/`assertive`) car ces notifications ne sont pas urgentes et ne doivent pas interrompre la lecture en cours.
 - Le toast M17 conserve `role="alert"` avec `aria-live="assertive"` car la détection de données sensibles dans le presse-papiers constitue une urgence justifiant une interruption.
@@ -1164,6 +1191,7 @@ Tous les composants nudge respectent les patterns ARIA 1.2 appropriés à leur t
 Le Shadow DOM natif (mode `open`) utilisé pour les overlays ne bloque pas l'accessibilité des AT (assistive technologies) dans les navigateurs modernes. Chrome gère correctement la navigation clavier et les annonces ARIA au travers des shadow roots.
 
 **Règles implémentées :**
+
 - Chaque shadow root expose un attribut `lang` cohérent avec `chrome.i18n.getUILanguage()`
 - Les tokens CSS (cf. §11.4) respectent un ratio de contraste minimum WCAG 1.4.3 AA (4.5:1) pour le texte normal
 - Toutes les cibles interactives ont une taille minimale de 44×44 pixels CSS (WCAG 2.5.5)
@@ -1172,11 +1200,11 @@ Le Shadow DOM natif (mode `open`) utilisé pour les overlays ne bloque pas l'acc
 
 ### 11.3 Gestion du focus
 
-| Composant | Comportement au focus |
-|-----------|----------------------|
-| Overlay interstitiel (M2, M6) | Focus trap dans le dialog. Premier élément focusable reçoit le focus à l'ouverture. Retour au déclencheur à la fermeture. |
-| Toast (M5, M7, M17) | Pas de prise de focus automatique (non bloquant). Bouton d'action accessible via Tab depuis n'importe quel point de la page. |
-| Overlay inline M9 | Pas de prise de focus — l'utilisateur reste dans le champ de saisie. |
+| Composant                     | Comportement au focus                                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Overlay interstitiel (M2, M6) | Focus trap dans le dialog. Premier élément focusable reçoit le focus à l'ouverture. Retour au déclencheur à la fermeture.    |
+| Toast (M5, M7, M17)           | Pas de prise de focus automatique (non bloquant). Bouton d'action accessible via Tab depuis n'importe quel point de la page. |
+| Overlay inline M9             | Pas de prise de focus — l'utilisateur reste dans le champ de saisie.                                                         |
 
 **Focus trap implémentation (BaseNudge) — correction LA-ACC-01 :**
 
@@ -1216,13 +1244,13 @@ Les tokens CSS suivants constituent le design system de l'extension. Ils sont d�
 /* src/content-scripts/ui/base-nudge.ts — :host { ... } dans le shadow root */
 
 /* Couleurs sémantiques */
---sn-color-fg: #1A1A1A;        /* Texte principal — ratio 18.1:1 sur bg blanc */
---sn-color-bg: #FFFFFF;        /* Fond */
---sn-color-accent: #2563EB;    /* Interactif (boutons, liens) — ratio 5.9:1 sur bg */
---sn-color-danger: #DC2626;    /* Danger / erreur — ratio 5.9:1 sur bg */
---sn-color-success: #16A34A;   /* Succès — ratio 5.1:1 sur bg */
---sn-color-warning: #D97706;   /* Avertissement — ratio 4.6:1 sur bg */
---sn-color-muted: #6B7280;     /* Texte secondaire — ratio 4.6:1 sur bg */
+--sn-color-fg: #1a1a1a; /* Texte principal — ratio 18.1:1 sur bg blanc */
+--sn-color-bg: #ffffff; /* Fond */
+--sn-color-accent: #2563eb; /* Interactif (boutons, liens) — ratio 5.9:1 sur bg */
+--sn-color-danger: #dc2626; /* Danger / erreur — ratio 5.9:1 sur bg */
+--sn-color-success: #16a34a; /* Succès — ratio 5.1:1 sur bg */
+--sn-color-warning: #d97706; /* Avertissement — ratio 4.6:1 sur bg */
+--sn-color-muted: #6b7280; /* Texte secondaire — ratio 4.6:1 sur bg */
 
 /* Typographie */
 --sn-font-size-body: 15px;
@@ -1241,19 +1269,19 @@ Les tokens CSS suivants constituent le design system de l'extension. Ils sont d�
 
 /* Bordures et ombres */
 --sn-radius: 8px;
---sn-shadow: 0 4px 12px rgba(0,0,0,0.15);
+--sn-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 ```
 
 **Ratios de contraste vérifiés (WCAG 1.4.3 AA — minimum 4.5:1 pour le texte normal) :**
 
-| Paire couleur | Ratio | Résultat WCAG AA |
-|--------------|-------|-----------------|
-| `--sn-color-fg` (#1A1A1A) sur `--sn-color-bg` (#FFFFFF) | 18.1:1 | Conforme (AAA) |
-| `--sn-color-accent` (#2563EB) sur `--sn-color-bg` (#FFFFFF) | 5.9:1 | Conforme (AA) |
-| `--sn-color-danger` (#DC2626) sur `--sn-color-bg` (#FFFFFF) | 5.9:1 | Conforme (AA) |
-| `--sn-color-success` (#16A34A) sur `--sn-color-bg` (#FFFFFF) | 5.1:1 | Conforme (AA) |
-| `--sn-color-warning` (#D97706) sur `--sn-color-bg` (#FFFFFF) | 4.6:1 | Conforme (AA) |
-| `--sn-color-muted` (#6B7280) sur `--sn-color-bg` (#FFFFFF) | 4.6:1 | Conforme (AA) |
+| Paire couleur                                                | Ratio  | Résultat WCAG AA |
+| ------------------------------------------------------------ | ------ | ---------------- |
+| `--sn-color-fg` (#1A1A1A) sur `--sn-color-bg` (#FFFFFF)      | 18.1:1 | Conforme (AAA)   |
+| `--sn-color-accent` (#2563EB) sur `--sn-color-bg` (#FFFFFF)  | 5.9:1  | Conforme (AA)    |
+| `--sn-color-danger` (#DC2626) sur `--sn-color-bg` (#FFFFFF)  | 5.9:1  | Conforme (AA)    |
+| `--sn-color-success` (#16A34A) sur `--sn-color-bg` (#FFFFFF) | 5.1:1  | Conforme (AA)    |
+| `--sn-color-warning` (#D97706) sur `--sn-color-bg` (#FFFFFF) | 4.6:1  | Conforme (AA)    |
+| `--sn-color-muted` (#6B7280) sur `--sn-color-bg` (#FFFFFF)   | 4.6:1  | Conforme (AA)    |
 
 ### 11.5 Dashboard — accessibilité des graphiques SVG
 
@@ -1265,9 +1293,8 @@ Le graphique SVG d'historique 52 semaines du dashboard est rendu accessible par 
 <svg role="img" aria-labelledby="chart-title chart-desc">
   <title id="chart-title">Score de cyber-hygiène — 52 dernières semaines</title>
   <desc id="chart-desc">
-    Graphique en barres représentant le score hebdomadaire de cyber-hygiène
-    sur les 52 dernières semaines. Les valeurs détaillées sont disponibles
-    dans le tableau ci-dessous.
+    Graphique en barres représentant le score hebdomadaire de cyber-hygiène sur les 52 dernières
+    semaines. Les valeurs détaillées sont disponibles dans le tableau ci-dessous.
   </desc>
   <!-- barres SVG -->
 </svg>
@@ -1279,13 +1306,21 @@ Une table HTML exposant les 52 valeurs hebdomadaires est présente dans le DOM m
 
 ```html
 <table class="sr-only" aria-label="Données du graphique : scores hebdomadaires">
-  <caption>Score de cyber-hygiène par semaine (52 semaines)</caption>
+  <caption>
+    Score de cyber-hygiène par semaine (52 semaines)
+  </caption>
   <thead>
-    <tr><th scope="col">Semaine</th><th scope="col">Score</th></tr>
+    <tr>
+      <th scope="col">Semaine</th>
+      <th scope="col">Score</th>
+    </tr>
   </thead>
   <tbody>
     <!-- 52 lignes générées dynamiquement par dashboard.ts -->
-    <tr><td>2025-W01</td><td>72/100</td></tr>
+    <tr>
+      <td>2025-W01</td>
+      <td>72/100</td>
+    </tr>
     <!-- ... -->
   </tbody>
 </table>
@@ -1317,6 +1352,7 @@ Une table HTML exposant les 52 valeurs hebdomadaires est présente dans le DOM m
 L'internationalisation utilise exclusivement l'API native `chrome.i18n`. Pas de bibliothèque externe. Les chaînes sont définies dans `_locales/fr/messages.json` (locale par défaut) et `_locales/en/messages.json`.
 
 **Règles :**
+
 - Toutes les chaînes visibles par l'utilisateur sont externalisées dans `_locales/`
 - Les chaînes de débogage et les erreurs techniques restent en anglais dans le code
 - Les placeholders Chrome i18n (`$1`, `$2`) sont utilisés pour les chaînes paramétriques
@@ -1331,7 +1367,7 @@ const label = browser.i18n.getMessage('m2_overlay_title');
 const msg = browser.i18n.getMessage('quota_remaining', [String(remaining)]);
 ```
 
-### 12.2 Structure _locales
+### 12.2 Structure \_locales
 
 ```
 src/assets/_locales/
@@ -1415,14 +1451,14 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
 
 ### 13.3 Chrome Web Store
 
-| Étape | Responsable | Outillage |
-|-------|------------|-----------|
-| Création du compte développeur | Commanditaire | Paiement unique 5 USD (hors périmètre I-001) |
-| Build release | CI/CD | GitHub Actions |
-| Package ZIP | CI/CD | Vite build + zip |
-| Soumission initiale | Commanditaire | Interface CWS manuelle |
-| Mises à jour automatiques | CI/CD | `chrome-webstore-action` (GitHub Action, MIT) |
-| Review Google | Google | Délai 1-7 jours ouvrés |
+| Étape                          | Responsable   | Outillage                                     |
+| ------------------------------ | ------------- | --------------------------------------------- |
+| Création du compte développeur | Commanditaire | Paiement unique 5 USD (hors périmètre I-001)  |
+| Build release                  | CI/CD         | GitHub Actions                                |
+| Package ZIP                    | CI/CD         | Vite build + zip                              |
+| Soumission initiale            | Commanditaire | Interface CWS manuelle                        |
+| Mises à jour automatiques      | CI/CD         | `chrome-webstore-action` (GitHub Action, MIT) |
+| Review Google                  | Google        | Délai 1-7 jours ouvrés                        |
 
 **Note :** Le frais de 5 USD pour le compte développeur CWS est un coût unique inévitable, soumis à validation du Commanditaire.
 
@@ -1430,79 +1466,175 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
 
 ## 14. Matrice de traçabilité DAT → SFD → CdC
 
-| Décision DAT | Référence SFD | Référence CdC | Exigence couverte |
-|-------------|--------------|--------------|-------------------|
-| ADR-001 TypeScript | §4.5 | §4.4 (open source et auditabilité) | Maintenabilité communautaire |
-| ADR-002 Vite | — | §3.2 (légèreté < 5 Mo) | ENF-PERF-01 |
-| ADR-003 Vanilla + Shadow DOM | §3.6 (isolation UI) | §3.2 (légèreté) | ENF-PERF-01, ENF-ACC-01 |
-| ADR-004 SubtleCrypto | §3.2 (chiffrement AES-256-GCM) | §4.2 (stockage chiffré) | ENF-SEC-04 |
-| ADR-005 Vitest + Playwright + axe-core | — | §5 (critères acceptation) | Qualité logicielle + WCAG |
-| ADR-006 Budget performance | §4.2 | §3.2 | ENF-PERF-01 à 05 |
-| ADR-007 ENF → décisions | §4.1 à 4.5 | §3.1 à 3.6 | Toutes ENF |
-| ADR-008 Browser adapter | §3.5 (compatibilité) | §3.5 (Firefox/Edge prévu) | ENF-COMPAT-01 |
-| D-SEC-001 Hash salé (SHA-256 salt+domain) | §4.5 / D-SEC-001 | §3.6 (sécurité extension) | ENF-SEC-01 |
-| D-SEC-002 Nullification clipboard | §4.5 / D-SEC-002 | §3.6 | ENF-SEC-02 |
-| D-SEC-003 Pas d'innerHTML/outerHTML | §4.5 / D-SEC-003 | §3.6 | ENF-SEC-03 |
-| D-SEC-004 AES key profil Chrome | §4.5 / D-SEC-004 | §4.2 | Risque documenté |
-| D-SEC-005 AIPD M7 | §4.1 (M7 privacy) | §3.1 (privacy by design) | RGPD Art. 35 |
-| Schéma IndexedDB 5 stores | §3.2 | §4.2 | ENF-PRIV-02 |
-| password_hashes chiffré + tag | §4.1 (M7 privacy) | §3.1 | NC-DPO-01 |
-| Bases légales RGPD par store | §4.1 | §3.1 (privacy by design) | RGPD Art. 6 |
-| Purge 90j/52 semaines | §4.1 | §3.1 | ENF-PRIV-03 |
-| CSP stricte | §4.5 | §3.6 | ENF-SEC-03 |
-| Permissions minimales | §4.5 | §4.1 | ENF-SEC-05 |
-| Quota 3/j + exceptions | §3.1 | §2.1 (règle transversale) | RG-QUOTA-01 |
-| Pages statiques embarquées | §3.7 | §4.3 (aucun appel réseau) | ENF-PRIV-01 |
-| HSTS list embarquée | §2.1 (M2) | §4.3 | ENF-SEC, ENF-PRIV-01 |
-| zxcvbn embarqué | §2.6 (M9) | §4.3 | ENF-PRIV-01 |
-| Corpus quiz embarqué | §2.4 (M6) | §4.3 | ENF-PRIV-01 |
-| _locales FR + EN | §4.4 | §3.4 (i18n) | ENF-I18N-01 |
-| MessageValidator (NC-SEC-01) | §4.5 | §3.6 | ENF-SEC-03 |
-| trapFocus Shadow DOM (LA-ACC-01) | §3.6 | §3.3 | ENF-ACC-01 |
-| ARIA alertdialog M2 (NC-ACC-01) | §2.1 | §3.3 | ENF-ACC-01 |
-| ARIA meter M9 (NC-ACC-05) | §2.6 | §3.3 | ENF-ACC-01 |
-| Tokens CSS design system (NC-UX-01) | §3.6 | §3.3 | ENF-ACC-01 |
-| SVG dashboard accessible (NC-ACC-08) | §3.3 | §3.3 | ENF-ACC-01 |
-| axe-core en CI (RT-008) | — | §5 | ENF-ACC-01 |
-| prefers-reduced-motion | §3.6 | §3.3 | ENF-ACC-01 |
+| Décision DAT                              | Référence SFD                  | Référence CdC                      | Exigence couverte            |
+| ----------------------------------------- | ------------------------------ | ---------------------------------- | ---------------------------- |
+| ADR-001 TypeScript                        | §4.5                           | §4.4 (open source et auditabilité) | Maintenabilité communautaire |
+| ADR-002 Vite                              | —                              | §3.2 (légèreté < 5 Mo)             | ENF-PERF-01                  |
+| ADR-003 Vanilla + Shadow DOM              | §3.6 (isolation UI)            | §3.2 (légèreté)                    | ENF-PERF-01, ENF-ACC-01      |
+| ADR-004 SubtleCrypto                      | §3.2 (chiffrement AES-256-GCM) | §4.2 (stockage chiffré)            | ENF-SEC-04                   |
+| ADR-005 Vitest + Playwright + axe-core    | —                              | §5 (critères acceptation)          | Qualité logicielle + WCAG    |
+| ADR-006 Budget performance                | §4.2                           | §3.2                               | ENF-PERF-01 à 05             |
+| ADR-007 ENF → décisions                   | §4.1 à 4.5                     | §3.1 à 3.6                         | Toutes ENF                   |
+| ADR-008 Browser adapter                   | §3.5 (compatibilité)           | §3.5 (Firefox/Edge prévu)          | ENF-COMPAT-01                |
+| D-SEC-001 Hash salé (SHA-256 salt+domain) | §4.5 / D-SEC-001               | §3.6 (sécurité extension)          | ENF-SEC-01                   |
+| D-SEC-002 Nullification clipboard         | §4.5 / D-SEC-002               | §3.6                               | ENF-SEC-02                   |
+| D-SEC-003 Pas d'innerHTML/outerHTML       | §4.5 / D-SEC-003               | §3.6                               | ENF-SEC-03                   |
+| D-SEC-004 AES key profil Chrome           | §4.5 / D-SEC-004               | §4.2                               | Risque documenté             |
+| D-SEC-005 AIPD M7                         | §4.1 (M7 privacy)              | §3.1 (privacy by design)           | RGPD Art. 35                 |
+| Schéma IndexedDB 5 stores                 | §3.2                           | §4.2                               | ENF-PRIV-02                  |
+| password_hashes chiffré + tag             | §4.1 (M7 privacy)              | §3.1                               | NC-DPO-01                    |
+| Bases légales RGPD par store              | §4.1                           | §3.1 (privacy by design)           | RGPD Art. 6                  |
+| Purge 90j/52 semaines                     | §4.1                           | §3.1                               | ENF-PRIV-03                  |
+| CSP stricte                               | §4.5                           | §3.6                               | ENF-SEC-03                   |
+| Permissions minimales                     | §4.5                           | §4.1                               | ENF-SEC-05                   |
+| Quota 3/j + exceptions                    | §3.1                           | §2.1 (règle transversale)          | RG-QUOTA-01                  |
+| Pages statiques embarquées                | §3.7                           | §4.3 (aucun appel réseau)          | ENF-PRIV-01                  |
+| HSTS list embarquée                       | §2.1 (M2)                      | §4.3                               | ENF-SEC, ENF-PRIV-01         |
+| zxcvbn embarqué                           | §2.6 (M9)                      | §4.3                               | ENF-PRIV-01                  |
+| Corpus quiz embarqué                      | §2.4 (M6)                      | §4.3                               | ENF-PRIV-01                  |
+| \_locales FR + EN                         | §4.4                           | §3.4 (i18n)                        | ENF-I18N-01                  |
+| MessageValidator (NC-SEC-01)              | §4.5                           | §3.6                               | ENF-SEC-03                   |
+| trapFocus Shadow DOM (LA-ACC-01)          | §3.6                           | §3.3                               | ENF-ACC-01                   |
+| ARIA alertdialog M2 (NC-ACC-01)           | §2.1                           | §3.3                               | ENF-ACC-01                   |
+| ARIA meter M9 (NC-ACC-05)                 | §2.6                           | §3.3                               | ENF-ACC-01                   |
+| Tokens CSS design system (NC-UX-01)       | §3.6                           | §3.3                               | ENF-ACC-01                   |
+| SVG dashboard accessible (NC-ACC-08)      | §3.3                           | §3.3                               | ENF-ACC-01                   |
+| axe-core en CI (RT-008)                   | —                              | §5                                 | ENF-ACC-01                   |
+| prefers-reduced-motion                    | §3.6                           | §3.3                               | ENF-ACC-01                   |
 
 ---
 
 ## 15. Risques techniques
 
-| ID | Risque | Probabilité | Impact | Mitigation | Plan B |
-|----|--------|------------|--------|-----------|--------|
-| RT-001 | Service Worker tué avant fin d'écriture IndexedDB (MV3 éphémère) | Moyenne | Élevé (perte d'événement) | Opérations atomiques, persistance via `chrome.storage.local` pour l'état critique avant IndexedDB | Retry avec backoff exponentiel sur l'écriture IDB |
-| RT-002 | `vite-plugin-web-extension` abandonné ou incompatible future version Vite | Faible | Moyen (build cassé) | Surveiller le dépôt GitHub, pin de version en lockfile | Migration vers Webpack (ADR-002 Plan B) |
-| RT-003 | API `chrome.tabs` security state (cert auto-signé M2) non accessible en MV3 | Haute | Faible (1 signal sur 4 perdu) | Dégradation gracieuse documentée dans SFD — 3 signaux restants suffisants | Retirer le signal cert auto-signé, documenter la limitation |
-| RT-004 | zxcvbn-ts > 100 ms sur machines basses performances | Faible | Moyen (UX dégradée M9) | Benchmark en CI sur environnement contraint, debounce 300 ms sur input | Remplacer par une implémentation allégée basée uniquement sur entropie de Shannon |
-| RT-005 | HSTS preload list obsolète entre deux versions de l'extension | Moyenne | Faible (faux négatifs M2) | Mise à jour de la liste à chaque release via script CI depuis source Chromium officielle | Documenter la date de mise à jour de la liste dans le manifest |
-| RT-006 | IndexedDB non disponible (navigation privée, profil corrompu) | Faible | Élevé (perte stockage) | Détection au démarrage, fallback sur `chrome.storage.local` pour les événements (capacité 5 Mo) | Avertissement utilisateur dans la popup si IDB indisponible |
-| RT-007 | Refus de publication Chrome Web Store (politique Google) | Faible | Élevé (distribution bloquée) | Respect strict des politiques CWS, déclaration complète des permissions, documentation privacy | Distribution via fichier ZIP sur GitHub Releases (installation manuelle) |
-| RT-008 | Régression WCAG lors de l'évolution des composants Shadow DOM | Moyenne | Moyen | Tests Playwright avec `@axe-core/playwright` en CI à chaque PR, checklist WCAG par PR | Audit accessibilité manuel avant chaque release mineure |
-| RT-009 | Corpus quiz M6 insuffisant (< 50 questions validées) | Faible | Faible | Minimum 50 questions bilingues validées avant release | Réduire la fréquence de répétition M6 si corpus < seuil |
-| RT-010 | Frais CWS 5 USD non validés par Commanditaire | — | Bloquant déploiement | Soumettre au Commanditaire pour validation | Distribution via ZIP GitHub uniquement |
+| ID     | Risque                                                                                                                             | Probabilité | Impact                                   | Mitigation                                                                                                                                               | Plan B                                                                                                  |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| RT-001 | Service Worker tué avant fin d'écriture IndexedDB (MV3 éphémère)                                                                   | Moyenne     | Élevé (perte d'événement)                | Opérations atomiques, persistance via `chrome.storage.local` pour l'état critique avant IndexedDB                                                        | Retry avec backoff exponentiel sur l'écriture IDB                                                       |
+| RT-002 | `vite-plugin-web-extension` abandonné ou incompatible future version Vite                                                          | Faible      | Moyen (build cassé)                      | Surveiller le dépôt GitHub, pin de version en lockfile                                                                                                   | Migration vers Webpack (ADR-002 Plan B)                                                                 |
+| RT-003 | API `chrome.tabs` security state (cert auto-signé M2) non accessible en MV3                                                        | Haute       | Faible (1 signal sur 4 perdu)            | Dégradation gracieuse documentée dans SFD — 3 signaux restants suffisants                                                                                | Retirer le signal cert auto-signé, documenter la limitation                                             |
+| RT-004 | zxcvbn-ts > 100 ms sur machines basses performances                                                                                | Faible      | Moyen (UX dégradée M9)                   | Benchmark en CI sur environnement contraint, debounce 300 ms sur input                                                                                   | Remplacer par une implémentation allégée basée uniquement sur entropie de Shannon                       |
+| RT-005 | HSTS preload list obsolète entre deux versions de l'extension                                                                      | Moyenne     | Faible (faux négatifs M2)                | Mise à jour de la liste à chaque release via script CI depuis source Chromium officielle                                                                 | Documenter la date de mise à jour de la liste dans le manifest                                          |
+| RT-006 | IndexedDB non disponible (navigation privée, profil corrompu)                                                                      | Faible      | Élevé (perte stockage)                   | Détection au démarrage, fallback sur `chrome.storage.local` pour les événements (capacité 5 Mo)                                                          | Avertissement utilisateur dans la popup si IDB indisponible                                             |
+| RT-007 | Refus de publication Chrome Web Store (politique Google)                                                                           | Faible      | Élevé (distribution bloquée)             | Respect strict des politiques CWS, déclaration complète des permissions, documentation privacy                                                           | Distribution via fichier ZIP sur GitHub Releases (installation manuelle)                                |
+| RT-008 | Régression WCAG lors de l'évolution des composants Shadow DOM                                                                      | Moyenne     | Moyen                                    | Tests Playwright avec `@axe-core/playwright` en CI à chaque PR, checklist WCAG par PR                                                                    | Audit accessibilité manuel avant chaque release mineure                                                 |
+| RT-009 | Corpus quiz M6 insuffisant (< 50 questions validées)                                                                               | Faible      | Faible                                   | Minimum 50 questions bilingues validées avant release                                                                                                    | Réduire la fréquence de répétition M6 si corpus < seuil                                                 |
+| RT-010 | Frais CWS 5 USD non validés par Commanditaire                                                                                      | —           | Bloquant déploiement                     | Soumettre au Commanditaire pour validation                                                                                                               | Distribution via ZIP GitHub uniquement                                                                  |
+| RT-011 | Utilisateur pensant que M7 couvre les formulaires de paiement en iframe cross-origin (Stripe, PayPal, SSO tiers)                   | Élevée      | Moyen (fausse impression de protection)  | Option C retenue v1 : documentation claire dans politique de confidentialité (section « Limites de la protection ») + page `m7-explication` — voir §16.1 | Option B envisageable v1.1 : indicateur visuel « zone non couverte » quand iframe cross-origin détectée |
+| RT-012 | Pression communautaire pour implémenter Option A (`host_permissions: <all_urls>`) au détriment du positionnement privacy by design | Moyenne     | Élevé (dérive du positionnement produit) | Maintien du postulat A4 (permissions minimales) comme invariant non négociable ; communication transparente sur le trade-off                             | Option B (indicateur visuel) documentée comme alternative acceptable — voir §16.1                       |
 
 ---
 
+## 16. Limitations techniques connues
+
+### 16.1 Iframes cross-origin — Same-Origin Policy
+
+#### Contexte architectural
+
+Le module M7 (détection de réutilisation de mot de passe) s’appuie sur le `PasswordDetector` content script pour observer les événements sur les champs `input[type=password]` dans le DOM des pages visitées. Ce content script est injecté dynamiquement par le Service Worker via `chrome.scripting.executeScript`.
+
+En Manifest V3, la directive `all_frames: true` permet théoriquement d’injecter un content script dans toutes les iframes d’une page, sous réserve que les origines des iframes soient couvertes par les `host_permissions` déclarées dans le manifest. Cependant, même avec cette configuration, le navigateur impose une isolation stricte pour les iframes **cross-origin** : la **Same-Origin Policy** (SOP) crée deux contextes JavaScript distincts entre le frame principal et une iframe dont l’origine diffère.
+
+#### Mécanisme d’isolation cross-origin
+
+Lorsqu’une page `https://boutique.fr` embarque une iframe `https://checkout.stripe.com`, le navigateur crée deux contextes d’exécution isolés :
+
+- **Frame principal (main frame, `frameId === 0`)** : le content script injecté dans `boutique.fr` opère dans ce contexte. Il peut lire et modifier le DOM de la page principale.
+- **Frame iframe (sous-frame, `frameId !== 0`)** : l’iframe `checkout.stripe.com` dispose de son propre contexte d’exécution, isolé du frame principal par la SOP. Un content script injecté dans `boutique.fr` **ne peut pas lire ni interagir avec le DOM de cette iframe**.
+
+Ce comportement est une garantie de sécurité fondamentale du navigateur, indépendante des paramètres de l’extension. Elle est incontournable en v1 pour les iframes dont l’origine diffère de la page hôte.
+
+**Note sur `all_frames: true` :** Cette option permet au navigateur d’injecter le content script dans les sous-frames si — et seulement si — l’origine de la sous-frame est couverte par les `host_permissions`. Même dans ce cas, le script injecté dans le sous-frame est isolé et ne partage pas le contexte du frame principal. Il n’existe pas de pont JavaScript direct entre les deux contextes : les deux scripts doivent communiquer via `chrome.runtime.sendMessage`, ce qui implique des `host_permissions` étendues et une coordination explicite.
+
+#### Modules impactés
+
+| Module                              | Impact                                                        | Sévérité   | Commentaire                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M7** (réutilisation mot de passe) | Aveugle sur les champs password dans les iframes cross-origin | **Élevée** | Les passerelles de paiement (Stripe Checkout, PayPal, Adyen) et les formulaires SSO embarqués ne sont pas couverts                                                   |
+| **M9** (force du mot de passe)      | Aveugle sur les champs password dans les iframes cross-origin | **Élevée** | Même mécanisme que M7 — zxcvbn ne peut pas observer les saisies dans une iframe cross-origin                                                                         |
+| **M2** (typosquatting)              | Impact limité — l’URL de la page principale reste visible     | **Faible** | M2 analyse l’URL de la page principale (hôte) via le Service Worker, non le DOM de l’iframe. La présence d’une iframe cross-origin ne bloque pas M2 sur la page hôte |
+
+**Ce n’est pas un bug** — c’est une limitation structurelle et intentionnelle du modèle de sécurité des navigateurs modernes. Elle est orthogonale aux corrections apportées par TACHE-070 (iframes same-origin avec `all_frames: true`).
+
+#### Cas concrets concernés en v1
+
+Les cas suivants sont identifiés comme hors périmètre couvert par M7 en v1 :
+
+- Passerelles de paiement embarquées en iframe (Stripe Checkout, PayPal, Adyen, Mollie) : champ de saisie de mot de passe ou code PIN hébergé sur le domaine du prestataire
+- Widgets SSO et OAuth providers embarqués en iframe (Google Sign-In, Apple Sign-In en mode iframe — usage rare mais existant)
+- Formulaires de renouvellement d’abonnement tiers embarqués en iframe
+
+#### Impact sur les invariants et ADR existants
+
+**Invariants M7** (issus de l’ADR-002 CROSS-LIFECYCLE-INTENT et du mini-DAT TACHE-061) :
+
+Les invariants de fonctionnement de M7 (R-CLI-01 à R-CLI-07, R-BOOT-01 à R-BOOT-05, INV-SEC-01 à INV-SEC-05) restent **valides dans leur périmètre d’application**, c’est-à-dire les frames accessibles par le content script. La limitation cross-origin ne remet pas en cause ces invariants — elle délimite leur champ d’application.
+
+**ADR-001 SW-BOOT-CONTRACT :** Non impacté. Le contrat de boot du Service Worker (initialisation du stockage, génération/régénération de la clé AES) est indépendant de la présence d’iframes cross-origin.
+
+**ADR-002 CROSS-LIFECYCLE-INTENT :** Non impacté. Les pending-intents (persistance TTL des actions traversant dormance/redirect) concernent le cycle de vie du SW, pas la détection dans les iframes. De surcroît, une iframe cross-origin ne peut pas émettre un pending-intent vers le SW de la page hôte — les deux origines sont strictement isolées.
+
+**Postulat A4 (permissions minimales) :** La mitigation Option A décrite ci-dessous est délibérément rejetée en v1 car elle entre en contradiction directe avec le postulat A4 (permissions minimales) et le principe de privacy by design (§2.1).
+
+#### Mitigations envisageables en v2+
+
+Ces options sont documentées pour mémoire architecturale. Aucune n’est retenue en v1.
+
+**Option A — Extension des `host_permissions` avec détection par `frameId`**
+
+Demander `host_permissions: ["<all_urls>"]` dans le manifest. Injecter le content script avec `all_frames: true`. Détecter les sous-frames cross-origin via le champ `frameId !== 0` dans les messages de retour vers le SW. Corréler les événements multi-frames au sein de la même page.
+
+- Avantages : couverture complète de tous les champs password, quelle que soit l’origine
+- Inconvénients majeurs : la permission `<all_urls>` déclenche un avertissement critique lors de l’installation, impact vie privée significatif, probable rejet lors de la review Chrome Web Store ou déclassement en haute sensibilité. Incompatible avec le postulat A4 et le positionnement privacy by design.
+- Verdict : non retenu en v1. Peut être reconsidéré si l’usage des passerelles de paiement en iframe s’avère un cas d’usage prioritaire pour la base d’utilisateurs.
+
+**Option B — Indicateur visuel « zone non couverte »**
+
+Détecter la présence d’iframes cross-origin sur la page courante via le SW. Afficher un indicateur discret (badge ou tooltip sur l’icône de l’extension) signalant que M7 peut ne pas couvrir toutes les zones de saisie sur cette page.
+
+- Avantages : transparence envers l’utilisateur, coût de développement modéré, pas de permission supplémentaire majeure
+- Inconvénients : nécessite d’évaluer la permission `webNavigation`, risque de faux positifs (iframes publicitaires non pertinentes pour M7), expérience utilisateur potentiellement anxiogène si omniprésente
+- Verdict : option envisageable en v1.1 ou v2 si retour utilisateur le justifie.
+
+**Option C — Documentation de la limitation (option retenue en v1)**
+
+Documenter la limitation dans la politique de confidentialité et dans la page d’explication de M7. Laisser l’utilisateur informé et vigilant. Cette approche est cohérente avec les principes de transparence radicale de Sentinel Nudge et avec le travail du DPO (TACHE-071, volet politique de confidentialité).
+
+- Avantages : zéro impact sur les permissions, cohérence avec le positionnement privacy by design, transparence maximale, conforme au postulat A4
+- Inconvénients : l’utilisateur peut avoir une fausse impression de couverture sur les pages avec iframes cross-origin
+- Verdict : **option retenue pour v1**.
+
+#### Référence croisée
+
+La vision utilisateur de cette limitation — sa traduction en langage accessible, les cas concrets d’iframes non couverts, et les conseils pratiques — est documentée dans la politique de confidentialité de l’extension :
+
+`src/pages/static/politique-confidentialite.html` (mise à jour par le DPO, TACHE-071)
+
+Le lecteur du présent DAT cherchant la formulation destinée aux utilisateurs finaux doit se référer à ce document.
+
+#### Nouveaux risques techniques associés
+
+| ID     | Risque                                                                                                 | Probabilité | Impact                                   | Mitigation adoptée (v1)                                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------ | ----------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| RT-011 | Utilisateur pensant que M7 couvre les formulaires de paiement en iframe (Stripe, PayPal)               | Élevée      | Moyen (fausse impression de protection)  | Option C : documentation dans politique de confidentialité et page `m7-explication`                      |
+| RT-012 | Pression communautaire pour implémenter Option A (`<all_urls>`) au détriment du positionnement privacy | Moyenne     | Élevé (dérive du positionnement produit) | Maintien du postulat A4 comme invariant non négociable. Option B documentée comme alternative acceptable |
+
 ## Annexe A — Versions des dépendances recommandées
 
-| Package | Version recommandée | Source | Compatibilité GPL v3 |
-|---------|--------------------|---------|--------------------|
-| typescript | ^5.4.0 | npm | Apache 2.0 — Oui |
-| vite | ^5.2.0 | npm | MIT — Oui |
-| vite-plugin-web-extension | ^4.5.0 | npm | MIT — Oui |
-| vitest | ^2.0.0 | npm | MIT — Oui |
-| @playwright/test | ^1.44.0 | npm | Apache 2.0 — Oui |
-| playwright-crx | ^0.2.0 | npm | Apache 2.0 — Oui |
-| @axe-core/playwright | ^4.9.0 | npm | MPL 2.0 — Oui (outillage dev uniquement) |
-| eslint | ^9.0.0 | npm | MIT — Oui |
-| @typescript-eslint/eslint-plugin | ^8.0.0 | npm | MIT — Oui |
-| @typescript-eslint/parser | ^8.0.0 | npm | MIT — Oui |
-| jsdom | ^29.0.0 | npm | MIT — Oui |
-| prettier | ^3.2.0 | npm | MIT — Oui |
-| @zxcvbn-ts/core | ^3.0.4 | npm | MIT — Oui |
-| license-checker | ^25.0.1 | npm | BSD-3 — Oui |
+| Package                          | Version recommandée | Source | Compatibilité GPL v3                     |
+| -------------------------------- | ------------------- | ------ | ---------------------------------------- |
+| typescript                       | ^5.4.0              | npm    | Apache 2.0 — Oui                         |
+| vite                             | ^5.2.0              | npm    | MIT — Oui                                |
+| vite-plugin-web-extension        | ^4.5.0              | npm    | MIT — Oui                                |
+| vitest                           | ^2.0.0              | npm    | MIT — Oui                                |
+| @playwright/test                 | ^1.44.0             | npm    | Apache 2.0 — Oui                         |
+| playwright-crx                   | ^0.2.0              | npm    | Apache 2.0 — Oui                         |
+| @axe-core/playwright             | ^4.9.0              | npm    | MPL 2.0 — Oui (outillage dev uniquement) |
+| eslint                           | ^9.0.0              | npm    | MIT — Oui                                |
+| @typescript-eslint/eslint-plugin | ^8.0.0              | npm    | MIT — Oui                                |
+| @typescript-eslint/parser        | ^8.0.0              | npm    | MIT — Oui                                |
+| jsdom                            | ^29.0.0             | npm    | MIT — Oui                                |
+| prettier                         | ^3.2.0              | npm    | MIT — Oui                                |
+| @zxcvbn-ts/core                  | ^3.0.4              | npm    | MIT — Oui                                |
+| license-checker                  | ^25.0.1             | npm    | BSD-3 — Oui                              |
 
 ---
 
@@ -1515,14 +1647,7 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
   "version": "1.0.0",
   "description": "__MSG_extension_description__",
   "default_locale": "fr",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting",
-    "alarms",
-    "tabs",
-    "clipboardWrite"
-  ],
+  "permissions": ["activeTab", "storage", "scripting", "alarms", "tabs", "clipboardWrite"],
   "background": {
     "service_worker": "background/service-worker.ts",
     "type": "module"
@@ -1553,6 +1678,7 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
 
 ---
 
-*Document produit par l'Architecte logiciel de la Fabrique — Sentinel Nudge v1 — 2026-04-12*
-*Version 1.1 : intégration des corrections du comité d'architecture (15 tickets T-ARCH-01 à T-ARCH-15).*
-*Version 1.2 : intégration de l'addendum architecture whitelist M2 triple couche (ADR-006, D-SEC-006).*
+_Document produit par l'Architecte logiciel de la Fabrique — Sentinel Nudge v1 — 2026-04-12_
+_Version 1.1 : intégration des corrections du comité d'architecture (15 tickets T-ARCH-01 à T-ARCH-15)._
+_Version 1.2 : intégration de l'addendum architecture whitelist M2 triple couche (ADR-006, D-SEC-006)._
+_Version 1.3 (2026-04-17) : ajout section 16 — Limitations techniques connues, iframes cross-origin Same-Origin Policy (TACHE-071). Nouveaux risques RT-011 et RT-012 également inscrits en section 15 + répercutés dans `.claude/RISQUES.md` (R-ADR-06/07). Référence croisée vers `src/pages/static/politique-confidentialite.html` (section « Limites de la protection » produite par DPO). Correction de cohérence §9.4 D-SEC-005 — statut AIPD M7 aligné avec `p3-aipd-m7-v1.0.md` validée. Corrections post-QC : AB-01 (RT-011/012 ajoutés en section 15), AB-02 (double séparateur supprimé), AB-03 (références orphelines `p3-dat-v1.1.md` fixées dans p3-aipd-m7-v1.0.md et p5-minidat-tache-061-v1.1.md)._
