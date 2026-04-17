@@ -9,6 +9,7 @@
  * - formatQuestionForLocale : formatage bilingue
  * - handleCheckQuiz / handleQuizCompleted / handleToastAction
  * - Cas limites : corpus vide, pool épuisé, recyclage
+ * - initBootM6 : boot happy path, install_date corrompu, migration pending_m6_quiz (TACHE-088)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -25,8 +26,11 @@ import {
   LOW_SCORE_THRESHOLD,
   type CorpusQuestion,
 } from '@/background/handlers/m6-handler';
+import { initBootM6, readM6Diagnostics } from '@/background/services/m6-boot-service';
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
+import type { IncidentService } from '@/background/services/incident-service';
+import { PENDING_M6_QUIZ_KEY, PENDING_M6_QUIZ_TTL_MS } from '@/shared/types/diagnostics';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -48,7 +52,9 @@ global.chrome = {
         Object.assign(mockLocalStorage, items);
         callback?.();
       }),
-      remove: vi.fn((_keys: string | string[], callback?: () => void) => {
+      remove: vi.fn((keys: string | string[], callback?: () => void) => {
+        const ks = Array.isArray(keys) ? keys : [keys];
+        ks.forEach((k) => delete mockLocalStorage[k]);
         callback?.();
       }),
     },
@@ -173,6 +179,26 @@ function buildMockCorpus(): CorpusQuestion[] {
 }
 
 // ---------------------------------------------------------------------------
+// Helpers initBootM6
+// ---------------------------------------------------------------------------
+
+/**
+ * Crée un mock d'IncidentService pour les tests initBootM6.
+ */
+function createMockIncidentService(): {
+  service: Partial<IncidentService>;
+  incidents: Array<{ type: string; severity: string }>;
+} {
+  const incidents: Array<{ type: string; severity: string }> = [];
+  const service: Partial<IncidentService> = {
+    log: vi.fn(async (type, severity) => {
+      incidents.push({ type, severity });
+    }),
+  };
+  return { service, incidents };
+}
+
+// ---------------------------------------------------------------------------
 // Réinitialisation avant chaque test
 // ---------------------------------------------------------------------------
 
@@ -181,6 +207,29 @@ beforeEach(() => {
     delete mockLocalStorage[k];
   });
   vi.clearAllMocks();
+  // Réinitialiser les implémentations chrome.storage.local
+  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
+    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
+      const result: Record<string, unknown> = {};
+      for (const k of keys) {
+        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
+      }
+      callback(result);
+    },
+  );
+  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
+    (items: Record<string, unknown>, callback?: () => void) => {
+      Object.assign(mockLocalStorage, items);
+      callback?.();
+    },
+  );
+  (global.chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
+    (keys: string | string[], callback?: () => void) => {
+      const ks = Array.isArray(keys) ? keys : [keys];
+      ks.forEach((k) => delete mockLocalStorage[k]);
+      callback?.();
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -362,14 +411,27 @@ describe('formatQuestionForLocale', () => {
 // ---------------------------------------------------------------------------
 
 describe('M6Handler — toast_action : later', () => {
-  it('marque le quiz comme reporté (deferred) pendant 7 jours', async () => {
+  it('marque le quiz comme reporté avec pending_m6_quiz (R-CLI-01) et expires_at (R-CLI-03)', async () => {
+    // TACHE-088 : renommage m6_quiz_deferred → pending_m6_quiz (R-CLI-01 ADR-002)
+    // Le payload est désormais { expires_at: number } (R-CLI-02/R-CLI-03)
     const storage = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
     const handler = createM6Handler(storage, cryptoKey);
 
+    const beforeTs = Date.now();
     await handler(buildM6Message('toast_action', { user_action: 'later' }), mockSender);
 
-    expect(mockLocalStorage['m6_quiz_deferred']).toBeGreaterThan(Date.now());
+    // Vérifier la nouvelle clé (R-CLI-01)
+    const pending = mockLocalStorage[PENDING_M6_QUIZ_KEY] as Record<string, unknown>;
+    expect(pending).toBeDefined();
+    // Payload JSON-strict avec expires_at (R-CLI-02 / R-CLI-03)
+    expect(typeof pending['expires_at']).toBe('number');
+    expect(pending['expires_at'] as number).toBeGreaterThan(beforeTs);
+    // TTL 7 jours (PENDING_M6_QUIZ_TTL_MS)
+    expect(pending['expires_at'] as number).toBeCloseTo(beforeTs + PENDING_M6_QUIZ_TTL_MS, -3);
+
+    // L'ancienne clé ne doit plus être utilisée (migration R-CLI-01)
+    expect(mockLocalStorage['m6_quiz_deferred']).toBeUndefined();
   });
 });
 
@@ -458,5 +520,208 @@ describe('M6Handler — action inconnue', () => {
     expect(response.success).toBe(false);
     expect(response.action).toBe('skip');
     expect(response.reason).toBe('unknown_action');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests : initBootM6 — ADR-001 SW-BOOT-CONTRACT (TACHE-088)
+// ---------------------------------------------------------------------------
+
+describe('initBootM6 — boot happy path (install_date valide)', () => {
+  it('TC-M6-BOOT-01 : install_date valide → ready=true, pas d\'incident', async () => {
+    const validInstallDate = Date.now() - 30 * 24 * 60 * 60 * 1000; // il y a 30 jours
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM6(service as IncidentService);
+
+    expect(diag.ready).toBe(true);
+    expect(diag.install_date).toBe(validInstallDate);
+    expect(diag.last_boot_ts).toBeGreaterThan(0);
+    expect(diag.last_incident).toBeUndefined();
+    expect(incidents).toHaveLength(0);
+  });
+
+  it('TC-M6-BOOT-02 : diagnostics.m6 persisté avec ready=true', async () => {
+    const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+
+    const { service } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    const stored = mockLocalStorage['diagnostics.m6'] as Record<string, unknown>;
+    expect(stored).toBeDefined();
+    expect(stored['ready']).toBe(true);
+    expect(stored['install_date']).toBe(validInstallDate);
+    expect(typeof stored['last_boot_ts']).toBe('number');
+  });
+
+  it('TC-M6-BOOT-03 : readM6Diagnostics retourne l\'état persisté après boot', async () => {
+    const validInstallDate = Date.now() - 14 * 24 * 60 * 60 * 1000;
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+
+    const { service } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    const diag = await readM6Diagnostics();
+    expect(diag.ready).toBe(true);
+    expect(diag.install_date).toBe(validInstallDate);
+  });
+});
+
+describe('initBootM6 — install_date absent', () => {
+  it('TC-M6-BOOT-04 : install_date absent → incident m6_install_date_corrupted (error)', async () => {
+    // Aucun install_date dans le storage
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM6(service as IncidentService);
+
+    // Incident émis
+    const corruptedIncident = incidents.find((i) => i.type === 'm6_install_date_corrupted');
+    expect(corruptedIncident).toBeDefined();
+    expect(corruptedIncident?.severity).toBe('error');
+
+    // Régénération à Date.now() → install_date > 0
+    expect(diag.install_date).toBeGreaterThan(0);
+    expect(diag.ready).toBe(false); // ready=false car corruption détectée
+  });
+
+  it('TC-M6-BOOT-05 : install_date absent → régénération persist dans storage', async () => {
+    const { service } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    const stored = mockLocalStorage['m6_install_date'];
+    expect(typeof stored).toBe('number');
+    expect(stored as number).toBeGreaterThan(0);
+  });
+
+  it('TC-M6-BOOT-06 : diagnostics.m6.last_incident reflète la corruption', async () => {
+    const { service } = createMockIncidentService();
+    const diag = await initBootM6(service as IncidentService);
+
+    expect(diag.last_incident).toBeDefined();
+    expect(diag.last_incident?.type).toBe('m6_install_date_corrupted');
+    expect(diag.last_incident?.severity).toBe('error');
+    expect(diag.last_incident?.ts).toBeGreaterThan(0);
+  });
+});
+
+describe('initBootM6 — install_date corrompu (type invalide)', () => {
+  it('TC-M6-BOOT-07 : install_date = string → incident m6_install_date_corrupted', async () => {
+    mockLocalStorage['m6_install_date'] = 'not-a-number';
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM6(service as IncidentService);
+
+    const corruptedIncident = incidents.find((i) => i.type === 'm6_install_date_corrupted');
+    expect(corruptedIncident).toBeDefined();
+    expect(corruptedIncident?.severity).toBe('error');
+    // Régénération
+    expect(diag.install_date).toBeGreaterThan(0);
+  });
+
+  it('TC-M6-BOOT-08 : install_date = 0 → invalide → régénération', async () => {
+    mockLocalStorage['m6_install_date'] = 0;
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM6(service as IncidentService);
+
+    expect(incidents.some((i) => i.type === 'm6_install_date_corrupted')).toBe(true);
+    expect(diag.install_date).toBeGreaterThan(0);
+  });
+
+  it('TC-M6-BOOT-09 : install_date dans le futur lointain → invalide → régénération', async () => {
+    // Timestamp futur de 1 heure (dépassant la tolérance de 5 minutes)
+    mockLocalStorage['m6_install_date'] = Date.now() + 60 * 60 * 1000;
+
+    const { service, incidents } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    expect(incidents.some((i) => i.type === 'm6_install_date_corrupted')).toBe(true);
+  });
+});
+
+describe('initBootM6 — migration clé legacy m6_quiz_deferred', () => {
+  it('TC-M6-BOOT-10 : clé legacy m6_quiz_deferred supprimée au boot (migration one-shot)', async () => {
+    const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+    // Simuler la présence de l'ancienne clé
+    mockLocalStorage['m6_quiz_deferred'] = Date.now() + 86400000;
+
+    const { service } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    // La clé legacy doit avoir été supprimée
+    expect(mockLocalStorage['m6_quiz_deferred']).toBeUndefined();
+  });
+
+  it('TC-M6-BOOT-11 : pending_m6_quiz non périmé conservé au boot', async () => {
+    const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+    // Pending intent valide (non périmé)
+    const futureExpiry = Date.now() + PENDING_M6_QUIZ_TTL_MS;
+    mockLocalStorage[PENDING_M6_QUIZ_KEY] = { expires_at: futureExpiry };
+
+    const { service, incidents } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    // Le pending intent non périmé doit être conservé
+    expect(mockLocalStorage[PENDING_M6_QUIZ_KEY]).toBeDefined();
+    // Aucun incident quiz_deferred_stale
+    expect(incidents.some((i) => i.type === 'quiz_deferred_stale')).toBe(false);
+  });
+
+  it('TC-M6-BOOT-12 : pending_m6_quiz périmé → incident quiz_deferred_stale (warn) + suppression', async () => {
+    const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+    // Pending intent périmé (expires_at dans le passé)
+    mockLocalStorage[PENDING_M6_QUIZ_KEY] = { expires_at: Date.now() - 1000 };
+
+    const { service, incidents } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    // Incident quiz_deferred_stale (warn)
+    const staleIncident = incidents.find((i) => i.type === 'quiz_deferred_stale');
+    expect(staleIncident).toBeDefined();
+    expect(staleIncident?.severity).toBe('warn');
+
+    // Clé supprimée (purge one-shot)
+    expect(mockLocalStorage[PENDING_M6_QUIZ_KEY]).toBeUndefined();
+  });
+});
+
+describe('initBootM6 — état initial conservatif', () => {
+  it('TC-M6-BOOT-13 : diagnostics.m6 posé à ready=false au début du boot', async () => {
+    const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    mockLocalStorage['m6_install_date'] = validInstallDate;
+
+    let conservativeStateObserved = false;
+    let callCount = 0;
+    (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
+      (items: Record<string, unknown>, callback?: () => void) => {
+        callCount++;
+        if (callCount === 1 && items['diagnostics.m6']) {
+          const diag = items['diagnostics.m6'] as Record<string, unknown>;
+          if (diag['ready'] === false) {
+            conservativeStateObserved = true;
+          }
+        }
+        Object.assign(mockLocalStorage, items);
+        callback?.();
+      },
+    );
+
+    const { service } = createMockIncidentService();
+    await initBootM6(service as IncidentService);
+
+    expect(conservativeStateObserved).toBe(true);
+  });
+
+  it('TC-M6-BOOT-14 : readM6Diagnostics retourne défaut si diagnostics.m6 absent', async () => {
+    const diag = await readM6Diagnostics();
+
+    expect(diag.ready).toBe(false);
+    expect(diag.last_boot_ts).toBe(0);
+    expect(diag.install_date).toBe(0);
   });
 });

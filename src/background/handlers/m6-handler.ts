@@ -20,13 +20,25 @@
  *
  * Cas limite : corpus recyclé si tout a été vu (vue > 90 jours → réintégration).
  *
- * Référence : SFD §2.4 (M6), DAT §6.2 (alarme spaced repetition)
+ * Conformité ADR-002 R-CLI-01 à R-CLI-07 (TACHE-088) :
+ * - Clé `pending_m6_quiz` (renommée depuis `m6_quiz_deferred` — R-CLI-01)
+ * - Payload JSON-strict : { expires_at: number } (R-CLI-02 / R-CLI-03)
+ * - TTL 7 jours (expires_at = Date.now() + 7j — R-CLI-03)
+ * - Consommation one-shot au déclenchement du quiz (R-CLI-05)
+ * - Références aux questions par ID abstrait uniquement (R-CLI-07)
+ *
+ * Référence : SFD §2.4 (M6), DAT §6.2 (alarme spaced repetition), ADR-002 (R-CLI-01 à 07)
  */
 
 import { StorageService } from '@/background/storage-service';
 import { browser } from '@/shared/browser/browser-adapter';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+import {
+  PENDING_M6_QUIZ_KEY,
+  PENDING_M6_QUIZ_TTL_MS,
+  M6_INSTALL_DATE_STORAGE_KEY,
+} from '@/shared/types/diagnostics';
 
 /** Intervalles de base pour la spaced repetition (jours depuis installation) */
 export const BASE_INTERVALS_DAYS = [0, 7, 21, 42, 70];
@@ -51,11 +63,14 @@ const RECENT_SESSIONS_EXCLUDE = 3;
 /** Clé chrome.storage.local pour la date de prochaine session quiz */
 const M6_NEXT_QUIZ_DATE_KEY = 'm6_next_quiz_date';
 
-/** Clé chrome.storage.local pour la date d'installation (référence spaced repetition) */
-const M6_INSTALL_DATE_KEY = 'm6_install_date';
-
-/** Clé chrome.storage.local pour l'état du quiz reporté (plus tard) */
-const M6_DEFERRED_KEY = 'm6_quiz_deferred';
+/**
+ * Clé chrome.storage.local pour la date d'installation (référence spaced repetition).
+ * Réexportée depuis diagnostics.ts — utilisation centralisée.
+ *
+ * @deprecated Utiliser M6_INSTALL_DATE_STORAGE_KEY importé depuis diagnostics.ts.
+ *             Cette constante locale est conservée pour la rétrocompatibilité des tests.
+ */
+const M6_INSTALL_DATE_KEY = M6_INSTALL_DATE_STORAGE_KEY;
 
 /** Structure d'une question du corpus embarqué */
 export interface CorpusQuestion {
@@ -232,6 +247,8 @@ async function loadCorpus(): Promise<CorpusQuestion[]> {
  * 5. Prioriser les catégories échouées
  * 6. Sélectionner 2 phishing + 1 légitime
  *
+ * Conformité R-CLI-07 : seuls les IDs abstraits circulent (q.id), jamais le texte.
+ *
  * @param corpus          - Toutes les questions du corpus
  * @param locale          - Langue préférée ('fr' ou 'en')
  * @param profile         - Profil utilisateur ('beginner', 'intermediate', 'advanced')
@@ -334,6 +351,10 @@ function shuffleArray<T>(array: T[]): T[] {
 /**
  * Formate une question du corpus en objet envoyé au content script.
  *
+ * Conformité R-CLI-07 : seul l'ID abstrait (q.id) est référencé dans les
+ * métadonnées de session. Le texte de la question est inclus uniquement dans
+ * le payload direct vers le content script (jamais persisté en storage).
+ *
  * @param q      - Question du corpus
  * @param locale - Locale de l'utilisateur
  * @returns Question formatée pour l'overlay M6
@@ -417,6 +438,11 @@ async function getLastFailedCategories(
  * Vérifie si la date de quiz est atteinte et si le quiz est disponible.
  * Déclenche l'affichage du toast M6 si toutes les conditions sont remplies.
  *
+ * Conformité ADR-002 R-CLI-01 à R-CLI-07 :
+ * - Lecture de `pending_m6_quiz` (R-CLI-01) avec vérification expires_at (R-CLI-03)
+ * - Purge one-shot après affichage (R-CLI-05)
+ * - Questions transmises au content script par ID uniquement dans les métadonnées (R-CLI-07)
+ *
  * @param storageService - Service de stockage
  * @param cryptoKey      - Clé AES-256-GCM
  * @returns Réponse NudgeResponse
@@ -429,10 +455,19 @@ async function handleCheckQuiz(
     const nextQuizDate = await getNextQuizDate();
     const now = Date.now();
 
-    // Si pas encore planifié ou date non atteinte : vérifier quiz reporté
+    // Si pas encore planifié ou date non atteinte : vérifier pending quiz (R-CLI-01)
     if (nextQuizDate !== null && now < nextQuizDate) {
-      const result = await browser.storage.local.get([M6_DEFERRED_KEY]);
-      if (!result[M6_DEFERRED_KEY]) {
+      const result = await browser.storage.local.get([PENDING_M6_QUIZ_KEY]);
+      const pending = result[PENDING_M6_QUIZ_KEY];
+
+      // Vérifier que le pending intent est présent et non périmé (R-CLI-03)
+      if (!pending || typeof pending !== 'object') {
+        return { success: true, action: 'skip', reason: 'not_scheduled_yet' };
+      }
+      const raw = pending as Record<string, unknown>;
+      if (typeof raw['expires_at'] !== 'number' || raw['expires_at'] < now) {
+        // Pending périmé ou malformé — purge défensive et skip
+        await browser.storage.local.remove(PENDING_M6_QUIZ_KEY);
         return { success: true, action: 'skip', reason: 'not_scheduled_yet' };
       }
     }
@@ -470,6 +505,7 @@ async function handleCheckQuiz(
     }
 
     // Formater les questions pour le content script
+    // R-CLI-07 : le texte est envoyé directement au content script (non persisté)
     const questions = selectedRaw.map((q) => formatQuestionForLocale(q, locale));
 
     // Envoyer le toast au content script
@@ -487,8 +523,8 @@ async function handleCheckQuiz(
       timestamp: Date.now(),
     });
 
-    // Effacer le flag de quiz reporté
-    await browser.storage.local.remove(M6_DEFERRED_KEY as string);
+    // Purge one-shot du pending intent (R-CLI-05)
+    await browser.storage.local.remove(PENDING_M6_QUIZ_KEY);
 
     return { success: true, action: 'show' };
   } catch (err: unknown) {
@@ -501,6 +537,9 @@ async function handleCheckQuiz(
 /**
  * Traite la fin d'un quiz (résultats envoyés par l'overlay).
  * Persiste la session et calcule la prochaine date.
+ *
+ * Conformité R-CLI-07 : seuls les question_ids (IDs abstraits) sont persistés,
+ * jamais le texte des questions.
  *
  * @param storageService - Service de stockage
  * @param payload        - Résultats du quiz
@@ -527,8 +566,7 @@ async function handleQuizCompleted(
     const now = Date.now();
 
     // Persister la session quiz dans IndexedDB
-
-    // Enregistrer la session via StorageService (avec chiffrement)
+    // R-CLI-07 : question_ids = IDs abstraits uniquement (pas de texte)
     await storageService.logEvent(
       'M6',
       {
@@ -565,6 +603,11 @@ async function handleQuizCompleted(
 /**
  * Traite les actions sur le toast M6 (start_quiz, later, closed).
  *
+ * Conformité ADR-002 R-CLI-01/R-CLI-02/R-CLI-03 :
+ * - Stocke un pending intent `pending_m6_quiz` (R-CLI-01) si quiz reporté
+ * - Payload JSON-strict : { expires_at: number } (R-CLI-02)
+ * - TTL 7 jours via PENDING_M6_QUIZ_TTL_MS (R-CLI-03)
+ *
  * @param storageService - Service de stockage
  * @param payload        - Payload avec user_action
  * @param cryptoKey      - Clé AES-256-GCM
@@ -582,9 +625,12 @@ async function handleToastAction(
 
   try {
     if (userAction === 'later' || userAction === 'closed') {
-      // Marquer comme reporté — accessible depuis le dashboard pendant 7 jours
-      const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
-      await browser.storage.local.set({ [M6_DEFERRED_KEY]: expiresAt });
+      // Marquer comme reporté — pending intent structuré (R-CLI-01 à R-CLI-03)
+      // expires_at = maintenant + TTL (R-CLI-03)
+      const expiresAt = Date.now() + PENDING_M6_QUIZ_TTL_MS;
+      await browser.storage.local.set({
+        [PENDING_M6_QUIZ_KEY]: { expires_at: expiresAt },
+      });
     }
 
     // Enregistrer l'événement

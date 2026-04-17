@@ -7,6 +7,7 @@
  * - handleCheckUpdate : délai de grâce, throttling, no_update, update_available
  * - handleToastAction : update_now, remind_4h, why, closed
  * - Contrainte anti-snooze infini (CA-M5-06)
+ * - initBootM5 : boot happy path, snooze corrompu, pending_m5_update_reminder (TACHE-087)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -23,8 +24,15 @@ import {
   M5_UP_TO_DATE_KEY,
   createM5Handler,
 } from '@/background/handlers/m5-handler';
+import { initBootM5, readM5Diagnostics } from '@/background/services/m5-boot-service';
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
+import type { IncidentService } from '@/background/services/incident-service';
+import {
+  M5_SNOOZE_COUNT_STORAGE_KEY,
+  PENDING_M5_UPDATE_REMINDER_KEY,
+  PENDING_M5_UPDATE_REMINDER_TTL_MS,
+} from '@/shared/types/diagnostics';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -117,6 +125,22 @@ function buildM5Message(action: string, payload: Record<string, unknown> = {}): 
 }
 
 const mockSender = {} as chrome.runtime.MessageSender;
+
+/**
+ * Crée un mock d'IncidentService pour les tests initBootM5.
+ */
+function createMockIncidentService(): {
+  service: Partial<IncidentService>;
+  incidents: Array<{ type: string; severity: string }>;
+} {
+  const incidents: Array<{ type: string; severity: string }> = [];
+  const service: Partial<IncidentService> = {
+    log: vi.fn(async (type, severity) => {
+      incidents.push({ type, severity });
+    }),
+  };
+  return { service, incidents };
+}
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -362,5 +386,177 @@ describe('M5Handler — constantes', () => {
 
   it('MAX_SNOOZE_COUNT vaut 3', () => {
     expect(MAX_SNOOZE_COUNT).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests : initBootM5 — ADR-001 SW-BOOT-CONTRACT (TACHE-087)
+// ---------------------------------------------------------------------------
+
+describe('initBootM5 — boot happy path (snooze_count valide)', () => {
+  it('TC-M5-BOOT-01 : snooze_count valide → ready=true, pas d\'incident', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 2;
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM5(service as IncidentService);
+
+    expect(diag.ready).toBe(true);
+    expect(diag.snooze_count).toBe(2);
+    expect(diag.last_boot_ts).toBeGreaterThan(0);
+    expect(diag.last_incident).toBeUndefined();
+    expect(incidents).toHaveLength(0);
+  });
+
+  it('TC-M5-BOOT-02 : diagnostics.m5 persisté avec ready=true', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 0;
+
+    const { service } = createMockIncidentService();
+    await initBootM5(service as IncidentService);
+
+    const stored = mockLocalStorage['diagnostics.m5'] as Record<string, unknown>;
+    expect(stored).toBeDefined();
+    expect(stored['ready']).toBe(true);
+    expect(stored['snooze_count']).toBe(0);
+    expect(typeof stored['last_boot_ts']).toBe('number');
+  });
+
+  it('TC-M5-BOOT-03 : readM5Diagnostics retourne l\'état persisté après boot', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 1;
+
+    const { service } = createMockIncidentService();
+    await initBootM5(service as IncidentService);
+
+    const diag = await readM5Diagnostics();
+    expect(diag.ready).toBe(true);
+    expect(diag.snooze_count).toBe(1);
+  });
+});
+
+describe('initBootM5 — snooze_count absent (premier boot)', () => {
+  it('TC-M5-BOOT-04 : snooze_count absent → initialisé à 0, ready=true, pas d\'incident', async () => {
+    // Aucun snooze_count dans le storage
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM5(service as IncidentService);
+
+    expect(diag.ready).toBe(true);
+    expect(diag.snooze_count).toBe(0);
+    expect(incidents).toHaveLength(0);
+
+    // m5_snooze_count initialisé à 0 dans le storage
+    expect(mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY]).toBe(0);
+  });
+
+  it('TC-M5-BOOT-05 : snooze_count null → comportement identique à absent', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = null;
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM5(service as IncidentService);
+
+    expect(diag.ready).toBe(true);
+    expect(diag.snooze_count).toBe(0);
+    expect(incidents).toHaveLength(0);
+  });
+});
+
+describe('initBootM5 — snooze_count corrompu', () => {
+  it('TC-M5-BOOT-06 : snooze_count = string → incident m5_snooze_corrupted (error)', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 'invalid';
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM5(service as IncidentService);
+
+    const corruptedIncident = incidents.find((i) => i.type === 'm5_snooze_corrupted');
+    expect(corruptedIncident).toBeDefined();
+    expect(corruptedIncident?.severity).toBe('error');
+
+    // Réinitialisation à 0
+    expect(diag.snooze_count).toBe(0);
+    expect(diag.ready).toBe(false);
+  });
+
+  it('TC-M5-BOOT-07 : snooze_count négatif → invalide → incident + réinitialisation', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = -1;
+
+    const { service, incidents } = createMockIncidentService();
+    const diag = await initBootM5(service as IncidentService);
+
+    expect(incidents.some((i) => i.type === 'm5_snooze_corrupted')).toBe(true);
+    expect(diag.snooze_count).toBe(0);
+  });
+
+  it('TC-M5-BOOT-08 : snooze_count = objet → invalide → incident', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = { corrupted: true };
+
+    const { service, incidents } = createMockIncidentService();
+    await initBootM5(service as IncidentService);
+
+    expect(incidents.some((i) => i.type === 'm5_snooze_corrupted')).toBe(true);
+  });
+
+  it('TC-M5-BOOT-09 : diagnostics.m5.last_incident reflète la corruption', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 'bad';
+
+    const { service } = createMockIncidentService();
+    const diag = await initBootM5(service as IncidentService);
+
+    expect(diag.last_incident).toBeDefined();
+    expect(diag.last_incident?.type).toBe('m5_snooze_corrupted');
+    expect(diag.last_incident?.severity).toBe('error');
+    expect(diag.last_incident?.ts).toBeGreaterThan(0);
+  });
+
+  it('TC-M5-BOOT-10 : m5_snooze_count réinitialisé à 0 dans storage après corruption', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 'corrupted';
+
+    const { service } = createMockIncidentService();
+    await initBootM5(service as IncidentService);
+
+    expect(mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY]).toBe(0);
+  });
+});
+
+describe('initBootM5 — état initial conservatif', () => {
+  it('TC-M5-BOOT-11 : diagnostics.m5 posé à ready=false au début du boot (R-BOOT-03)', async () => {
+    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 0;
+
+    let conservativeStateObserved = false;
+    let callCount = 0;
+    (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
+      (items: Record<string, unknown>, callback?: () => void) => {
+        callCount++;
+        if (callCount === 1 && items['diagnostics.m5']) {
+          const diag = items['diagnostics.m5'] as Record<string, unknown>;
+          if (diag['ready'] === false) {
+            conservativeStateObserved = true;
+          }
+        }
+        Object.assign(mockLocalStorage, items);
+        callback?.();
+      },
+    );
+
+    const { service } = createMockIncidentService();
+    await initBootM5(service as IncidentService);
+
+    expect(conservativeStateObserved).toBe(true);
+  });
+
+  it('TC-M5-BOOT-12 : readM5Diagnostics retourne défaut si diagnostics.m5 absent', async () => {
+    const diag = await readM5Diagnostics();
+
+    expect(diag.ready).toBe(false);
+    expect(diag.last_boot_ts).toBe(0);
+    expect(diag.snooze_count).toBe(0);
+  });
+});
+
+describe('initBootM5 — constantes ADR-002 (TACHE-087)', () => {
+  it('PENDING_M5_UPDATE_REMINDER_KEY conforme R-CLI-01 (convention pending_<module>_<action>)', () => {
+    expect(PENDING_M5_UPDATE_REMINDER_KEY).toBe('pending_m5_update_reminder');
+  });
+
+  it('PENDING_M5_UPDATE_REMINDER_TTL_MS vaut 30 minutes', () => {
+    expect(PENDING_M5_UPDATE_REMINDER_TTL_MS).toBe(30 * 60 * 1000);
   });
 });

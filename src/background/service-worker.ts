@@ -48,6 +48,8 @@ import { HeartbeatService } from './services/heartbeat-service';
 import { CanaryService } from './services/canary-service';
 import { IncidentService } from './services/incident-service';
 import { initBootM2 } from './services/m2-boot-service';
+import { initBootM5 } from './services/m5-boot-service';
+import { initBootM6 } from './services/m6-boot-service';
 import { createLogger, Logger } from '@/shared/utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -221,7 +223,8 @@ function registerModuleHandlers(cryptoKey: CryptoKey): void {
  * Initialise les services post-clé après un premier install ou un réveil SW.
  *
  * Factorise les étapes post-écriture clé AES : flush buffer incidents, init canary,
- * boot success, boot M2 (initBootM2 — TACHE-085), enregistrement des handlers de modules.
+ * boot success, boot M2 (initBootM2 — TACHE-085), boot M5 (initBootM5 — TACHE-087),
+ * boot M6 (initBootM6 — TACHE-088), enregistrement des handlers de modules.
  *
  * Appelé **uniquement depuis `onFirstInstall()`** après écriture de la clé AES dans
  * chrome.storage.local. L'IIFE boot sequence ne l'utilise PAS volontairement :
@@ -248,6 +251,16 @@ async function initializeServices(cryptoKey: CryptoKey): Promise<void> {
   // Non bloquant : une exception interne est capturée dans initBootM2().
   await initBootM2(incidentService);
 
+  // Boot M5 — ADR-001 R-BOOT-01/04 (TACHE-087) :
+  // Vérification intégrité m5_snooze_count + publication diagnostics.m5.
+  // Non bloquant : une exception interne est capturée dans initBootM5().
+  await initBootM5(incidentService);
+
+  // Boot M6 — ADR-001 R-BOOT-01/04 (TACHE-088) :
+  // Vérification intégrité m6_install_date + migration pending_m6_quiz + publication diagnostics.m6.
+  // Non bloquant : une exception interne est capturée dans initBootM6().
+  await initBootM6(incidentService);
+
   // Enregistrement des handlers de modules
   registerModuleHandlers(cryptoKey);
 }
@@ -263,7 +276,7 @@ async function initializeServices(cryptoKey: CryptoKey): Promise<void> {
  * 3. Créer la configuration par défaut
  * 4. Initialiser la base IndexedDB
  * 5. Configurer les alarmes planifiées
- * 6. Initialiser les services (canary + heartbeat + initBootM2 + handlers via initializeServices)
+ * 6. Initialiser les services (canary + heartbeat + initBootM2/M5/M6 + handlers via initializeServices)
  * 7. Ouvrir la page d'onboarding
  * 8. Lever le flag `installation_in_progress` (finally — garanti même en cas d'erreur)
  */
@@ -317,9 +330,10 @@ async function onFirstInstall(): Promise<void> {
     // Configuration des alarmes planifiées
     alarmManager.setupAlarms();
 
-    // Initialisation des services post-clé (canary + heartbeat + initBootM2 + handlers)
+    // Initialisation des services post-clé (canary + heartbeat + initBootM2/M5/M6 + handlers)
     // initializeServices() fait : incidentService.initService() + canaryService.init()
-    // + heartbeatService.onBootSuccess() + initBootM2() + registerModuleHandlers()
+    // + heartbeatService.onBootSuccess() + initBootM2() + initBootM5() + initBootM6()
+    // + registerModuleHandlers()
     await initializeServices(cryptoKey);
 
     // Ouverture de la page d'onboarding dans un nouvel onglet (ADR-008 — via browser adapter)
@@ -418,7 +432,7 @@ messageRouter.listen();
 // ---------------------------------------------------------------------------
 // Boot sequence principale (module-level IIFE)
 //
-// Séquence (mini-DAT TACHE-061 §2.1 / §5.1 — TACHE-085 étape 6a ajoutée) :
+// Séquence (mini-DAT TACHE-061 §2.1 / §5.1 — TACHE-085/086/087/088) :
 //   0. Vérifier `installation_in_progress` (TACHE-079) :
 //      si présent → onFirstInstall() est en cours → skip (return early)
 //   1. HeartbeatService.onBootStart()   — incrémente boot_count, last_boot_ts=now, ready=false
@@ -431,7 +445,9 @@ messageRouter.listen();
 //        - absent → canaryService.init() + re-verify
 //        - échec → CM-EOP1 (test sur password_hashes) → canary_reinit ou key_regenerated
 //   6a. initBootM2() — ADR-001 boot M2 : vérif whitelist + diagnostics.m2 (TACHE-085)
-//   6b. registerModuleHandlers(cryptoKey)
+//   6b. initBootM5() — ADR-001 boot M5 : vérif snooze_count + diagnostics.m5 (TACHE-087)
+//   6c. initBootM6() — ADR-001 boot M6 : vérif install_date + migration + diagnostics.m6 (TACHE-088)
+//   6d. registerModuleHandlers(cryptoKey)
 // ---------------------------------------------------------------------------
 void (async () => {
   // ---------------------------------------------------------------------------
@@ -594,7 +610,18 @@ void (async () => {
     // les incidents whitelist_corrupted / whitelist_regenerated soient persistés en IDB.
     await initBootM2(incidentService);
 
-    // Étape 6b — Enregistrement des handlers de modules
+    // Étape 6b — Boot M5 : vérification intégrité m5_snooze_count + diagnostics.m5 (TACHE-087)
+    // Non bloquant : initBootM5 capture ses propres exceptions (fail-safe).
+    // Incidents possibles : m5_snooze_corrupted (error).
+    await initBootM5(incidentService);
+
+    // Étape 6c — Boot M6 : vérification intégrité m6_install_date + migration + diagnostics.m6 (TACHE-088)
+    // Non bloquant : initBootM6 capture ses propres exceptions (fail-safe).
+    // Incidents possibles : m6_install_date_corrupted (error), quiz_deferred_stale (warn).
+    // Migration one-shot : suppression de la clé legacy m6_quiz_deferred.
+    await initBootM6(incidentService);
+
+    // Étape 6d — Enregistrement des handlers de modules
     registerModuleHandlers(cryptoKey);
 
     const bootMs = Math.round(performance.now() - bootStart);
