@@ -1,9 +1,9 @@
 /**
  * @file tests/integration/boot-sequence.test.ts
- * @description Tests d'intégration de la boot sequence TACHE-061 et TACHE-079.
+ * @description Tests d'intégration de la boot sequence TACHE-061, TACHE-079 et TACHE-085.
  *
- * Vérifie l'orchestration HeartbeatService + CanaryService + IncidentService
- * dans les scénarios de boot définis par le mini-DAT TACHE-061.
+ * Vérifie l'orchestration HeartbeatService + CanaryService + IncidentService + M2BootService
+ * dans les scénarios de boot définis par le mini-DAT TACHE-061 et ADR-001 (TACHE-085).
  *
  * Scénarios couverts :
  * - TC-M7-13 : boot avec storage vide (premier install)
@@ -17,10 +17,14 @@
  * - TC-TACHE-079-03 : boot ultérieur (réveil SW) — flag absent → boot nominal
  * - TC-TACHE-079-04 : régression R-M7-09 — aucun incident boot_fail ni key_regenerated fantôme
  *
+ * - TC-M2-INT-01 : boot M2 nominal après boot M7 — diagnostics.m2 cohérent (TACHE-085)
+ * - TC-M2-INT-02 : boot M2 avec whitelist absente — diagnostic + incident loggué (TACHE-085)
+ * - TC-M2-INT-03 : boot M2 + M7 en séquence — états indépendants (TACHE-085)
+ *
  * Note : ces tests vérifient la logique de coordination sans le service-worker complet
  * (pas de chrome.runtime disponible). L'orchestration est testée au niveau des services.
  *
- * Référence : Mini-DAT TACHE-061 §7 (plan de tests), TACHE-079 (R-M7-09)
+ * Référence : Mini-DAT TACHE-061 §7 (plan de tests), TACHE-079 (R-M7-09), TACHE-085 (ADR-001 M2)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -28,6 +32,7 @@ import { HeartbeatService } from '@/background/services/heartbeat-service';
 import { CanaryService } from '@/background/services/canary-service';
 import { CryptoService } from '@/background/crypto-service';
 import { IncidentService } from '@/background/services/incident-service';
+import { initBootM2, readM2Diagnostics } from '@/background/services/m2-boot-service';
 // CANARY_KEYS est utilisé pour vérifier le stockage dans le storage mock
 import { CANARY_KEYS as CK } from '@/background/services/canary-service';
 import { DB_VERSION, MIGRATIONS } from '@/background/storage-service';
@@ -438,5 +443,141 @@ describe('TACHE-079 — Garde anti-race premier install (R-M7-09)', () => {
 
     // Flag levé
     expect(mockLocalStorage['installation_in_progress']).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests intégration M2 boot — ADR-001 SW-BOOT-CONTRACT (TACHE-085)
+// ---------------------------------------------------------------------------
+// Ces tests vérifient la cohérence entre la boot sequence M7 (HeartbeatService)
+// et la boot sequence M2 (initBootM2) lorsqu'elles sont exécutées en séquence,
+// comme dans la IIFE de service-worker.ts (étapes 5 puis 6a).
+//
+// Stratégie : simuler la IIFE sans importer service-worker.ts (side-effects module-level).
+// L'IncidentService est partagé entre M7 et M2 (registre commun m7_incidents).
+// ---------------------------------------------------------------------------
+
+describe('TACHE-085 — Boot M2 (ADR-001) intégration avec la séquence M7', () => {
+  beforeEach(() => {
+    Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+    removedKeys.length = 0;
+    vi.clearAllMocks();
+  });
+
+  // TC-M2-INT-01 : boot M2 nominal après boot M7 — les deux modules sont ready
+  it('TC-M2-INT-01 : boot M2 nominal après boot M7 — diagnostics.m2 et diagnostics.m7 cohérents', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+
+    // Whitelist M2 valide présente dans le storage
+    mockLocalStorage['whitelist_m2'] = ['paypal.com', 'google.com', 'amazon.com'];
+
+    // Simuler la boot sequence IIFE (étapes 1 à 6a)
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Étape 6a : boot M2
+    const m2Diag = await initBootM2(incidentService);
+
+    // M7 : ready=true
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+    expect(m7Diag.canary_verified).toBe(true);
+
+    // M2 : ready=true, whitelist_size cohérente
+    expect(m2Diag.ready).toBe(true);
+    expect(m2Diag.whitelist_size).toBe(3);
+    expect(m2Diag.last_incident).toBeUndefined();
+
+    // diagnostics.m2 persisté dans le storage
+    const storedM2 = mockLocalStorage['diagnostics.m2'] as Record<string, unknown>;
+    expect(storedM2['ready']).toBe(true);
+    expect(storedM2['whitelist_size']).toBe(3);
+  });
+
+  // TC-M2-INT-02 : boot M2 avec whitelist absente — incident whitelist_regenerated loggué
+  it('TC-M2-INT-02 : whitelist M2 absente — incident whitelist_regenerated loggué, M7 non affecté', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+    const incidents: Array<{ type: string; severity: string }> = [];
+
+    // Intercepter les incidents
+    const originalLog = incidentService.log.bind(incidentService);
+    incidentService.log = async (
+      type: Parameters<typeof incidentService.log>[0],
+      severity: Parameters<typeof incidentService.log>[1],
+      context: Parameters<typeof incidentService.log>[2],
+    ) => {
+      incidents.push({ type, severity });
+      return originalLog(type, severity, context);
+    };
+
+    // Aucune whitelist dans le storage (premier install ou storage purgé)
+
+    // Boot M7
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Boot M2 (whitelist absente → régénération)
+    const m2Diag = await initBootM2(incidentService);
+
+    // M7 non affecté
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+
+    // M2 régénéré depuis le JSON embarqué
+    expect(m2Diag.ready).toBe(true);
+    expect(m2Diag.whitelist_size).toBeGreaterThan(0);
+
+    // Incident whitelist_regenerated loggué (et PAS whitelist_corrupted)
+    const wlRegeneratedIncidents = incidents.filter((i) => i.type === 'whitelist_regenerated');
+    const wlCorruptedIncidents = incidents.filter((i) => i.type === 'whitelist_corrupted');
+    expect(wlRegeneratedIncidents).toHaveLength(1);
+    expect(wlRegeneratedIncidents[0].severity).toBe('warn');
+    expect(wlCorruptedIncidents).toHaveLength(0);
+
+    // Aucun incident M7 créé (M7 = boot nominal)
+    const bootFailIncidents = incidents.filter((i) => i.type === 'boot_fail');
+    expect(bootFailIncidents).toHaveLength(0);
+  });
+
+  // TC-M2-INT-03 : état diagnostics.m2 indépendant de diagnostics.m7
+  it('TC-M2-INT-03 : diagnostics.m2 et diagnostics.m7 sont des états indépendants dans chrome.storage.local', async () => {
+    const { heartbeat, canary, key } = await createServices();
+    const incidentService = new IncidentService();
+
+    // Whitelist M2 corrompue (shape invalide)
+    mockLocalStorage['whitelist_m2'] = { not_an_array: true };
+
+    // Boot M7 nominal
+    await heartbeat.onBootStart();
+    await canary.init(key);
+    await heartbeat.onBootSuccess();
+
+    // Boot M2 avec corruption
+    const m2Diag = await initBootM2(incidentService);
+
+    // M7 : toujours ready=true (non affecté par l'incident M2)
+    const m7Diag = await heartbeat.read();
+    expect(m7Diag.ready).toBe(true);
+    expect(m7Diag.canary_verified).toBe(true);
+
+    // M2 : ready=true après régénération (whitelist corrompue → régénérée depuis JSON)
+    expect(m2Diag.ready).toBe(true);
+    expect(m2Diag.last_incident?.type).toBe('whitelist_corrupted');
+
+    // Clés storage séparées — pas de collision
+    expect(mockLocalStorage['diagnostics.m7']).toBeDefined();
+    expect(mockLocalStorage['diagnostics.m2']).toBeDefined();
+    const m7Stored = mockLocalStorage['diagnostics.m7'] as Record<string, unknown>;
+    const m2Stored = mockLocalStorage['diagnostics.m2'] as Record<string, unknown>;
+    expect(m7Stored['canary_verified']).toBeDefined();
+    expect(m2Stored['whitelist_size']).toBeDefined();
+
+    // readM2Diagnostics retourne l'état correct
+    const m2DiagRead = await readM2Diagnostics();
+    expect(m2DiagRead.ready).toBe(true);
   });
 });

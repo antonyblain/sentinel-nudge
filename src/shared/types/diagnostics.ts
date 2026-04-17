@@ -1,12 +1,17 @@
 /**
  * @file shared/types/diagnostics.ts
- * @description Types partagés pour l'instrumentation M7 (Heartbeat, Canary, Registre d'incidents).
+ * @description Types partagés pour l'instrumentation des modules SW (Heartbeat, Canary, Registre d'incidents).
  *
- * Ces types sont produits par TACHE-061 (Heartbeat M7, Canary Hash, Registre d'incidents).
- * Ils constituent le contrat d'interface entre HeartbeatService, CanaryService,
- * IncidentService et les consommateurs (popup TACHE-062, tests).
+ * Ces types sont produits par :
+ * - TACHE-061 (Heartbeat M7, Canary Hash, Registre d'incidents)
+ * - TACHE-085 (initBoot M2, diagnostics.m2, incidents whitelist M2)
+ *
+ * Ils constituent le contrat d'interface entre les services de boot, les handlers
+ * et les consommateurs (popup TACHE-062, page état santé TACHE-109, tests).
  *
  * Référence : Mini-DAT TACHE-061 §3 (Contrats d'interface TypeScript)
+ *             ADR-001 R-BOOT-04 (diagnostics.<module>)
+ *             TACHE-085 (M2IncidentType, M2Diagnostics)
  */
 
 // ---------------------------------------------------------------------------
@@ -68,15 +73,83 @@ export const M7_DIAGNOSTICS_DEFAULT: M7Diagnostics = {
 };
 
 // ---------------------------------------------------------------------------
-// Registre d'incidents (IndexedDB store m7_incidents)
+// Diagnostics M2 (diagnostics.m2)
 // ---------------------------------------------------------------------------
 
 /**
- * Types d'incidents tracés dans le registre M7.
+ * Objet de santé M2 persisté sous la clé chrome.storage.local 'diagnostics.m2'.
+ * Mis à jour à chaque boot SW via initBootM2().
+ * Consommé par TACHE-062 (badge dégradé) et TACHE-109 (page état de santé).
+ *
+ * Produit par TACHE-085 — ADR-001 R-BOOT-04.
+ *
+ * Invariant INV-M2-01 : ready === true implique whitelist_size > 0.
+ * Invariant INV-M2-02 : last_boot_ts mis à jour à chaque boot (succès ou échec).
+ */
+export interface M2Diagnostics {
+  /**
+   * true si la séquence de boot M2 s'est terminée avec une whitelist valide et non vide.
+   * false si la whitelist était absente/corrompue et la régénération a échoué, ou si
+   * la régénération a réussi mais le storage est dans un état dégradé.
+   * En pratique : true après régénération réussie depuis typosquatting-targets.json.
+   */
+  ready: boolean;
+
+  /**
+   * Timestamp (ms since epoch) du dernier boot M2.
+   * Mis à jour à chaque boot, même en cas d'incident (INV-M2-02).
+   */
+  last_boot_ts: number;
+
+  /**
+   * Nombre d'entrées dans la whitelist de typosquatting au dernier boot.
+   * Invariant INV-M2-01 : si ready=true alors whitelist_size > 0.
+   * 0 si la whitelist est absente ou corrompue et la régénération a échoué.
+   */
+  whitelist_size: number;
+
+  /**
+   * Dernier incident M2 enregistré au boot, ou absent si aucun incident.
+   * Champ optionnel consommé par TACHE-109 pour l'affichage de l'état de santé.
+   */
+  last_incident?: {
+    /** Type d'incident M2 */
+    type: 'whitelist_corrupted' | 'whitelist_regenerated';
+    /** Sévérité de l'incident */
+    severity: 'info' | 'warn' | 'error';
+    /** Timestamp de l'incident (ms since epoch) */
+    ts: number;
+  };
+}
+
+/** Clé chrome.storage.local utilisée pour diagnostics.m2 */
+export const DIAGNOSTICS_M2_KEY = 'diagnostics.m2';
+
+/** Clé chrome.storage.local utilisée pour la whitelist de typosquatting M2 */
+export const WHITELIST_M2_STORAGE_KEY = 'whitelist_m2';
+
+/** Valeur par défaut retournée si diagnostics.m2 est absent du storage (premier boot) */
+export const M2_DIAGNOSTICS_DEFAULT: M2Diagnostics = {
+  ready: false,
+  last_boot_ts: 0,
+  whitelist_size: 0,
+};
+
+// ---------------------------------------------------------------------------
+// Registre d'incidents partagé (IndexedDB store m7_incidents)
+// ---------------------------------------------------------------------------
+
+/**
+ * Types d'incidents tracés dans le registre partagé (m7_incidents).
+ *
+ * Le store m7_incidents est le registre commun à tous les modules SW.
+ * Son nom historique (m7) est conservé pour éviter une migration IDB.
  *
  * INV-SEC-05 : key_regenerated est inclus dans cette union (prérequis INV-SEC-03).
  * canary_reinit correspond au cas CM-EOP1 : canary corrompu mais clé AES fonctionnelle —
  * seul le canary est réinitialisé, la clé n'est PAS régénérée.
+ *
+ * TACHE-085 : ajout de whitelist_corrupted et whitelist_regenerated (incidents M2).
  */
 export type M7IncidentType =
   | 'boot_fail' // Clé AES absente ou non importable au boot SW
@@ -87,9 +160,11 @@ export type M7IncidentType =
   | 'storage_write_fail' // Erreur lors d'un browser.storage.local.set critique
   | 'idb_write_fail' // Erreur lors d'une transaction IndexedDB M7
   | 'key_regenerated' // Régénération de la clé AES-256-GCM (INV-SEC-03 / INV-SEC-05)
-  | 'rate_limit_exceeded'; // Dépassement du rate-limit par (tab.id, module) — INV-UC03-05
+  | 'rate_limit_exceeded' // Dépassement du rate-limit par (tab.id, module) — INV-UC03-05
+  | 'whitelist_corrupted' // M2 — entrée JSON illisible ou shape invalide détectée (TACHE-085)
+  | 'whitelist_regenerated'; // M2 — régénération whitelist depuis typosquatting-targets.json (TACHE-085)
 
-/** Sévérité d'un incident M7 */
+/** Sévérité d'un incident (M7 et autres modules SW) */
 export type M7IncidentSeverity = 'info' | 'warn' | 'error';
 
 /**
@@ -106,6 +181,8 @@ export type M7IncidentSeverity = 'info' | 'warn' | 'error';
  * - Aucune URL complète avec query string ou fragment
  * - Aucun domain_hash associé à un mot de passe saisi < 5s auparavant
  * - Seuls les champs structurés listés ci-dessous sont autorisés
+ *
+ * TACHE-085 : ajout de whitelist_corrupted et whitelist_regenerated (incidents M2).
  */
 export type IncidentContext =
   | { type: 'boot_fail'; hint: 'key_absent' | 'import_failed'; boot_count: number }
@@ -121,7 +198,21 @@ export type IncidentContext =
       previous_boot_count: number;
       hashes_purged_count: number;
     }
-  | { type: 'rate_limit_exceeded'; module: string; tab_id: number };
+  | { type: 'rate_limit_exceeded'; module: string; tab_id: number }
+  | {
+      type: 'whitelist_corrupted';
+      /** Motif de la corruption : absent = clé absente, invalid_shape = structure JSON invalide */
+      reason: 'absent' | 'invalid_shape';
+      /** Nombre d'entrées dans la whitelist au moment de la détection (0 si absente) */
+      entry_count: number;
+    }
+  | {
+      type: 'whitelist_regenerated';
+      /** Taille de la whitelist avant régénération (0 si absente) */
+      previous_size: number;
+      /** Taille de la whitelist après régénération depuis typosquatting-targets.json */
+      new_size: number;
+    };
 
 /**
  * Entrée du registre d'incidents IndexedDB (store m7_incidents).
