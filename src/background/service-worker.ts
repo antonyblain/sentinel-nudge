@@ -16,6 +16,13 @@
  * doit être persistée avant la fin de chaque opération.
  *
  * Référence : DAT §3.1 (Composants MV3), §6.2 (Flux de données)
+ *
+ * Race condition premier install (TACHE-079 / R-M7-09) :
+ * Au premier install, onInstalled(reason='install') et l'IIFE module-level
+ * s'exécutent en concurrence. Sans garde, l'IIFE voit la clé absente et
+ * régénère une deuxième clé — deux incidents fantômes boot_fail + key_regenerated.
+ * Solution : flag `installation_in_progress` dans chrome.storage.local posé
+ * au début de onFirstInstall(), levé en finally. L'IIFE skip si le flag est présent.
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
@@ -206,72 +213,112 @@ function registerModuleHandlers(cryptoKey: CryptoKey): void {
 }
 
 /**
+ * Initialise les services post-clé après un premier install ou un réveil SW.
+ *
+ * Factorise les étapes post-écriture clé AES : flush buffer incidents, init canary,
+ * boot success, enregistrement des handlers de modules.
+ *
+ * Appelé **uniquement depuis `onFirstInstall()`** après écriture de la clé AES dans
+ * chrome.storage.local. L'IIFE boot sequence ne l'utilise PAS volontairement :
+ * elle gère des chemins conditionnels (5a/5b) avec régénération de clé et CM-EOP1
+ * qui rendent la factorisation non-triviale. Refactor IIFE hors scope TACHE-079
+ * (QC A-01 corrigé 2026-04-17).
+ *
+ * @param cryptoKey - Clé AES-256-GCM fraîchement générée
+ */
+async function initializeServices(cryptoKey: CryptoKey): Promise<void> {
+  // Flush du buffer pré-init (ARB-061-02) — incidents collectés avant initDB()
+  await incidentService.initService(storageService.getDB());
+
+  // Initialisation du canary hash (INV-06, CM-C1)
+  // Au premier install : init depuis zéro
+  // Aux boots suivants : ce chemin n'est appelé que si canary.verify() est ok
+  await canaryService.init(cryptoKey);
+
+  // Boot réussi — ready=true, canary_verified=true (INV-01)
+  await heartbeatService.onBootSuccess();
+
+  // Enregistrement des handlers de modules
+  registerModuleHandlers(cryptoKey);
+}
+
+/**
  * Initialise l'extension au premier lancement (chrome.runtime.onInstalled).
  *
  * Actions :
+ * 0. Poser le flag `installation_in_progress` pour que l'IIFE ne démarre pas en
+ *    concurrence (TACHE-079 / R-M7-09 — ADR-001 R-BOOT-04)
  * 1. Générer et persister le sel d'installation (D-SEC-001)
  * 2. Générer et persister la clé AES-256-GCM (D-SEC-004)
  * 3. Créer la configuration par défaut
  * 4. Initialiser la base IndexedDB
  * 5. Configurer les alarmes planifiées
- * 6. Enregistrer les handlers de modules
+ * 6. Initialiser les services (canary + heartbeat + handlers via initializeServices)
  * 7. Ouvrir la page d'onboarding
+ * 8. Lever le flag `installation_in_progress` (finally — garanti même en cas d'erreur)
  */
 async function onFirstInstall(): Promise<void> {
-  // Génération du sel d'installation unique (D-SEC-001)
-  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
-  const installationSalt = Array.from(saltBytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  // Étape 0 — Flag anti-race (TACHE-079 / R-M7-09)
+  // Posé avant toute opération async. L'IIFE module-level vérifie ce flag
+  // et s'arrête immédiatement si présent, évitant la double génération de clé AES.
+  await browser.storage.local.set({ installation_in_progress: true });
 
-  // Génération de la clé de chiffrement AES-256-GCM
-  const cryptoKey = await cryptoService.generateKey();
-  const keyMaterial = await cryptoService.exportKey(cryptoKey);
+  try {
+    // Génération du sel d'installation unique (D-SEC-001)
+    const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+    const installationSalt = Array.from(saltBytes)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
 
-  // chrome.storage.local ne serialize pas un ArrayBuffer — on le convertit en
-  // Array<number> pour stockage JSON-safe (32 octets AES-256). Cf. P-018.
-  const keyMaterialArray = Array.from(new Uint8Array(keyMaterial));
+    // Génération de la clé de chiffrement AES-256-GCM
+    const cryptoKey = await cryptoService.generateKey();
+    const keyMaterial = await cryptoService.exportKey(cryptoKey);
 
-  // Configuration par défaut — tous les modules activés sauf M7 (opt-in explicite)
-  const defaultConfig: ChromeStorageSchema['config'] = {
-    modules: Object.fromEntries(
-      MODULE_IDS.map((id) => [id, id !== 'M7']), // M7 requiert consentement explicite (RGPD)
-    ) as Record<(typeof MODULE_IDS)[number], boolean>,
-    quota_limit: QUOTA_DEFAULT,
-    profile: 'beginner',
-    onboarding_complete: false,
-    language: 'fr',
-  };
+    // chrome.storage.local ne serialize pas un ArrayBuffer — on le convertit en
+    // Array<number> pour stockage JSON-safe (32 octets AES-256). Cf. P-018.
+    const keyMaterialArray = Array.from(new Uint8Array(keyMaterial));
 
-  // Persistance dans chrome.storage.local
-  await browser.storage.local.set({
-    installation_salt: installationSalt,
-    encryption_key_material: keyMaterialArray,
-    config: defaultConfig,
-    quota_state: {
-      date: new Date().toISOString().split('T')[0],
-      count: 0,
-    },
-    m2_session_domains: [],
-  } as unknown as Partial<ChromeStorageSchema>);
+    // Configuration par défaut — tous les modules activés sauf M7 (opt-in explicite)
+    const defaultConfig: ChromeStorageSchema['config'] = {
+      modules: Object.fromEntries(
+        MODULE_IDS.map((id) => [id, id !== 'M7']), // M7 requiert consentement explicite (RGPD)
+      ) as Record<(typeof MODULE_IDS)[number], boolean>,
+      quota_limit: QUOTA_DEFAULT,
+      profile: 'beginner',
+      onboarding_complete: false,
+      language: 'fr',
+    };
 
-  // Initialisation de la base IndexedDB
-  await storageService.initDB();
+    // Persistance dans chrome.storage.local
+    await browser.storage.local.set({
+      installation_salt: installationSalt,
+      encryption_key_material: keyMaterialArray,
+      config: defaultConfig,
+      quota_state: {
+        date: new Date().toISOString().split('T')[0],
+        count: 0,
+      },
+      m2_session_domains: [],
+    } as unknown as Partial<ChromeStorageSchema>);
 
-  // Enregistrement des handlers de modules
-  registerModuleHandlers(cryptoKey);
+    // Initialisation de la base IndexedDB
+    await storageService.initDB();
 
-  // Configuration des alarmes planifiées
-  alarmManager.setupAlarms();
+    // Configuration des alarmes planifiées
+    alarmManager.setupAlarms();
 
-  // Initialisation du canary hash apres generation de la cle (TACHE-061)
-  // Le canary prouve que la cle AES est fonctionnelle au boot suivant (INV-06, CM-C1)
-  await canaryService.init(cryptoKey);
-  // Boot reussi — ready=true, canary_verified=true (INV-01)
-  await heartbeatService.onBootSuccess();
+    // Initialisation des services post-clé (canary + heartbeat + handlers)
+    // initializeServices() fait : incidentService.initService() + canaryService.init()
+    // + heartbeatService.onBootSuccess() + registerModuleHandlers()
+    await initializeServices(cryptoKey);
 
-  // Ouverture de la page d'onboarding dans un nouvel onglet (ADR-008 — via browser adapter)
-  await browser.tabs.create({ url: browser.runtime.getURL('pages/onboarding/onboarding.html') });
+    // Ouverture de la page d'onboarding dans un nouvel onglet (ADR-008 — via browser adapter)
+    await browser.tabs.create({ url: browser.runtime.getURL('pages/onboarding/onboarding.html') });
+  } finally {
+    // Étape 8 — Lever le flag quelle que soit l'issue (succès ou exception)
+    // Garantit que l'IIFE pourra s'exécuter lors d'un éventuel réveil SW ultérieur.
+    await browser.storage.local.remove('installation_in_progress');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +409,8 @@ messageRouter.listen();
 // Boot sequence principale (module-level IIFE)
 //
 // Séquence (mini-DAT TACHE-061 §2.1 / §5.1) :
+//   0. Vérifier `installation_in_progress` (TACHE-079) :
+//      si présent → onFirstInstall() est en cours → skip (return early)
 //   1. HeartbeatService.onBootStart()   — incrémente boot_count, last_boot_ts=now, ready=false
 //   2. storageService.initDB()           — ouvre/migre la base IDB (v2 inclut m7_incidents)
 //   3. incidentService.initService(db)  — flush du buffer pré-init (ARB-061-02)
@@ -374,6 +423,31 @@ messageRouter.listen();
 //   6. registerModuleHandlers(cryptoKey)
 // ---------------------------------------------------------------------------
 void (async () => {
+  // ---------------------------------------------------------------------------
+  // Étape 0 — Garde anti-race premier install (TACHE-079 / R-M7-09)
+  //
+  // Au tout premier install, Chrome exécute l'IIFE module-level ET déclenche
+  // onInstalled(reason='install') en quasi-simultané. Sans cette garde, l'IIFE
+  // verrait la clé AES absente (pas encore écrite par onFirstInstall) et
+  // régénèrerait une deuxième clé — produisant deux incidents fantômes
+  // boot_fail + key_regenerated dans les 5 premières secondes.
+  //
+  // onFirstInstall() pose ce flag en premier, le lève en finally.
+  // L'IIFE skip si le flag est présent : onFirstInstall() appellera
+  // initializeServices() en fin de séquence, garantissant le boot complet.
+  // ---------------------------------------------------------------------------
+  const installCheck = await browser.storage.local.get(['installation_in_progress']);
+  if (installCheck['installation_in_progress']) {
+    console.info(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'SW init: installation_in_progress — IIFE boot skipped (TACHE-079)',
+      }),
+    );
+    return;
+  }
+
   const bootStart = performance.now();
 
   // Étape 1 — Heartbeat : début de boot (état conservatif, ready=false)
