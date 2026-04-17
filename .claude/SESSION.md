@@ -2,36 +2,39 @@
 
 ## Fil rouge (narration courte)
 
-**Où on en est (fin session 2026-04-17).** 🎯 **Tous les UC P0 bloquants v1 sont couverts** + prérequis techniques traités.
+**Où on en est (fin session 2026-04-17 soirée).** 🎯 **Chantier A "Remédiation ADR audit modules" vidé** + **dispositif Sécurité OSS produit** (dormant jusqu'à publication publique du repo) + **référentiel ISO 27001 v1.1** publié + **PDCA capitalisé sur la parallélisation d'agents Fabrique**.
 
-**13 PR mergées vers `develop`** (2026-04-17) :
-- PR #3 rétrospective P4/P4' (figée, 68 commits)
-- PR #4 TACHE-061 heartbeat + canary + registre incidents
-- PR #5 TACHE-058 ADR + audit 7 modules
-- PR #6 process correctif LL-021 + specs UC + hook I-009
-- PR #7 TACHE-069+072 UC-02 isTrusted + UC-05 MutationObserver
-- PR #8 TACHE-071 UC-04 iframes cross-origin (doc)
-- PR #9 TACHE-068 UC-01 login multi-étape
-- PR #10 TACHE-079 fix R-M7-09 race onInstalled vs IIFE
-- PR #11 TACHE-070 UC-03 iframes same-origin + dédup + rate-limit
-- PR #12 TACHE-083 factory logger.ts (R-M7-08 mitigation partielle)
-- PR #13 TACHE-073 UC-06 inputs dynamiques + infra Playwright E2E
+**12 PR supplémentaires mergées vers `develop`** sur cette session soirée (PR #14 → #25), s'ajoutant aux 13 du matin (PR #3 → #13) = **25 PR mergées sur la journée 2026-04-17** :
 
-**État tests** : 294/294 Vitest verts + infra Playwright E2E prête (3 tests auto, 5 fixtures HTML, pas encore en CI).
+*Vague Sécurité OSS + CI (12 PR)* :
+- PR #14 TACHE-106 intégration `test:e2e` en CI + alignement Node 24 LTS (workflow xvfb sur Ubuntu)
+- PR #15 TACHE-099 règle E2E Playwright `isTrusted` (doc recette)
+- PR #16 TACHE-075 référentiel ISO 27001 v1.0 (8 contrôles, 511 lignes)
+- PR #17 TACHE-107+111 SECURITY.md v1.0 + templates issue GitHub (dormant jusqu'à T-112)
+- PR #18 TACHE-110 runbook réponse à incident (542 lignes, classification P0-P3, 10 steps)
+- PR #19 TACHE-085 M2 initBoot + diagnostics + incidents whitelist
+- PR #20 maintenance BACKLOG : statuts + ajout T-112 à T-115
+- PR #21 TACHE-114 référentiel ISO 27001 v1.1 (A.5.24/26 Défini → Géré après runbook)
+- PR #22 TACHE-086+087+088 M3/M5/M6 initBoot + diagnostics (3 tâches combinées en 1 PR)
+- PR #23 PDCA capitalisation — P-021/P-022 + LL-022/023/024 (parallélisation agents Fabrique)
+- PR #24 TACHE-093 purge `pending_*` expirés dans `onPurgeDaily`
+- PR #25 TACHE-089+090+091 M9/M17 diagnostics + pending_m17_toast + M7 `expires_at` (E-CLI-01 supprimée)
 
-**Où on va (reprise prochaine session).** Tâches **post-v1** dans BACKLOG :
-- TACHE-074 DPO AIPD M7 inventaire console + TACHE-075 référentiel ISO 27001
-- TACHE-076 à 093 suivi post-merge TACHE-061/058 (9 tâches)
-- TACHE-094 à 100 suivi post-merge TACHE-069/072 (7 tâches)
-- TACHE-101 code fix F-UC01-01 (inputs racines React non enregistrés)
-- TACHE-102 mini-DAT TACHE-070 v1.0→v1.1 (R-UC03-07)
-- TACHE-103 refactor MessageRouter injection constructeur
-- TACHE-104/105 complétion migration logger (12 sites résiduels SW + 26 sites CS/UI)
-- TACHE-106 intégration `test:e2e` dans CI GitHub Actions
+**État tests** : **408/408 Vitest verts** (294 → 408, +114 tests), 4 E2E Playwright en CI Ubuntu (T-106 effectif).
 
-**Gouvernance stable.** 2 branches actives (`develop`, `main`), CI toujours verte, hook I-009 opérationnel (fires sur git push, 0 misfire post-fix). 10 agents Fabrique mobilisés + 6 Skills.
+**Innovation méthodologique capitalisée** : parallélisation intensive d'agents Fabrique en worktrees isolés (jusqu'à 2 agents simultanés sur zones strictement disjointes). 6 agents Fabrique mobilisés ce soir en background. Leçons LL-022/023/024/025/026 opérationnalisées.
 
-**Règles de flow confirmées.** Niveau Exposé : chaque tâche P5+ → branche courte + PR + `--delete-branch` sur merge. Format/lint/build/test obligatoires. `gh pr checks` systématique après push (I-009 + hook automatique). QC Référent qualité + comité de revue code (Exposé) systématiques.
+**Où on va (reprise prochaine session).** BACKLOG post-chantier A :
+- **Chantier Tests & couverture** : TACHE-017 à 024 + TACHE-048 à 053 + TACHE-059/060/063 + objectif 80% (TACHE-026)
+- **UC post-v1** : TACHE-094 à 100 (suivi UC-02/UC-05), TACHE-101 F-UC01-01
+- **Conformité** : TACHE-009 politique confidentialité DPO, TACHE-040 à 043 DPO whitelist M2, TACHE-084 AIPD inventaire console
+- **Sécurité OSS (activation)** : **TACHE-112 Must** checklist pré-publication repo public (pré-requis à activer `Private vulnerability reporting`)
+- **Sécurité complémentaires** : TACHE-108 SAST CodeQL (Could), TACHE-109 page état santé (Could, dépend T-109), TACHE-113 tabletop juillet 2026, TACHE-115 DPO circuit M7
+- **Divers** : TACHE-104/105 migration logger, TACHE-062 badge dégradé (T-085 produit les diagnostics requis)
+
+**Gouvernance stable.** 2 branches actives (`develop`, `main`), CI toujours verte (hook I-009 opérationnel), 10+ agents Fabrique mobilisés. Niveau Exposé strict maintenu — aucune PR directe sur develop, `--delete-branch` systématique, cleanup worktree systématique post-merge (LL-024).
+
+**Règles de flow confirmées & enrichies.** Niveau Exposé : branche courte + PR + `--delete-branch` + cleanup worktree. Format/lint/build/test obligatoires avant chaque commit. `gh pr checks` systématique après push (I-009 + hook automatique). **Nouvelle règle capitalisée LL-023** : check pro-actif `gh pr list` pendant l'attente d'agents background (notifications runtime parfois retardées). **Nouvelle règle LL-025** : diagnostic factuel (gh pr list + git log feature-branch + worktree list) AVANT toute action corrective. **Nouvelle règle LL-026** : ne jamais tenter de récupérer un travail avant d'avoir vérifié 3× qu'il est réellement perdu.
 
 ## Projet
 - **Nom** : Sentinel Nudge
