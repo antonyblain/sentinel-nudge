@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>UC-06 S-UC06-02 — Modal Vue à la demande</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #app { max-width: 500px; margin: auto; }
+    button { padding: 0.5rem 1.5rem; cursor: pointer; margin-top: 1rem; }
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    .modal-panel {
+      background: #fff; padding: 2rem; border-radius: 8px;
+      width: 340px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    input { display: block; width: 100%; padding: 0.5rem; margin: 0.5rem 0; box-sizing: border-box; }
+    #status { margin-top: 1rem; color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="status">Modal fermée — aucun input password dans le DOM</div>
+
+  <!-- Vue 3 via CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <script>
+    /**
+     * Simulation d'une application Vue 3 avec une modal de connexion.
+     * La modal est affichée à la demande (v-if conditionnel).
+     * L'input password n'est PAS dans le DOM initial — il y est inséré
+     * uniquement quand showModal=true.
+     *
+     * UC-06 — Scénario S-UC06-02
+     * Objectif : vérifier que observeDynamicForms() (MutationObserver) détecte
+     * l'input password inséré lors de l'ouverture de la modal Vue.
+     */
+    const { createApp, ref } = Vue;
+
+    const App = {
+      setup() {
+        const showModal = ref(false);
+
+        function openModal() {
+          showModal.value = true;
+          document.getElementById('status').textContent =
+            'Modal ouverte — input password inséré dans le DOM par Vue';
+        }
+
+        function closeModal() {
+          showModal.value = false;
+          document.getElementById('status').textContent =
+            'Modal fermée — input password supprimé du DOM';
+        }
+
+        function handleSubmit(e) {
+          e.preventDefault();
+          document.getElementById('status').textContent =
+            'Formulaire soumis depuis la modal Vue (observez la Console pour les logs M7)';
+        }
+
+        return { showModal, openModal, closeModal, handleSubmit };
+      },
+      template: `
+        <div>
+          <h2>Application Vue — Test UC-06</h2>
+          <p>Le formulaire de connexion est dans une modal affichée à la demande.</p>
+          <button type="button" @click="openModal">Ouvrir le formulaire de connexion</button>
+
+          <!-- v-if : l'input password N'EXISTE PAS dans le DOM tant que showModal=false -->
+          <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+            <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Connexion">
+              <h3>Connexion</h3>
+              <form @submit="handleSubmit">
+                <label for="modal-email">Email</label>
+                <input
+                  id="modal-email"
+                  type="email"
+                  name="email"
+                  autocomplete="email"
+                  placeholder="votre@email.com"
+                />
+                <label for="modal-password">Mot de passe</label>
+                <input
+                  id="modal-password"
+                  type="password"
+                  name="password"
+                  autocomplete="current-password"
+                  placeholder="Mot de passe"
+                />
+                <button type="submit">Valider</button>
+                <button type="button" @click="closeModal" style="margin-left:0.5rem">Annuler</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    createApp(App).mount('#app');
+  </script>
+</body>
+</html>

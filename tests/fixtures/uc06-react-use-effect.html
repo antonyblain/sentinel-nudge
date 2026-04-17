@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>UC-06 S-UC06-01 — React useEffect delay 100ms</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #app { max-width: 360px; margin: auto; }
+    input { display: block; width: 100%; padding: 0.5rem; margin: 0.5rem 0; }
+    button { padding: 0.5rem 1.5rem; cursor: pointer; }
+    #status { margin-top: 1rem; color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="status">En attente du rendu React...</div>
+
+  <!-- React 18 via CDN (dev build) -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+  <script>
+    /**
+     * Simulation d'un composant React rendant un formulaire de connexion
+     * via useEffect avec un délai de 100ms (simule un lazy load ou un appel API).
+     *
+     * UC-06 — Scénario S-UC06-01
+     * Objectif : vérifier que observeDynamicForms() (MutationObserver) détecte
+     * l'input password inséré 100ms après le premier render.
+     */
+    const { useState, useEffect } = React;
+
+    function LoginForm() {
+      const [ready, setReady] = useState(false);
+
+      useEffect(() => {
+        // Simule un délai de rendu (API call, lazy import, etc.)
+        const timer = setTimeout(() => {
+          setReady(true);
+          document.getElementById('status').textContent =
+            'Formulaire React rendu (via useEffect, délai 100ms)';
+        }, 100);
+        return () => clearTimeout(timer);
+      }, []);
+
+      if (!ready) {
+        return React.createElement('p', null, 'Chargement du formulaire...');
+      }
+
+      return React.createElement(
+        'form',
+        {
+          id: 'login-form',
+          onSubmit: function(e) {
+            e.preventDefault();
+            document.getElementById('status').textContent =
+              'Formulaire soumis (observez la Console pour les logs M7)';
+          }
+        },
+        React.createElement('h2', null, 'Connexion (React useEffect)'),
+        React.createElement('label', { htmlFor: 'username' }, 'Identifiant'),
+        React.createElement('input', {
+          id: 'username',
+          type: 'text',
+          name: 'username',
+          autoComplete: 'username',
+          placeholder: 'Identifiant'
+        }),
+        React.createElement('label', { htmlFor: 'password' }, 'Mot de passe'),
+        React.createElement('input', {
+          id: 'password',
+          type: 'password',
+          name: 'password',
+          autoComplete: 'current-password',
+          placeholder: 'Mot de passe'
+        }),
+        React.createElement(
+          'button',
+          { type: 'submit' },
+          'Se connecter'
+        )
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(React.createElement(LoginForm));
+  </script>
+</body>
+</html>
