@@ -5,6 +5,9 @@
   "type": "module",
   "license": "GPL-3.0",
   "description": "Extension navigateur Chrome MV3 de cyber-hygiène comportementale",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/copy-assets.js",
