@@ -73,6 +73,22 @@ const incidentService = new IncidentService();
 const swLogger = createLogger('ServiceWorker');
 
 // ---------------------------------------------------------------------------
+// Constantes — Purge pending_* (TACHE-093 / ADR-002)
+// ---------------------------------------------------------------------------
+
+/**
+ * TTL legacy pour `pending_m7_toast` (shape `{ timestamp }` sans `expires_at`).
+ *
+ * M7 stocke `{ domain_hash, timestamp }` au lieu de `{ expires_at }` (E-CLI-01 dans ADR-002).
+ * Ce TTL de 10 minutes correspond au seuil appliqué côté consommateur dans password-detector.ts
+ * (ligne : `Date.now() - pending.timestamp < 600_000`). La migration vers `expires_at` est
+ * suivie par TACHE-091.
+ *
+ * Référence : ADR-002 §Exceptions (E-CLI-01), TACHE-091
+ */
+const PENDING_M7_LEGACY_TTL_MS = 10 * 60 * 1_000; // 10 minutes
+
+// ---------------------------------------------------------------------------
 // Dispatcher d'alarmes
 // ---------------------------------------------------------------------------
 
@@ -134,11 +150,19 @@ const alarmDispatcher: AlarmDispatcher = {
 
   /**
    * Purge des données expirées (alarme quotidienne 02h00).
+   *
+   * Deux étapes :
+   * 1. Purge IndexedDB (événements > 90 jours via storageService.purgeExpired)
+   * 2. Purge chrome.storage.local des clés `pending_*` expirées (TACHE-093 / ADR-002)
    */
   async onPurgeDaily(): Promise<void> {
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
     await storageService.initDB();
     await storageService.purgeExpired(ninetyDaysAgo);
+
+    // Purge des intents cross-lifecycle expirés (ADR-002 §Conséquences négatives)
+    // Empêche l'accumulation silencieuse de clés pending_* dans chrome.storage.local (~5 Mo quota).
+    await purgePendingIntents();
   },
 };
 
@@ -179,6 +203,91 @@ async function loadCryptoKey(): Promise<CryptoKey | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Purge les clés `pending_*` expirées de chrome.storage.local (TACHE-093 / ADR-002).
+ *
+ * Algorithme :
+ * 1. Lire toutes les entrées via `chrome.storage.local.get(null)` (snapshot complet)
+ *    Note : BrowserAdapter.storage.local.get() ne supporte que string[] (ADR-008 v1).
+ *    Cet appel direct à chrome.storage.local est justifié car `get(null)` est la seule
+ *    API permettant de lire l'intégralité du storage sans connaitre les clés à l'avance.
+ * 2. Filtrer les clés correspondant au préfixe `pending_`
+ * 3. Pour chaque clé :
+ *    - Shape canonique ADR-002 : `{ expires_at: number }` → supprimer si `expires_at < Date.now()`
+ *    - Shape legacy M7 (E-CLI-01) : `{ timestamp: number }` → supprimer si `timestamp + 10 min < Date.now()`
+ *    - Shape inconnue (ni `expires_at` ni `timestamp`) → conserver (fail-safe, évite la perte de données)
+ * 4. Chaque suppression individuelle est protégée par un try/catch (incident `storage_purge_failed` severity=warn)
+ *    afin de ne jamais interrompre la purge globale si une clé est corrompue.
+ * 5. Log info structuré du nombre de clés scannées et purgées.
+ *
+ * Clés connues au moment de TACHE-093 :
+ * - `pending_m7_toast`           — shape legacy `{ domain_hash, timestamp }` (E-CLI-01 / TACHE-091)
+ * - `pending_m6_quiz`            — shape canonique `{ expires_at }` (ADR-002 R-CLI-03)
+ * - `pending_m5_update_reminder` — shape canonique `{ expires_at }` (ADR-002 R-CLI-03)
+ * - `pending_m17_toast`          — shape canonique `{ expires_at }` (ADR-002 R-CLI-03, livraison en cours)
+ *
+ * @returns Promesse résolue après la purge (jamais rejetée — fail-safe)
+ */
+async function purgePendingIntents(): Promise<void> {
+  const now = Date.now();
+
+  // Lecture de TOUTES les entrées de chrome.storage.local (snapshot complet).
+  // chrome.storage.local.get(null) retourne l'intégralité du storage —
+  // BrowserAdapter.storage.local.get() ne supporte que string[] (ADR-008 v1),
+  // donc on appelle l'API Chrome directement avec un wrapper Promise.
+  const allEntries = await new Promise<Record<string, unknown>>((resolve) => {
+    chrome.storage.local.get(null, resolve);
+  });
+
+  // Filtrer uniquement les clés du préfixe `pending_`
+  const pendingKeys = Object.keys(allEntries).filter((key) => key.startsWith('pending_'));
+
+  let purgedCount = 0;
+
+  for (const key of pendingKeys) {
+    try {
+      const entry = allEntries[key];
+
+      // Valider que l'entrée est un objet non-null (les scalaires sont ignorés — fail-safe)
+      if (typeof entry !== 'object' || entry === null) {
+        continue;
+      }
+
+      const entryObj = entry as Record<string, unknown>;
+      let shouldPurge = false;
+
+      if (typeof entryObj['expires_at'] === 'number') {
+        // Shape canonique ADR-002 R-CLI-03 : expires_at est une date absolue d'expiration
+        shouldPurge = entryObj['expires_at'] < now;
+      } else if (typeof entryObj['timestamp'] === 'number') {
+        // Shape legacy M7 (E-CLI-01 / TACHE-091) : timestamp est la date d'émission,
+        // TTL de 10 minutes aligné sur le seuil côté consommateur (password-detector.ts)
+        shouldPurge = entryObj['timestamp'] + PENDING_M7_LEGACY_TTL_MS < now;
+      }
+      // Sinon : shape inconnue (ni expires_at ni timestamp) → conserver (fail-safe)
+
+      if (shouldPurge) {
+        // BrowserAdapter.remove attend string[] — on passe un tableau singleton
+        await browser.storage.local.remove([key]);
+        purgedCount++;
+      }
+    } catch (err: unknown) {
+      // Incident individuel : ne jamais interrompre la purge globale (TACHE-093)
+      // Severity=warn car la clé sera retentée lors de la prochaine purge quotidienne
+      swLogger.warn('purgePendingIntents: erreur sur clé individuelle', {
+        hint: 'storage_purge_failed',
+        error_name: Logger.errorName(err),
+      });
+    }
+  }
+
+  swLogger.info('purgePendingIntents: purge terminée', {
+    hint: 'storage_hygiene',
+    scanned: pendingKeys.length,
+    purged: purgedCount,
+  });
 }
 
 /**
