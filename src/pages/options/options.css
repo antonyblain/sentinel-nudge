@@ -428,31 +428,37 @@ body {
 }
 
 /* Dark/matrix : danger text (#ef4444) sur fond translucide = 4.08:1 FAIL WCAG AA
-   Fix : fond danger solide + texte blanc (#fff sur #ef4444 = 4.52:1) */
+   Fix : fond danger solide + texte blanc (#fff sur #991b1b = 9.24:1 dark, #9b1239 = 8.8:1 matrix) */
 @media (prefers-color-scheme: dark) {
   .btn-danger {
-    background-color: var(--sn-color-danger);
+    background-color: #991b1b;
     color: #ffffff;
-    border-color: var(--sn-color-danger);
+    border-color: #991b1b;
   }
 
   .btn-danger:hover {
-    background-color: var(--sn-color-danger);
-    opacity: 0.9;
+    background-color: #7f1d1d;
   }
 }
 
-[data-theme='dark'] .btn-danger,
-[data-theme='matrix'] .btn-danger {
-  background-color: var(--sn-color-danger);
+[data-theme='dark'] .btn-danger {
+  background-color: #991b1b;
   color: #ffffff;
-  border-color: var(--sn-color-danger);
+  border-color: #991b1b;
 }
 
-[data-theme='dark'] .btn-danger:hover,
+[data-theme='dark'] .btn-danger:hover {
+  background-color: #7f1d1d;
+}
+
+[data-theme='matrix'] .btn-danger {
+  background-color: #9b1239;
+  color: #ffffff;
+  border-color: #9b1239;
+}
+
 [data-theme='matrix'] .btn-danger:hover {
-  background-color: var(--sn-color-danger);
-  opacity: 0.9;
+  background-color: #881337;
 }
 
 /* Statut operations donnees */
