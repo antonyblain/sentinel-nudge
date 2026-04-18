@@ -1,5 +1,5 @@
 /**
- * options.css â€” Styles de la page Options Sentinel Nudge
+ * options.css — Styles de la page Options Sentinel Nudge
  * Tokens centralises dans tokens.css (importe via HTML)
  * T-143 : refonte sur tokens v2 (3 themes : Aegis Light / Midnight Obsidian / Cyberpunk Neon)
  */
@@ -62,7 +62,7 @@ body {
   margin-bottom: var(--sn-space-xl);
 }
 
-/* Feedback sauvegarde â€” toast fixe en bas de page */
+/* Feedback sauvegarde — toast fixe en bas de page */
 .save-feedback {
   display: none;
 }
@@ -169,7 +169,7 @@ body {
 }
 
 .toggle-switch::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 2px;
   left: 2px;
@@ -181,11 +181,11 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-[data-theme="dark"] .toggle-switch::after {
+[data-theme='dark'] .toggle-switch::after {
   background-color: var(--sn-color-fg);
 }
 
-[data-theme="matrix"] .toggle-switch::after {
+[data-theme='matrix'] .toggle-switch::after {
   background-color: var(--sn-color-primary);
 }
 
@@ -197,7 +197,7 @@ body {
   transform: translateX(20px);
 }
 
-[data-theme="matrix"] .toggle-input:checked + .toggle-switch {
+[data-theme='matrix'] .toggle-input:checked + .toggle-switch {
   box-shadow: 0 0 8px rgba(255, 45, 120, 0.4);
 }
 
@@ -240,7 +240,7 @@ body {
 }
 
 .theme-btn.selected,
-.theme-btn[aria-pressed="true"] {
+.theme-btn[aria-pressed='true'] {
   border-color: var(--sn-color-accent);
   background-color: var(--sn-color-accent-light);
 }
@@ -427,8 +427,7 @@ body {
   outline-offset: 2px;
 }
 
-/* Dark/matrix : danger-bg translucide → contraste insuffisant WCAG AA
-   Fix : fond danger sombre fixe + blanc
+/* Dark/matrix : danger-bg translucide -> contraste insuffisant WCAG AA
    #fff sur #991b1b = 6.5:1 PASS  |  #fff sur #9b1239 = 5.2:1 PASS */
 @media (prefers-color-scheme: dark) {
   .btn-danger {
@@ -442,23 +441,23 @@ body {
   }
 }
 
-[data-theme="dark"] .btn-danger {
+[data-theme='dark'] .btn-danger {
   background-color: #991b1b;
   color: #ffffff;
   border-color: #991b1b;
 }
 
-[data-theme="dark"] .btn-danger:hover {
+[data-theme='dark'] .btn-danger:hover {
   background-color: #7f1d1d;
 }
 
-[data-theme="matrix"] .btn-danger {
+[data-theme='matrix'] .btn-danger {
   background-color: #9b1239;
   color: #ffffff;
   border-color: #9b1239;
 }
 
-[data-theme="matrix"] .btn-danger:hover {
+[data-theme='matrix'] .btn-danger:hover {
   background-color: #881337;
 }
 
