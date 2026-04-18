@@ -378,7 +378,7 @@ body {
 
 .btn-primary {
   background-color: var(--sn-color-accent);
-  color: #fff;
+  color: var(--sn-color-btn-fg, #fff); /* TACHE-150 WCAG AA matrix */
   margin-left: auto;
 }
 
