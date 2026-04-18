@@ -59,13 +59,13 @@ const ICON_WARNING = 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z';
  * Le dernier chip est un placeholder pour les modules futurs.
  */
 const MODULE_CHIPS: Array<{ id: string; labelKey: string; fallback: string }> = [
-  { id: 'M2', labelKey: 'module_m2_name', fallback: 'M2 Phishing' },
-  { id: 'M3', labelKey: 'module_m3_name', fallback: 'M3 Score' },
-  { id: 'M5', labelKey: 'module_m5_name', fallback: 'M5 MAJ' },
-  { id: 'M6', labelKey: 'module_m6_name', fallback: 'M6 Quiz' },
-  { id: 'M7', labelKey: 'module_m7_name', fallback: 'M7 MDP' },
-  { id: 'M9', labelKey: 'module_m9_name', fallback: 'M9 2FA' },
-  { id: 'M17', labelKey: 'module_m17_name', fallback: 'M17 Session' },
+  { id: 'M2', labelKey: 'module_m2_name', fallback: 'Sites douteux' },
+  { id: 'M3', labelKey: 'module_m3_name', fallback: 'Score' },
+  { id: 'M5', labelKey: 'module_m5_name', fallback: 'Mise à jour' },
+  { id: 'M6', labelKey: 'module_m6_name', fallback: 'Quiz' },
+  { id: 'M7', labelKey: 'module_m7_name', fallback: 'MDP réutilisés' },
+  { id: 'M9', labelKey: 'module_m9_name', fallback: 'Force MDP' },
+  { id: 'M17', labelKey: 'module_m17_name', fallback: 'Presse-papiers' },
   { id: '', labelKey: '', fallback: '' }, // placeholder futur
 ];
 
@@ -248,23 +248,8 @@ function createInlineIcon(pathData: string, size: number = 16): SVGElement {
   return svg;
 }
 
-/**
- * Calcule la date du prochain lundi à partir d'aujourd'hui.
- *
- * @returns Date du prochain lundi au format lisible (ex: "lundi 14 avril")
- */
-function getNextMonday(): string {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const daysUntilMonday = dayOfWeek === 1 ? 7 : (8 - dayOfWeek) % 7;
-  const nextMonday = new Date(today);
-  nextMonday.setDate(today.getDate() + daysUntilMonday);
-  return nextMonday.toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
-}
+// getNextMonday() supprimée (feedback Commanditaire 2026-04-19 : doublon "lundi lundi")
+// Le trend fresh install utilise uniquement l'i18n popup_score_pending_trend sans date.
 
 /**
  * Détermine la couleur CSS selon le score M3.
@@ -348,8 +333,7 @@ export function renderScoreSection(
     : browser.i18n.getMessage('popup_score_pending_label') || 'En cours';
   const displayTrend = hasScore
     ? buildTrendLabel(previousScore, score)
-    : browser.i18n.getMessage('popup_score_pending_trend') ||
-      `Premier score lundi ${getNextMonday()}`;
+    : browser.i18n.getMessage('popup_score_pending_trend') || 'Premier score lundi';
   const progressRatio = hasScore ? score / 100 : 0;
   const ariaScore = hasScore
     ? `Score ${score}/100 \u2014 ${displayLabel}`

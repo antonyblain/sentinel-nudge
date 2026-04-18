@@ -43,6 +43,33 @@ body {
   border-radius: var(--sn-radius-lg);
   overflow: hidden;
   box-shadow: var(--sn-shadow-lg);
+  position: relative; /* requis pour ::before/::after dégradés thème Matrix */
+}
+
+/* Thème Matrix (Cyberpunk Neon) — dégradé magenta→cyan en haut + bas + glow externe */
+[data-theme='matrix'] #popup-root {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.8),
+    0 0 12px rgba(0, 212, 255, 0.6),
+    0 0 24px rgba(0, 212, 255, 0.3);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+}
+[data-theme='matrix'] #popup-root::before,
+[data-theme='matrix'] #popup-root::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff2d78, #00d4ff);
+  z-index: 10;
+  pointer-events: none;
+}
+[data-theme='matrix'] #popup-root::before {
+  top: 0;
+}
+[data-theme='matrix'] #popup-root::after {
+  bottom: 0;
 }
 
 /* ─── Skip link (WCAG 2.4.1 A — T-132) ─────────────────────────────────── */
