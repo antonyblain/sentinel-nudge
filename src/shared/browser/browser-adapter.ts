@@ -90,6 +90,12 @@ export interface BrowserAdapter {
      * @returns Objet manifest (version, name, permissions, etc.)
      */
     getManifest(): object;
+    /**
+     * Recharge l'extension (Service Worker + toutes les pages).
+     * Utilise par le badge mode degrade (TACHE-062) pour permettre
+     * a l'utilisateur de relancer manuellement les modules en echec.
+     */
+    reload(): void;
   };
 
   tabs: {
@@ -215,6 +221,7 @@ export const browser: BrowserAdapter = {
     },
     getURL: (path: string): string => chrome.runtime.getURL(path),
     getManifest: (): object => chrome.runtime.getManifest(),
+    reload: (): void => chrome.runtime.reload(),
   },
 
   // Note : chrome.tabs, chrome.scripting et chrome.alarms ne sont PAS disponibles
