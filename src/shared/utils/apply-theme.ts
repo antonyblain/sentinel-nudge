@@ -1,3 +1,8 @@
+// HOTFIX tokens-not-bundled : import tokens.css v2 pour que Vite le bundle
+// dans apply-theme.css. Les 4 pages (popup/options/dashboard/onboarding)
+// chargent apply-theme.css AVANT leur CSS spécifique → tokens disponibles.
+import '@/assets/styles/tokens.css';
+
 /**
  * @file shared/utils/apply-theme.ts
  * @description Utilitaire d'application du thème de l'interface (TACHE-148).
