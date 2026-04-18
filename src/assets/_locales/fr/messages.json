@@ -99,8 +99,14 @@
     "message": "Question $1 sur $2",
     "description": "Progression du quiz M6",
     "placeholders": {
-      "1": { "content": "$1", "example": "2" },
-      "2": { "content": "$2", "example": "3" }
+      "1": {
+        "content": "$1",
+        "example": "2"
+      },
+      "2": {
+        "content": "$2",
+        "example": "3"
+      }
     }
   },
   "m6_overlay_btn_close": {
@@ -147,9 +153,18 @@
     "message": "$1 / $2 bonnes réponses ($3 %)",
     "description": "Score final M6",
     "placeholders": {
-      "1": { "content": "$1", "example": "2" },
-      "2": { "content": "$2", "example": "3" },
-      "3": { "content": "$3", "example": "67" }
+      "1": {
+        "content": "$1",
+        "example": "2"
+      },
+      "2": {
+        "content": "$2",
+        "example": "3"
+      },
+      "3": {
+        "content": "$3",
+        "example": "67"
+      }
     }
   },
   "m6_overlay_score_excellent": {
@@ -288,7 +303,10 @@
     "message": "Un $1 vient d'être collé dans un champ. Assurez-vous que ce site est bien celui attendu et que votre presse-papiers ne reste pas accessible.",
     "description": "Corps du toast M17 avec type de donnée",
     "placeholders": {
-      "1": { "content": "$1", "example": "numéro de carte bancaire" }
+      "1": {
+        "content": "$1",
+        "example": "numéro de carte bancaire"
+      }
     }
   },
   "m17_toast_btn_close_label": {
@@ -343,14 +361,20 @@
     "message": "Votre premier score sera calculé le $1",
     "description": "Message avec date du premier lundi",
     "placeholders": {
-      "1": { "content": "$1", "example": "lundi 14 avril" }
+      "1": {
+        "content": "$1",
+        "example": "lundi 14 avril"
+      }
     }
   },
   "popup_modules_active": {
     "message": "$1 modules actifs sur 7",
     "description": "Nombre de modules actifs",
     "placeholders": {
-      "1": { "content": "$1", "example": "5" }
+      "1": {
+        "content": "$1",
+        "example": "5"
+      }
     }
   },
   "popup_quota_label": {
@@ -361,7 +385,10 @@
     "message": "$1 nudges restants aujourd'hui",
     "description": "Nudges restants aujourd'hui",
     "placeholders": {
-      "1": { "content": "$1", "example": "3" }
+      "1": {
+        "content": "$1",
+        "example": "3"
+      }
     }
   },
   "popup_quota_unlimited": {
@@ -520,14 +547,20 @@
     "message": "En savoir plus sur $1",
     "description": "Lien d'explication d'un module",
     "placeholders": {
-      "1": { "content": "$1", "example": "M2" }
+      "1": {
+        "content": "$1",
+        "example": "M2"
+      }
     }
   },
   "options_about_version": {
     "message": "Version : $1",
     "description": "Version de l'extension",
     "placeholders": {
-      "1": { "content": "$1", "example": "1.0.0" }
+      "1": {
+        "content": "$1",
+        "example": "1.0.0"
+      }
     }
   },
   "options_about_license": {
@@ -562,8 +595,14 @@
     "message": "Étape $1 sur $2",
     "description": "Indicateur de progression",
     "placeholders": {
-      "1": { "content": "$1", "example": "2" },
-      "2": { "content": "$2", "example": "4" }
+      "1": {
+        "content": "$1",
+        "example": "2"
+      },
+      "2": {
+        "content": "$2",
+        "example": "4"
+      }
     }
   },
   "onboarding_btn_next": {
@@ -706,14 +745,20 @@
     "message": "↑ $1 points cette semaine",
     "description": "Delta score positif",
     "placeholders": {
-      "1": { "content": "$1", "example": "5" }
+      "1": {
+        "content": "$1",
+        "example": "5"
+      }
     }
   },
   "dashboard_score_delta_down": {
     "message": "↓ $1 points cette semaine",
     "description": "Delta score négatif",
     "placeholders": {
-      "1": { "content": "$1", "example": "3" }
+      "1": {
+        "content": "$1",
+        "example": "3"
+      }
     }
   },
   "dashboard_score_delta_equal": {
@@ -780,14 +825,20 @@
     "message": "Nudges affichés cette semaine : $1",
     "description": "Nombre de nudges cette semaine",
     "placeholders": {
-      "1": { "content": "$1", "example": "7" }
+      "1": {
+        "content": "$1",
+        "example": "7"
+      }
     }
   },
   "dashboard_nudges_response_rate": {
     "message": "Taux de réponse : $1 %",
     "description": "Taux de réponse aux nudges",
     "placeholders": {
-      "1": { "content": "$1", "example": "85" }
+      "1": {
+        "content": "$1",
+        "example": "85"
+      }
     }
   },
   "dashboard_quiz_title": {
@@ -798,14 +849,20 @@
     "message": "Dernier score : $1 %",
     "description": "Dernier score quiz",
     "placeholders": {
-      "1": { "content": "$1", "example": "67" }
+      "1": {
+        "content": "$1",
+        "example": "67"
+      }
     }
   },
   "dashboard_quiz_next_date": {
     "message": "Prochain quiz : $1",
     "description": "Date prochain quiz",
     "placeholders": {
-      "1": { "content": "$1", "example": "21 avril 2026" }
+      "1": {
+        "content": "$1",
+        "example": "21 avril 2026"
+      }
     }
   },
   "dashboard_quiz_no_session": {
@@ -831,5 +888,29 @@
   "score_level_low": {
     "message": "Faible",
     "description": "Niveau score faible"
+  },
+  "options_section_appearance": {
+    "message": "Apparence",
+    "description": "Titre de la section de sélection du thème"
+  },
+  "options_theme_label": {
+    "message": "Thème de l'interface",
+    "description": "Aria-label du radiogroup de sélection de thème"
+  },
+  "options_theme_auto": {
+    "message": "Auto (OS)",
+    "description": "Option thème automatique (suit le système d'exploitation)"
+  },
+  "options_theme_light": {
+    "message": "Clair",
+    "description": "Option thème clair (Aegis Light)"
+  },
+  "options_theme_dark": {
+    "message": "Sombre",
+    "description": "Option thème sombre (Midnight Obsidian)"
+  },
+  "options_theme_matrix": {
+    "message": "Matrix",
+    "description": "Option thème Matrix (Cyberpunk Neon)"
   }
 }
