@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel Nudge — Variante 4 : Gradient Mesh Warm</title>
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       DESIGN TOKENS — Gradient Mesh Warm
+       Concept : fond mesh gradient chaud (coral/violet/pêche),
+       cartes blanches flottantes, neumorphisme léger, typographie
+       douce et arrondie, couleurs pastels saturés.
+       Référence : Luma.ai, Arc Browser, Framer 2025 templates
+       ══════════════════════════════════════════════════════════ */
+    :root {
+      /* Warm mesh palette */
+      --gm-coral:     #e8573a; /* coral chaud */
+      --gm-coral-l:   #f4a68e; /* coral clair */
+      --gm-coral-bg:  #fdf2ef;
+      --gm-violet:    #7c3aed; /* violet saturé — 7.3:1 sur blanc */
+      --gm-violet-l:  #a78bfa;
+      --gm-violet-bg: #f5f3ff;
+      --gm-peach:     #fb923c; /* pêche vif */
+      --gm-peach-bg:  #fff7ed;
+      --gm-rose:      #e11d48; /* rose profond — 7.5:1 sur blanc */
+      --gm-rose-bg:   #fff1f2;
+      --gm-amber:     #d97706; /* ambre foncé — 4.6:1 sur blanc */
+      --gm-amber-bg:  #fffbeb;
+
+      /* Neutres chauds */
+      --gm-bg:        #fffaf7;  /* fond principal crème */
+      --gm-surface:   #ffffff;
+      --gm-surface-2: #fdf8f5;
+      --gm-border:    #f0e8e0;  /* bordure chaude douce */
+      --gm-border-m:  #e0d0c4;  /* bordure medium */
+
+      --gm-fg:        #1c0f06;  /* quasi-noir chaud — 18.2:1 sur blanc */
+      --gm-fg-2:      #2d1a10;  /* brun foncé — 14.8:1 */
+      --gm-muted:     #6b4c3b;  /* brun moyen — 5.5:1 sur blanc */
+      --gm-subtle:    #9a7060;  /* brun clair — 4.6:1 sur blanc */
+
+      --gm-success:   #047857; /* vert forêt — 8.2:1 sur blanc */
+      --gm-success-bg: #ecfdf5;
+      --gm-success-mid: #6ee7b7;
+      --gm-info:      #1d4ed8; /* bleu conservé — 7.2:1 */
+      --gm-info-bg:   #eff6ff;
+      --gm-info-mid:  #bfdbfe;
+
+      /* Typographie */
+      --gm-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --gm-font-mono: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+
+      /* Espacement 4px */
+      --gm-xs:  4px;
+      --gm-sm:  8px;
+      --gm-md:  16px;
+      --gm-lg:  24px;
+      --gm-xl:  32px;
+      --gm-2xl: 48px;
+
+      /* Rayons — très généreux (feel doux) */
+      --gm-r-sm: 8px;
+      --gm-r:    12px;
+      --gm-r-md: 16px;
+      --gm-r-lg: 20px;
+      --gm-r-xl: 28px;
+      --gm-r-pill: 9999px;
+
+      /* Ombres douces (neumorphisme léger) */
+      --gm-shadow-inset: inset 2px 2px 4px rgba(255,255,255,0.8), inset -2px -2px 4px rgba(0,0,0,0.05);
+      --gm-shadow-sm: 0 2px 8px rgba(124,58,237,0.08), 0 1px 3px rgba(0,0,0,0.06);
+      --gm-shadow:    0 4px 16px rgba(124,58,237,0.1),  0 2px 6px rgba(0,0,0,0.06);
+      --gm-shadow-md: 0 8px 32px rgba(124,58,237,0.12), 0 4px 12px rgba(0,0,0,0.08);
+      --gm-shadow-lg: 0 16px 48px rgba(124,58,237,0.15), 0 8px 24px rgba(0,0,0,0.08);
+
+      /* Gradients mesh */
+      --gm-grad-hero: linear-gradient(135deg, #ffecd2 0%, #fcb69f 30%, #ffeaa7 60%, #e8d5f5 100%);
+      --gm-grad-card: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,248,244,0.95));
+      --gm-grad-btn:  linear-gradient(135deg, var(--gm-coral), var(--gm-violet));
+      --gm-grad-score: linear-gradient(135deg, var(--gm-coral), var(--gm-peach), var(--gm-violet));
+      --gm-grad-subtle: linear-gradient(135deg, var(--gm-coral-bg), var(--gm-violet-bg));
+
+      --gm-transition: 200ms ease-out;
+    }
+
+    /* Dark mode — fond mesh sombre violet/coral */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --gm-bg:        #120a1e;
+        --gm-surface:   #1e1128;
+        --gm-surface-2: #251635;
+        --gm-border:    #3a2250;
+        --gm-border-m:  #4a2d65;
+
+        --gm-fg:        #f5eeff; /* 16.2:1 sur surface */
+        --gm-fg-2:      #e8d5ff;
+        --gm-muted:     #c4a8e8; /* 6.1:1 sur surface */
+        --gm-subtle:    #9070b8; /* 4.5:1 sur surface */
+
+        --gm-coral:     #f4836e; /* coral adapté — 6.8:1 sur surface */
+        --gm-coral-l:   #f8b8ab;
+        --gm-coral-bg:  #2a1215;
+        --gm-violet:    #c084fc; /* violet clair — 7.5:1 sur surface */
+        --gm-violet-l:  #e4c6ff;
+        --gm-violet-bg: #1e1135;
+        --gm-peach:     #fdba74; /* pêche clair — 9.8:1 sur surface */
+        --gm-peach-bg:  #1c1005;
+        --gm-rose:      #fb7185; /* rose clair — 5.6:1 sur surface */
+        --gm-rose-bg:   #200810;
+        --gm-amber:     #fbbf24; /* ambre — 10.1:1 sur surface */
+        --gm-amber-bg:  #1a0e00;
+
+        --gm-success:   #34d399; /* 9.2:1 sur surface */
+        --gm-success-bg: #072218;
+        --gm-success-mid: #0a3a28;
+        --gm-info:      #93c5fd; /* 9.4:1 sur surface */
+        --gm-info-bg:   #0c1e36;
+        --gm-info-mid:  #1e3a5f;
+
+        --gm-grad-hero: linear-gradient(135deg, #2d1b3e 0%, #4a1535 30%, #2a1a40 60%, #1e2a4a 100%);
+        --gm-grad-card: linear-gradient(135deg, rgba(30,17,40,0.98), rgba(37,22,53,0.95));
+        --gm-grad-btn:  linear-gradient(135deg, var(--gm-coral), var(--gm-violet));
+        --gm-grad-score: linear-gradient(135deg, var(--gm-coral), var(--gm-peach), var(--gm-violet));
+        --gm-grad-subtle: linear-gradient(135deg, var(--gm-coral-bg), var(--gm-violet-bg));
+
+        --gm-shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+        --gm-shadow:    0 4px 16px rgba(0,0,0,0.45);
+        --gm-shadow-md: 0 8px 32px rgba(0,0,0,0.5);
+        --gm-shadow-lg: 0 16px 48px rgba(0,0,0,0.55);
+      }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       RESET + BASE
+       ══════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--gm-font);
+      background: var(--gm-bg);
+      color: var(--gm-fg);
+      font-size: 15px;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: var(--gm-xl);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--gm-violet);
+      outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       COMPOSANTS
+       ══════════════════════════════════════════════════════════ */
+    /* Carte principale */
+    .card {
+      background: var(--gm-surface);
+      border: 1px solid var(--gm-border);
+      border-radius: var(--gm-r-lg);
+      padding: var(--gm-lg);
+      box-shadow: var(--gm-shadow);
+    }
+
+    .card--sm { padding: var(--gm-md); border-radius: var(--gm-r-md); }
+    .card--gradient {
+      background: var(--gm-grad-card);
+    }
+
+    /* Badge pill */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--gm-xs);
+      padding: 3px 12px;
+      border-radius: var(--gm-r-pill);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pill--coral  { background: var(--gm-coral-bg); color: var(--gm-coral); border: 1px solid var(--gm-coral-l); }
+    .pill--violet { background: var(--gm-violet-bg); color: var(--gm-violet); border: 1px solid var(--gm-violet-l); }
+    .pill--amber  { background: var(--gm-amber-bg); color: var(--gm-amber); border: 1px solid #fcd34d; }
+    .pill--success { background: var(--gm-success-bg); color: var(--gm-success); border: 1px solid var(--gm-success-mid); }
+    .pill--info   { background: var(--gm-info-bg); color: var(--gm-info); border: 1px solid var(--gm-info-mid); }
+    .pill--neutral { background: var(--gm-surface-2); color: var(--gm-muted); border: 1px solid var(--gm-border); }
+
+    /* Boutons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--gm-sm);
+      padding: 10px var(--gm-lg);
+      font-family: var(--gm-font);
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: var(--gm-r);
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      min-height: 44px;
+      transition: all var(--gm-transition);
+    }
+
+    .btn--gradient {
+      background: var(--gm-grad-btn);
+      color: white;
+      box-shadow: 0 4px 12px rgba(232,87,58,0.3);
+    }
+    .btn--gradient:hover, .btn--gradient:focus-visible {
+      opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(232,87,58,0.4);
+      outline: none;
+    }
+
+    .btn--ghost {
+      background: var(--gm-surface);
+      color: var(--gm-muted);
+      border-color: var(--gm-border-m);
+    }
+    .btn--ghost:hover, .btn--ghost:focus-visible {
+      background: var(--gm-surface-2);
+      border-color: var(--gm-violet);
+      color: var(--gm-fg-2);
+    }
+
+    .btn--danger {
+      background: none;
+      color: var(--gm-rose);
+      border-color: transparent;
+    }
+    .btn--danger:hover, .btn--danger:focus-visible {
+      background: var(--gm-rose-bg);
+      border-color: var(--gm-rose);
+    }
+
+    .btn--sm { padding: 7px var(--gm-md); font-size: 13px; min-height: 44px; }
+    .btn--lg { padding: 14px var(--gm-xl); font-size: 15px; min-height: 52px; width: 100%; border-radius: var(--gm-r-md); }
+
+    /* Nav démo */
+    .demo-nav {
+      display: flex;
+      align-items: center;
+      gap: var(--gm-xs);
+      flex-wrap: wrap;
+      margin-bottom: var(--gm-xl);
+      padding: var(--gm-sm) var(--gm-md);
+      background: var(--gm-surface);
+      border: 1px solid var(--gm-border);
+      border-radius: var(--gm-r-lg);
+      box-shadow: var(--gm-shadow-sm);
+    }
+
+    .demo-nav a {
+      color: var(--gm-muted);
+      text-decoration: none;
+      padding: var(--gm-xs) var(--gm-md);
+      border-radius: var(--gm-r-sm);
+      font-size: 13px;
+      font-weight: 500;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      transition: all var(--gm-transition);
+    }
+
+    .demo-nav a:hover, .demo-nav a:focus-visible {
+      background: var(--gm-grad-subtle);
+      color: var(--gm-fg);
+      outline: 2px solid var(--gm-violet);
+      outline-offset: 2px;
+    }
+
+    .demo-brand-gm {
+      display: flex;
+      align-items: center;
+      gap: var(--gm-sm);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+      margin-right: var(--gm-sm);
+      background: var(--gm-grad-btn);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .demo-brand-icon-gm {
+      width: 30px;
+      height: 30px;
+      background: var(--gm-grad-btn);
+      border-radius: var(--gm-r-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-text-fill-color: initial;
+    }
+
+    /* Section label */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gm-subtle);
+      margin-bottom: var(--gm-md);
+      display: flex;
+      align-items: center;
+      gap: var(--gm-md);
+    }
+    .section-label::after { content:''; flex:1; height:1px; background:var(--gm-border); }
+
+    .demo-section { margin-bottom: var(--gm-2xl); }
+
+    /* Toggle warm */
+    .toggle-gm {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+    .toggle-gm input { opacity:0; width:0; height:0; position:absolute; }
+
+    .toggle-track-gm {
+      position: absolute;
+      inset: 0;
+      background: var(--gm-surface-2);
+      border: 1.5px solid var(--gm-border-m);
+      border-radius: var(--gm-r-pill);
+      cursor: pointer;
+      transition: all 200ms ease-out;
+    }
+
+    .toggle-track-gm::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--gm-subtle);
+      transition: all 200ms ease-out;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    .toggle-gm input:checked + .toggle-track-gm {
+      background: var(--gm-grad-btn);
+      border-color: transparent;
+    }
+    .toggle-gm input:checked + .toggle-track-gm::after {
+      transform: translateX(22px);
+      background: white;
+      box-shadow: 0 2px 6px rgba(124,58,237,0.3);
+    }
+    .toggle-gm input:focus-visible + .toggle-track-gm {
+      outline: 2px solid var(--gm-violet);
+      outline-offset: 2px;
+    }
+
+    /* Utilitaires */
+    .flex { display: flex; align-items: center; gap: var(--gm-sm); }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gm-md); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gm-md); }
+    .mb-sm { margin-bottom: var(--gm-sm); }
+    .mb-md { margin-bottom: var(--gm-md); }
+    .mb-lg { margin-bottom: var(--gm-lg); }
+    .text-muted { color: var(--gm-muted); font-size: 13px; }
+    .text-subtle { color: var(--gm-subtle); font-size: 12px; }
+
+    /* Dot status */
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot--ok    { background: var(--gm-success); }
+    .dot--warn  { background: var(--gm-amber); }
+    .dot--off   { background: var(--gm-subtle); }
+  </style>
+</head>
+<body>
+
+  <!-- Nav démo -->
+  <nav class="demo-nav" aria-label="Navigation de démonstration">
+    <a href="#popup-gm" class="demo-brand-gm">
+      <div class="demo-brand-icon-gm" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z"/>
+        </svg>
+      </div>
+      Sentinel Nudge
+    </a>
+    <a href="#popup-gm">Popup</a>
+    <a href="#dashboard-gm">Dashboard</a>
+    <a href="#options-gm">Options</a>
+    <a href="#toasts-gm">Toasts</a>
+    <a href="#onboarding-gm">Onboarding</a>
+    <span style="margin-left:auto;font-size:11px;color:var(--gm-subtle);">Variante 4 — Gradient Mesh Warm</span>
+  </nav>
+
+  <!-- ═══════════════ POPUP ═══════════════ -->
+  <section id="popup-gm" class="demo-section" aria-labelledby="lbl-p-gm">
+    <div class="section-label" id="lbl-p-gm">1. Popup étendue — 380px</div>
+
+    <div style="width:380px;margin:0 auto;" role="main" aria-label="Popup Sentinel Nudge">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <!-- Mesh header -->
+        <div style="background:var(--gm-grad-hero);padding:var(--gm-lg);">
+          <div class="flex-between mb-md">
+            <div class="flex">
+              <div style="width:28px;height:28px;background:rgba(255,255,255,0.9);border-radius:var(--gm-r-sm);display:flex;align-items:center;justify-content:center;" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z" fill="#7c3aed"/>
+                </svg>
+              </div>
+              <span style="font-size:14px;font-weight:700;color:var(--gm-fg-2);letter-spacing:-0.01em;">Sentinel Nudge</span>
+            </div>
+            <span class="pill pill--success">Actif</span>
+          </div>
+
+          <!-- Score dans le mesh -->
+          <div style="background:rgba(255,255,255,0.75);border-radius:var(--gm-r-md);padding:var(--gm-md);backdrop-filter:blur(8px);">
+            <div style="display:grid;grid-template-columns:80px 1fr;gap:var(--gm-md);align-items:center;">
+              <div style="text-align:center;" role="img" aria-label="Score 73 sur 100">
+                <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+                  <circle cx="36" cy="36" r="28" stroke="rgba(124,58,237,0.15)" stroke-width="7" fill="none"/>
+                  <circle cx="36" cy="36" r="28" stroke="url(#grad-score)" stroke-width="7" fill="none"
+                    stroke-dasharray="175.9" stroke-dashoffset="47.5" stroke-linecap="round"
+                    transform="rotate(-90 36 36)"/>
+                  <defs>
+                    <linearGradient id="grad-score" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#e8573a"/>
+                      <stop offset="100%" stop-color="#7c3aed"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div style="position:relative;margin-top:-52px;font-size:22px;font-weight:800;letter-spacing:-0.04em;color:var(--gm-fg-2);">73</div>
+                <div style="font-size:11px;color:var(--gm-muted);font-weight:500;margin-top:28px;">/100</div>
+              </div>
+              <div>
+                <div style="font-size:16px;font-weight:700;color:var(--gm-fg-2);margin-bottom:4px;">Bonne hygiène</div>
+                <div class="pill pill--success mb-sm" style="display:inline-flex;" aria-label="+5 points cette semaine">+5 pts / semaine</div>
+                <div style="font-size:12px;color:var(--gm-muted);">4/7 modules actifs · 1/3 quota</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:var(--gm-md);">
+          <!-- Quota -->
+          <div class="card card--sm" style="margin-bottom:var(--gm-sm);">
+            <div class="flex-between mb-sm">
+              <span style="font-size:12px;color:var(--gm-muted);font-weight:500;">Quota quotidien</span>
+              <span style="font-size:12px;font-weight:700;color:var(--gm-fg-2);">1 / 3</span>
+            </div>
+            <div style="height:6px;background:var(--gm-surface-2);border-radius:var(--gm-r-pill);overflow:hidden;border:1px solid var(--gm-border);"
+              role="progressbar" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100" aria-label="1 nudge sur 3 utilisés">
+              <div style="width:33%;height:100%;background:var(--gm-grad-btn);border-radius:var(--gm-r-pill);"></div>
+            </div>
+          </div>
+
+          <!-- Modules -->
+          <div style="font-size:12px;font-weight:600;color:var(--gm-subtle);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--gm-sm);">Modules</div>
+          <div class="grid-2 mb-sm" role="list" aria-label="État des modules">
+            <div role="listitem" style="display:flex;align-items:center;gap:6px;padding:6px var(--gm-sm);background:var(--gm-surface-2);border:1px solid var(--gm-border);border-radius:var(--gm-r-sm);font-size:13px;color:var(--gm-fg-2);">
+              <span class="dot dot--ok" aria-hidden="true"></span> M2 Sites suspects
+            </div>
+            <div role="listitem" style="display:flex;align-items:center;gap:6px;padding:6px var(--gm-sm);background:var(--gm-surface-2);border:1px solid var(--gm-border);border-radius:var(--gm-r-sm);font-size:13px;color:var(--gm-fg-2);">
+              <span class="dot dot--ok" aria-hidden="true"></span> M3 Navigateur
+            </div>
+            <div role="listitem" style="display:flex;align-items:center;gap:6px;padding:6px var(--gm-sm);background:var(--gm-surface-2);border:1px solid var(--gm-border);border-radius:var(--gm-r-sm);font-size:13px;color:var(--gm-subtle);">
+              <span class="dot dot--off" aria-hidden="true"></span> M5 Extensions
+            </div>
+            <div role="listitem" style="display:flex;align-items:center;gap:6px;padding:6px var(--gm-sm);background:var(--gm-surface-2);border:1px solid var(--gm-border);border-radius:var(--gm-r-sm);font-size:13px;color:var(--gm-fg-2);">
+              <span class="dot dot--ok" aria-hidden="true"></span> M6 Quiz phishing
+            </div>
+            <div role="listitem" style="display:flex;align-items:center;gap:6px;padding:6px var(--gm-sm);background:var(--gm-violet-bg);border:1px solid var(--gm-violet-l);border-radius:var(--gm-r-sm);font-size:13px;color:var(--gm-violet);">
+              <span style="width:8px;height:8px;background:var(--gm-violet);border-radius:50%;" aria-hidden="true"></span> M7 Mots de passe
+            </div>
+            <div role="listitem" style="display:flex;align-items:center;gap:6px;padding:6px var(--gm-sm);background:var(--gm-amber-bg);border:1px solid #fcd34d;border-radius:var(--gm-r-sm);font-size:13px;color:var(--gm-amber);">
+              <span class="dot dot--warn" aria-hidden="true"></span> M9 Passphrase
+            </div>
+            <div role="listitem" style="display:flex;align-items:center;gap:6px;padding:6px var(--gm-sm);background:var(--gm-surface-2);border:1px solid var(--gm-border);border-radius:var(--gm-r-sm);font-size:13px;color:var(--gm-fg-2);">
+              <span class="dot dot--ok" aria-hidden="true"></span> M17 Presse-papiers
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="grid-3" role="group" aria-label="Actions rapides">
+            <a href="#dashboard-gm" class="btn btn--ghost btn--sm" style="flex-direction:column;gap:4px;font-size:12px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+                <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+              </svg>
+              Dashboard
+            </a>
+            <a href="#options-gm" class="btn btn--ghost btn--sm" style="flex-direction:column;gap:4px;font-size:12px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <circle cx="8" cy="8" r="2.5"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              Paramètres
+            </a>
+            <button class="btn btn--ghost btn--sm" style="flex-direction:column;gap:4px;font-size:12px;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm.75 10.25h-1.5V7h1.5v4.25zm0-5.75h-1.5V4h1.5v1.5z"/>
+              </svg>
+              À propos
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ DASHBOARD ═══════════════ -->
+  <section id="dashboard-gm" class="demo-section" aria-labelledby="lbl-d-gm">
+    <div class="section-label" id="lbl-d-gm">2. Dashboard plein écran</div>
+
+    <div class="card">
+      <div class="flex-between mb-lg">
+        <div>
+          <h1 style="font-size:22px;font-weight:800;letter-spacing:-0.03em;background:var(--gm-grad-btn);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Tableau de bord</h1>
+          <p class="text-muted">Semaine du 14 au 18 avril 2026</p>
+        </div>
+        <span class="pill pill--success">Actif</span>
+      </div>
+
+      <!-- Stats mesh -->
+      <div class="grid-3 mb-lg">
+        <div class="card card--sm" style="background:var(--gm-grad-hero);border:none;" role="region" aria-label="Score : 73">
+          <div style="font-size:32px;font-weight:800;letter-spacing:-0.05em;color:var(--gm-fg-2);">73</div>
+          <div style="font-size:12px;color:var(--gm-muted);font-weight:500;margin-bottom:4px;">Score actuel</div>
+          <span class="pill pill--success" style="font-size:11px;">+5 pts</span>
+        </div>
+        <div class="card card--sm" role="region" aria-label="+8 points sur 7 jours">
+          <div style="font-size:32px;font-weight:800;letter-spacing:-0.05em;color:var(--gm-coral);">+8</div>
+          <div class="text-muted mb-sm">Progression 7 jours</div>
+          <span class="pill pill--coral" style="font-size:11px;">Meilleur de la semaine</span>
+        </div>
+        <div class="card card--sm" role="region" aria-label="12 nudges reçus">
+          <div style="font-size:32px;font-weight:800;letter-spacing:-0.05em;color:var(--gm-violet);">12</div>
+          <div class="text-muted mb-sm">Nudges reçus</div>
+          <span class="pill pill--violet" style="font-size:11px;">Cette semaine</span>
+        </div>
+      </div>
+
+      <!-- Graphique -->
+      <div class="card card--sm mb-lg">
+        <div class="flex-between mb-md">
+          <span style="font-size:14px;font-weight:700;color:var(--gm-fg-2);">Tendance du score</span>
+          <span class="text-subtle">7 derniers jours</span>
+        </div>
+        <div role="img" aria-label="Graphique de tendance : 65, 67, 68, 70, 71, 72, 73">
+          <svg width="100%" height="100" viewBox="0 0 400 100" fill="none" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="gm-line" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#e8573a"/>
+                <stop offset="100%" stop-color="#7c3aed"/>
+              </linearGradient>
+              <linearGradient id="gm-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#e8573a" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.03"/>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="20"  x2="400" y2="20"  stroke="var(--gm-border)" stroke-width="1"/>
+            <line x1="0" y1="60"  x2="400" y2="60"  stroke="var(--gm-border)" stroke-width="1"/>
+            <line x1="0" y1="100" x2="400" y2="100" stroke="var(--gm-border)" stroke-width="1"/>
+            <path d="M0 80 L66 68 L132 60 L198 48 L264 38 L330 28 L400 16 L400 100 L0 100 Z"
+              fill="url(#gm-area)"/>
+            <polyline points="0,80 66,68 132,60 198,48 264,38 330,28 400,16"
+              stroke="url(#gm-line)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="0"   cy="80" r="4" fill="#e8573a"/>
+            <circle cx="66"  cy="68" r="4" fill="#e8573a"/>
+            <circle cx="132" cy="60" r="4" fill="#e8573a"/>
+            <circle cx="198" cy="48" r="4" fill="#b08bd0"/>
+            <circle cx="264" cy="38" r="4" fill="#9e6de0"/>
+            <circle cx="330" cy="28" r="4" fill="#7c3aed"/>
+            <circle cx="400" cy="16" r="5" fill="#7c3aed" stroke="#ddd6fe" stroke-width="4"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gm-subtle);margin-top:4px;">
+            <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Auj.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historique -->
+      <h2 style="font-size:16px;font-weight:700;color:var(--gm-fg-2);margin-bottom:var(--gm-md);">Historique récent</h2>
+      <div style="display:flex;flex-direction:column;gap:var(--gm-sm);margin-bottom:var(--gm-lg);" role="list" aria-label="Historique des nudges">
+        <div role="listitem" class="card card--sm flex" style="align-items:flex-start;gap:var(--gm-md);">
+          <div style="width:36px;height:36px;background:var(--gm-violet-bg);border-radius:var(--gm-r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="5" y="11" width="14" height="10" rx="2" stroke="#7c3aed" stroke-width="2" fill="none"/>
+              <path d="M8 11V7a4 4 0 018 0v4" stroke="#7c3aed" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:var(--gm-fg-2);margin-bottom:2px;">Réutilisation de mot de passe — github.com</div>
+            <div class="text-subtle">Mot de passe similaire à un compte enregistré</div>
+          </div>
+          <span class="pill pill--violet" style="font-size:11px;white-space:nowrap;flex-shrink:0;">Il y a 2h</span>
+        </div>
+        <div role="listitem" class="card card--sm flex" style="align-items:flex-start;gap:var(--gm-md);">
+          <div style="width:36px;height:36px;background:var(--gm-coral-bg);border-radius:var(--gm-r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="8" y="2" width="8" height="4" rx="1" stroke="#e8573a" stroke-width="2" fill="none"/>
+              <rect x="5" y="4" width="14" height="17" rx="2" stroke="#e8573a" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:var(--gm-fg-2);margin-bottom:2px;">Presse-papiers actif 8 min — app.example.com</div>
+            <div class="text-subtle">Données potentiellement sensibles non effacées</div>
+          </div>
+          <span class="pill pill--coral" style="font-size:11px;white-space:nowrap;flex-shrink:0;">Hier 16h12</span>
+        </div>
+      </div>
+
+      <!-- Whitelist -->
+      <div class="flex-between mb-md">
+        <h2 style="font-size:16px;font-weight:700;color:var(--gm-fg-2);">Liste blanche M2</h2>
+        <button class="btn btn--ghost btn--sm">+ Ajouter</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--gm-sm);" role="list" aria-label="Sites en liste blanche">
+        <div role="listitem" class="card card--sm flex-between">
+          <code style="font-family:var(--gm-font-mono);font-size:13px;color:var(--gm-fg-2);">intranet.monentreprise.fr</code>
+          <div class="flex">
+            <span class="text-subtle">12 avr.</span>
+            <button class="btn btn--danger btn--sm" aria-label="Retirer intranet.monentreprise.fr">Retirer</button>
+          </div>
+        </div>
+        <div role="listitem" class="card card--sm flex-between">
+          <code style="font-family:var(--gm-font-mono);font-size:13px;color:var(--gm-fg-2);">app.slack.com</code>
+          <div class="flex">
+            <span class="text-subtle">10 avr.</span>
+            <button class="btn btn--danger btn--sm" aria-label="Retirer app.slack.com">Retirer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ OPTIONS ═══════════════ -->
+  <section id="options-gm" class="demo-section" aria-labelledby="lbl-opt-gm">
+    <div class="section-label" id="lbl-opt-gm">3. Options</div>
+
+    <div class="card" style="display:grid;grid-template-columns:200px 1fr;gap:var(--gm-lg);">
+      <!-- Sidebar gradient -->
+      <aside>
+        <div class="card card--sm" style="background:var(--gm-grad-hero);border:none;margin-bottom:var(--gm-md);text-align:center;padding:var(--gm-lg);">
+          <div style="width:48px;height:48px;background:rgba(255,255,255,0.9);border-radius:var(--gm-r-md);display:flex;align-items:center;justify-content:center;margin:0 auto var(--gm-sm);" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z" fill="#7c3aed"/>
+            </svg>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--gm-fg-2);">Score actuel</div>
+          <div style="font-size:26px;font-weight:800;letter-spacing:-0.04em;background:var(--gm-grad-btn);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">73</div>
+        </div>
+        <nav style="display:flex;flex-direction:column;gap:4px;" aria-label="Sections paramètres">
+          <button style="display:flex;align-items:center;gap:8px;padding:10px var(--gm-md);background:var(--gm-violet-bg);border:1.5px solid var(--gm-violet-l);border-radius:var(--gm-r-sm);color:var(--gm-violet);font-weight:700;font-family:var(--gm-font);font-size:13px;cursor:pointer;min-height:44px;text-align:left;transition:all var(--gm-transition);">Modules actifs</button>
+          <button style="display:flex;align-items:center;gap:8px;padding:10px var(--gm-md);background:none;border:1.5px solid transparent;border-radius:var(--gm-r-sm);color:var(--gm-muted);font-weight:500;font-family:var(--gm-font);font-size:13px;cursor:pointer;min-height:44px;text-align:left;transition:all var(--gm-transition);">Quota & fréquence</button>
+          <button style="display:flex;align-items:center;gap:8px;padding:10px var(--gm-md);background:none;border:1.5px solid transparent;border-radius:var(--gm-r-sm);color:var(--gm-muted);font-weight:500;font-family:var(--gm-font);font-size:13px;cursor:pointer;min-height:44px;text-align:left;transition:all var(--gm-transition);">Langue & apparence</button>
+          <button style="display:flex;align-items:center;gap:8px;padding:10px var(--gm-md);background:none;border:1.5px solid transparent;border-radius:var(--gm-r-sm);color:var(--gm-muted);font-weight:500;font-family:var(--gm-font);font-size:13px;cursor:pointer;min-height:44px;text-align:left;transition:all var(--gm-transition);">Données & RGPD</button>
+        </nav>
+      </aside>
+
+      <!-- Contenu -->
+      <main>
+        <h1 style="font-size:20px;font-weight:800;letter-spacing:-0.02em;color:var(--gm-fg-2);margin-bottom:4px;">Modules actifs</h1>
+        <p class="text-muted mb-lg">Activez ou désactivez chaque module. Tout reste sur votre appareil.</p>
+
+        <div style="display:flex;flex-direction:column;gap:var(--gm-sm);">
+          <div class="card card--sm flex-between" style="gap:var(--gm-lg);">
+            <div style="flex:1;">
+              <div class="flex mb-sm"><span class="pill pill--info" style="font-size:11px;">M2</span><span style="font-size:14px;font-weight:600;color:var(--gm-fg-2);">Sites suspects</span></div>
+              <p class="text-muted" style="font-size:13px;">Analyse les domaines contre une liste locale de typosquatting. Aucune donnée transmise.</p>
+            </div>
+            <label class="toggle-gm" aria-label="Activer M2"><input type="checkbox" checked role="switch" aria-checked="true"/><span class="toggle-track-gm"></span></label>
+          </div>
+          <div class="card card--sm flex-between" style="gap:var(--gm-lg);">
+            <div style="flex:1;">
+              <div class="flex mb-sm"><span class="pill pill--info" style="font-size:11px;">M3</span><span style="font-size:14px;font-weight:600;color:var(--gm-fg-2);">Navigateur</span></div>
+              <p class="text-muted" style="font-size:13px;">Vérifie la version de Chrome et avertit si une mise à jour critique est disponible.</p>
+            </div>
+            <label class="toggle-gm" aria-label="Activer M3"><input type="checkbox" checked role="switch" aria-checked="true"/><span class="toggle-track-gm"></span></label>
+          </div>
+          <div class="card card--sm flex-between" style="gap:var(--gm-lg);">
+            <div style="flex:1;">
+              <div class="flex mb-sm"><span class="pill pill--neutral" style="font-size:11px;">M5</span><span style="font-size:14px;font-weight:600;color:var(--gm-subtle);">Extensions tierces</span></div>
+              <p style="font-size:13px;color:var(--gm-subtle);">Signale les extensions au comportement inhabituel.</p>
+            </div>
+            <label class="toggle-gm" aria-label="Activer M5"><input type="checkbox" role="switch" aria-checked="false"/><span class="toggle-track-gm"></span></label>
+          </div>
+          <div class="card card--sm flex-between" style="gap:var(--gm-lg);border-color:var(--gm-violet-l);">
+            <div style="flex:1;">
+              <div class="flex mb-sm"><span class="pill pill--violet" style="font-size:11px;">M7</span><span style="font-size:14px;font-weight:600;color:var(--gm-fg-2);">Réutilisation de mots de passe</span></div>
+              <p class="text-muted" style="font-size:13px;">Détecte les mots de passe similaires. Traitement local AES-256.</p>
+            </div>
+            <label class="toggle-gm" aria-label="Activer M7"><input type="checkbox" checked role="switch" aria-checked="true"/><span class="toggle-track-gm"></span></label>
+          </div>
+          <div class="card card--sm flex-between" style="gap:var(--gm-lg);">
+            <div style="flex:1;">
+              <div class="flex mb-sm"><span class="pill pill--coral" style="font-size:11px;">M17</span><span style="font-size:14px;font-weight:600;color:var(--gm-fg-2);">Presse-papiers</span></div>
+              <p class="text-muted" style="font-size:13px;">Avertit si des données restent dans le presse-papiers plus de 5 minutes.</p>
+            </div>
+            <label class="toggle-gm" aria-label="Activer M17"><input type="checkbox" checked role="switch" aria-checked="true"/><span class="toggle-track-gm"></span></label>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:var(--gm-sm);flex-wrap:wrap;margin-top:var(--gm-lg);padding-top:var(--gm-md);border-top:1px solid var(--gm-border);">
+          <button class="btn btn--gradient btn--sm">Enregistrer</button>
+          <button class="btn btn--ghost btn--sm">Exporter (RGPD Art. 20)</button>
+          <button class="btn btn--danger btn--sm" style="margin-left:auto;">Supprimer les données</button>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- ═══════════════ TOASTS ═══════════════ -->
+  <section id="toasts-gm" class="demo-section" aria-labelledby="lbl-t-gm">
+    <div class="section-label" id="lbl-t-gm">4. Toasts et overlays</div>
+
+    <div class="grid-2">
+      <div>
+        <p class="text-muted mb-sm">Toast M7 — Réutilisation mot de passe</p>
+        <div class="card" style="border-top:3px solid var(--gm-violet);" role="alert" aria-live="polite">
+          <div class="flex-between mb-md">
+            <div class="flex">
+              <div style="width:36px;height:36px;background:var(--gm-violet-bg);border-radius:var(--gm-r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#7c3aed" stroke-width="2" fill="none"/><path d="M8 11V7a4 4 0 018 0v4" stroke="#7c3aed" stroke-width="2" fill="none"/></svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--gm-fg);">Mot de passe déjà utilisé</div>
+                <div class="text-subtle">github.com</div>
+              </div>
+            </div>
+            <button class="btn btn--ghost btn--sm" aria-label="Fermer" style="padding:0;min-width:44px;font-size:18px;">×</button>
+          </div>
+          <p class="text-muted mb-md" style="font-size:13px;line-height:1.5;">Ce mot de passe ressemble à celui d'un autre site. Un mot de passe unique par site réduit votre exposition en cas de fuite.</p>
+          <div class="flex">
+            <button class="btn btn--gradient btn--sm">Créer un nouveau</button>
+            <button class="btn btn--ghost btn--sm">Plus tard</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-muted mb-sm">Toast M17 — Presse-papiers</p>
+        <div class="card" style="border-top:3px solid var(--gm-coral);" role="alert" aria-live="polite">
+          <div class="flex-between mb-md">
+            <div class="flex">
+              <div style="width:36px;height:36px;background:var(--gm-coral-bg);border-radius:var(--gm-r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="8" y="2" width="8" height="4" rx="1" stroke="#e8573a" stroke-width="2" fill="none"/><rect x="5" y="4" width="14" height="17" rx="2" stroke="#e8573a" stroke-width="2" fill="none"/></svg>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--gm-fg);">Presse-papiers actif</div>
+                <div class="text-subtle">8 minutes de rétention</div>
+              </div>
+            </div>
+            <button class="btn btn--ghost btn--sm" aria-label="Fermer" style="padding:0;min-width:44px;font-size:18px;">×</button>
+          </div>
+          <p class="text-muted mb-md" style="font-size:13px;line-height:1.5;">Du contenu est dans votre presse-papiers depuis 8 minutes. Pensez à le vider si vous ne l'utilisez plus.</p>
+          <div class="flex">
+            <button class="btn btn--gradient btn--sm">Vider maintenant</button>
+            <button class="btn btn--ghost btn--sm">Ignorer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay M9 -->
+      <div>
+        <p class="text-muted mb-sm">Overlay M9 — Passphrase</p>
+        <div class="card" style="border:1.5px solid var(--gm-violet-l);box-shadow:var(--gm-shadow-md);">
+          <div style="width:52px;height:52px;background:var(--gm-grad-hero);border-radius:var(--gm-r-md);display:flex;align-items:center;justify-content:center;margin-bottom:var(--gm-md);" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z" fill="#7c3aed" opacity="0.8"/></svg>
+          </div>
+          <h2 style="font-size:17px;font-weight:700;color:var(--gm-fg-2);margin-bottom:var(--gm-sm);">Conseil de sécurité</h2>
+          <p class="text-muted mb-lg" style="font-size:14px;line-height:1.6;">Ce formulaire accepte les longues phrases de passe. Une passphrase de 5 mots est bien plus sûre qu'un mot de passe complexe court.</p>
+          <div class="flex" style="justify-content:flex-end;">
+            <button class="btn btn--ghost btn--sm">En savoir plus</button>
+            <button class="btn btn--gradient btn--sm">Compris</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ ONBOARDING ═══════════════ -->
+  <section id="onboarding-gm" class="demo-section" aria-labelledby="lbl-ob-gm">
+    <div class="section-label" id="lbl-ob-gm">5. Onboarding</div>
+
+    <div style="max-width:480px;margin:0 auto;">
+      <div class="card" style="padding:0;overflow:hidden;box-shadow:var(--gm-shadow-lg);">
+        <!-- Hero mesh -->
+        <div style="background:var(--gm-grad-hero);padding:var(--gm-2xl) var(--gm-xl) var(--gm-xl);text-align:center;">
+          <div style="width:72px;height:72px;background:rgba(255,255,255,0.9);border-radius:var(--gm-r-lg);display:flex;align-items:center;justify-content:center;margin:0 auto var(--gm-lg);box-shadow:var(--gm-shadow);" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z" fill="url(#ob-grad)" opacity="0.9"/>
+              <defs>
+                <linearGradient id="ob-grad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#e8573a"/>
+                  <stop offset="100%" stop-color="#7c3aed"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:var(--gm-fg-2);margin-bottom:var(--gm-sm);">Bienvenue dans Sentinel Nudge</h1>
+          <p style="font-size:15px;color:var(--gm-muted);line-height:1.6;">Des micro-rappels pour de meilleures habitudes numériques. Sans surveillance, sans données partagées.</p>
+        </div>
+
+        <!-- Corps -->
+        <div style="padding:var(--gm-xl);">
+          <!-- Privacy -->
+          <div class="card card--sm" style="background:var(--gm-success-bg);border-color:var(--gm-success-mid);display:flex;align-items:center;gap:var(--gm-md);margin-bottom:var(--gm-xl);" role="note">
+            <div style="width:32px;height:32px;background:var(--gm-success-bg);border:1px solid var(--gm-success-mid);border-radius:var(--gm-r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z" stroke="#047857" stroke-width="2.5" fill="none"/><path d="M9 12l2 2 4-4" stroke="#047857" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <p style="font-size:13px;color:var(--gm-success);line-height:1.4;"><strong>100% local.</strong> Aucune donnée ne quitte votre appareil. Pas de compte, pas de télémétrie. GPL v3.</p>
+          </div>
+
+          <!-- M7 opt-in -->
+          <div class="card card--sm" style="background:var(--gm-violet-bg);border-color:var(--gm-violet-l);margin-bottom:var(--gm-xl);" role="region" aria-labelledby="ob-m7-gm">
+            <div class="flex mb-sm"><span class="pill pill--violet" style="font-size:11px;">Module M7</span></div>
+            <h2 id="ob-m7-gm" style="font-size:15px;font-weight:700;color:var(--gm-fg-2);margin-bottom:var(--gm-sm);">Détection de réutilisation de mots de passe</h2>
+            <p class="text-muted mb-md" style="font-size:13px;line-height:1.5;">Détecte les mots de passe similaires entre sites. Traitement 100% local (hachage AES-256). <strong style="color:var(--gm-fg-2);">Aucun mot de passe stocké ni transmis.</strong></p>
+            <div class="flex-between">
+              <div>
+                <div style="font-size:14px;font-weight:600;color:var(--gm-fg-2);">Activer M7</div>
+                <div class="text-subtle" style="font-size:12px;">Désactivable dans les paramètres</div>
+              </div>
+              <label class="toggle-gm" aria-label="Activer M7">
+                <input type="checkbox" role="switch" aria-checked="false"/>
+                <span class="toggle-track-gm"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <button class="btn btn--gradient btn--lg" style="margin-bottom:var(--gm-sm);">Commencer la protection</button>
+          <button class="btn btn--ghost btn--lg" style="margin-bottom:var(--gm-md);">Personnaliser les modules</button>
+          <p class="text-subtle" style="text-align:center;">Vous pouvez ajuster chaque module dans les paramètres à tout moment.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
