@@ -157,4 +157,63 @@ S'applique particulièrement lors des sessions à forte densité (≥ 5 PR).
 
 ---
 
-*Audit à compléter en session ultérieure par un audit `gh pr view` natif pour valider les 14 entrées "À vérifier".*
+## 7. Complément — Audit `gh pr view` exhaustif (TACHE-140, v1.1 2026-04-19)
+
+Exécuté via `gh pr view <n> --json body --jq '.body' | grep '\[ \]'` sur les 24 PR #27-#50 mergées.
+
+### 7.1 Résultat brut
+
+| PR | Checkboxes non cochées | Type |
+|:-:|:-:|---|
+| #27 | 3 | Références PR futures (T-101, tests UC01, recette G/MS) |
+| #28 | 3 | Test plan (CI, lisibilité, secrets) |
+| #29 | 3 | Test plan (CI, tests, régression) |
+| #30 | 3 | Test plan (CI, nouveaux tests, régression) |
+| #34 | 1 | Vérification CI post-push |
+| #35 | 1 | Vérification CI post-merge |
+| #38 | 3 | CI + régression + action manuelle Commanditaire |
+| #42 | 2 | Test plan (CI, régression) |
+| #43 | 1 | CI post-merge |
+| #47 | 3 | Test plan (CI, tests, régression) |
+
+**Total** : **23 checkboxes non cochées** dans 10 PR mergées.
+
+### 7.2 Classification après inspection du texte
+
+| Catégorie | Nombre | Statut réel |
+|---|:-:|---|
+| Test plan validé par le merge (CI verte, tests verts, 0 régression) | 17 | ✅ Complété de fait |
+| Référence à une PR future tracée en BACKLOG | 3 (PR #27) | 📋 Reporté |
+| Action manuelle Commanditaire documentée ailleurs | 1 (PR #38) | 📋 Reporté (T-129) |
+| Vérification CI post-push/post-merge implicite | 2 (PR #34/35) | ✅ Complété de fait |
+
+### 7.3 Conclusion v1.1
+
+**Aucun oubli réel identifié.** Les 23 checkboxes non cochées sont des artefacts statiques du pattern "test plan" produit par les agents au moment de la création de la PR, qui restent visuellement non-cochées même après validation par le merge (GitHub ne permet pas de cocher automatiquement les checkboxes d'un corps de PR).
+
+### 7.4 Recommandation structurelle
+
+**LL-029 renforcée** : imposer dans les templates de brief agents un **format de test plan sans checkboxes** pour les éléments qui seront validés automatiquement par le merge CI. Utiliser plutôt une liste à puces classique :
+
+**Au lieu de** :
+```
+## Test plan
+- [ ] CI verte (format + lint + build + test)
+- [ ] 432/432 tests unitaires verts
+- [ ] Aucune régression sur les 408 tests précédents
+```
+
+**Préférer** :
+```
+## Validation (automatique via merge CI)
+- CI verte requise avant merge (format + lint + build + test)
+- Compteur tests attendu : 432/432
+- 0 régression vs baseline 408 tests
+```
+
+Les vraies checkboxes `[ ]` ne doivent être utilisées que pour des actions humaines à effectuer APRÈS merge (rare dans notre flow).
+
+---
+
+*Audit v1.1 complété — 24 PR scannées, 23 checkboxes identifiées, 0 oubli réel. TACHE-140 Terminé.*
+*Audit v1.0 initial : documentation statique 2026-04-19.*
