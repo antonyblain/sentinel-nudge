@@ -28,6 +28,15 @@
 import { browser } from '@/shared/browser/browser-adapter';
 import { MODULE_IDS } from '@/shared/constants/modules';
 import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
+import {
+  DIAGNOSTICS_M2_KEY,
+  DIAGNOSTICS_M3_KEY,
+  DIAGNOSTICS_M5_KEY,
+  DIAGNOSTICS_M6_KEY,
+  DIAGNOSTICS_M7_KEY,
+  DIAGNOSTICS_M9_KEY,
+  DIAGNOSTICS_M17_KEY,
+} from '@/shared/types/diagnostics';
 
 /** Nombre total de modules v1 (7). Rattache a MODULE_IDS pour eviter la desync en v2. */
 const TOTAL_MODULES_V1 = MODULE_IDS.length;
@@ -47,6 +56,184 @@ const ICON_STATUS_MODULES = 'M3 3h8v8H3zm0 10h8v8H3zm10-10h8v8h-8zm0 10h8v8h-8z'
 /** SVG path de l'icone Quota (horloge, viewBox 24x24) */
 const ICON_STATUS_QUOTA =
   'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z';
+/** SVG path de l'icone d'avertissement (triangle attention, Material Design "warning", viewBox 24x24) */
+const ICON_WARNING = 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z';
+
+/**
+ * Seuil de degradation en millisecondes (1 heure).
+ * Si ready=false ET le dernier timestamp connu est anterieur a ce seuil,
+ * le module est considere degrade (ADR-001 R-BOOT-04, TACHE-062).
+ */
+const DEGRADED_THRESHOLD_MS = 60 * 60 * 1000; // 3 600 000 ms
+
+/**
+ * Modules surveilles pour le badge degrade.
+ * Chaque entree associe un label lisible a la cle de storage diagnostics.
+ * Le champ `tsKey` identifie le champ timestamp pertinent selon le type de module :
+ * - Modules avec initBoot (M2/M5/M6/M7) : `last_boot_ts`
+ * - Module M3 (Option B) : `last_boot`
+ * - Modules M9/M17 (Option B) : `last_action_ts`
+ */
+const MONITORED_MODULES: Array<{ label: string; storageKey: string; tsKey: string }> = [
+  { label: 'M2', storageKey: DIAGNOSTICS_M2_KEY, tsKey: 'last_boot_ts' },
+  { label: 'M3', storageKey: DIAGNOSTICS_M3_KEY, tsKey: 'last_boot' },
+  { label: 'M5', storageKey: DIAGNOSTICS_M5_KEY, tsKey: 'last_boot_ts' },
+  { label: 'M6', storageKey: DIAGNOSTICS_M6_KEY, tsKey: 'last_boot_ts' },
+  { label: 'M7', storageKey: DIAGNOSTICS_M7_KEY, tsKey: 'last_boot_ts' },
+  { label: 'M9', storageKey: DIAGNOSTICS_M9_KEY, tsKey: 'last_action_ts' },
+  { label: 'M17', storageKey: DIAGNOSTICS_M17_KEY, tsKey: 'last_action_ts' },
+];
+
+/**
+ * Analyse les diagnostics lus depuis chrome.storage.local et retourne
+ * la liste des labels de modules consideres degrades.
+ *
+ * Un module est degrade si et seulement si :
+ * 1. Son objet diagnostics est present dans le storage.
+ * 2. `ready === false`
+ * 3. Le dernier timestamp connu (tsKey) est anterieur de plus de DEGRADED_THRESHOLD_MS.
+ *
+ * Les modules sans diagnostics publies (storage absent) sont ignores :
+ * l'absence de diagnostics indique un premier boot, pas un etat degrade.
+ *
+ * @param storageResult - Resultat brut de chrome.storage.local.get sur les cles diagnostics
+ * @param now           - Timestamp courant en ms (parametrable pour les tests)
+ * @returns Tableau de labels de modules degrades (ex: ['M2', 'M7'])
+ */
+export function getDegradedModules(
+  storageResult: Record<string, unknown>,
+  now: number = Date.now(),
+): string[] {
+  const degraded: string[] = [];
+  for (const mod of MONITORED_MODULES) {
+    const diag = storageResult[mod.storageKey] as Record<string, unknown> | undefined;
+    if (!diag) continue; // Absent = premier boot, pas degrade
+    if (diag['ready'] !== false) continue; // ready=true ou absent : OK
+    const ts = typeof diag[mod.tsKey] === 'number' ? (diag[mod.tsKey] as number) : 0;
+    if (ts === 0) continue; // Jamais boote : pas encore degrade (encore en cours d'init)
+    if (now - ts > DEGRADED_THRESHOLD_MS) {
+      degraded.push(mod.label);
+    }
+  }
+  return degraded;
+}
+
+/**
+ * Construit et insere le badge "mode degrade" dans le conteneur donne.
+ *
+ * Le badge affiche :
+ * - Une icone SVG attention (couleur --sn-color-warning)
+ * - Le libelle i18n `popup_degraded_mode_badge`
+ * - La liste des modules concernes
+ * - Un bouton "En savoir plus" qui ouvre une tooltip explicative
+ * - La tooltip contient une explication + un bouton "Recharger l'extension"
+ *
+ * Accessibilite :
+ * - role="alert" + aria-live="polite" sur le badge (annonce aux lecteurs d'ecran)
+ * - Bouton "En savoir plus" accessible au clavier (focus + Enter)
+ * - Tooltip avec bouton fermer accessible
+ *
+ * Securite :
+ * - D-SEC-003 : aucun innerHTML, tout DOM via createElement/textContent/appendChild
+ *
+ * @param container       - Element parent ou inserer le badge
+ * @param degradedModules - Liste des labels de modules degrades
+ */
+export function renderDegradedBadge(container: HTMLElement, degradedModules: string[]): void {
+  if (degradedModules.length === 0) return;
+
+  const badge = document.createElement('div');
+  badge.className = 'degraded-badge';
+  badge.setAttribute('role', 'alert');
+  badge.setAttribute('aria-live', 'polite');
+
+  // Ligne principale : icone + libelle
+  const badgeHeader = document.createElement('div');
+  badgeHeader.className = 'degraded-badge-header';
+
+  // Icone SVG warning (aria-hidden, couleur via CSS --sn-color-warning)
+  const warnIcon = createInlineIcon(ICON_WARNING, 18);
+  warnIcon.classList.add('degraded-badge-icon');
+  badgeHeader.appendChild(warnIcon);
+
+  const badgeLabel = document.createElement('span');
+  badgeLabel.className = 'degraded-badge-label';
+  badgeLabel.textContent = browser.i18n.getMessage('popup_degraded_mode_badge') || 'Mode degrade';
+  badgeHeader.appendChild(badgeLabel);
+
+  badge.appendChild(badgeHeader);
+
+  // Liste des modules degrades
+  const modulesLine = document.createElement('p');
+  modulesLine.className = 'degraded-badge-modules';
+  const modulesList = degradedModules.join(', ');
+  modulesLine.textContent =
+    browser.i18n.getMessage('popup_degraded_mode_modules', modulesList) ||
+    `Modules affectes : ${modulesList}`;
+  badge.appendChild(modulesLine);
+
+  // Bouton "En savoir plus" + tooltip
+  const learnMoreBtn = document.createElement('button');
+  learnMoreBtn.type = 'button';
+  learnMoreBtn.className = 'degraded-badge-learn-more';
+  learnMoreBtn.textContent =
+    browser.i18n.getMessage('popup_degraded_mode_learn_more') || 'En savoir plus';
+  learnMoreBtn.setAttribute('aria-expanded', 'false');
+  learnMoreBtn.setAttribute('aria-controls', 'degraded-tooltip');
+  badge.appendChild(learnMoreBtn);
+
+  // Tooltip (masquee par defaut)
+  const tooltip = document.createElement('div');
+  tooltip.className = 'degraded-tooltip';
+  tooltip.id = 'degraded-tooltip';
+  tooltip.setAttribute('role', 'region');
+  tooltip.setAttribute(
+    'aria-label',
+    browser.i18n.getMessage('popup_degraded_mode_badge') || 'Mode degrade',
+  );
+  tooltip.hidden = true;
+
+  const tooltipText = document.createElement('p');
+  tooltipText.className = 'degraded-tooltip-text';
+  tooltipText.textContent =
+    browser.i18n.getMessage('popup_degraded_mode_tooltip') ||
+    "Un ou plusieurs modules n'ont pas demarre correctement depuis plus d'une heure. L'extension fonctionne en mode degrade.";
+  tooltip.appendChild(tooltipText);
+
+  // Bouton recharger
+  const reloadBtn = document.createElement('button');
+  reloadBtn.type = 'button';
+  reloadBtn.className = 'degraded-tooltip-reload';
+  reloadBtn.textContent =
+    browser.i18n.getMessage('popup_degraded_mode_reload') || "Recharger l'extension";
+  reloadBtn.addEventListener('click', () => {
+    void browser.runtime.reload();
+  });
+  tooltip.appendChild(reloadBtn);
+
+  // Bouton fermer tooltip
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'degraded-tooltip-close';
+  closeBtn.textContent = browser.i18n.getMessage('popup_degraded_mode_tooltip_close') || 'Fermer';
+  closeBtn.addEventListener('click', () => {
+    tooltip.hidden = true;
+    learnMoreBtn.setAttribute('aria-expanded', 'false');
+    learnMoreBtn.focus();
+  });
+  tooltip.appendChild(closeBtn);
+
+  badge.appendChild(tooltip);
+
+  // Toggle tooltip au clic sur "En savoir plus"
+  learnMoreBtn.addEventListener('click', () => {
+    const isOpen = !tooltip.hidden;
+    tooltip.hidden = isOpen;
+    learnMoreBtn.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  container.appendChild(badge);
+}
 
 /**
  * Cree un SVG inline decoratif aria-hidden.
@@ -439,7 +626,13 @@ async function initPopup(): Promise<void> {
     })) as Record<string, unknown> | null;
 
     // Récupération de la config (modules actifs + quota)
-    const storageData = await browser.storage.local.get(['config', 'quota_state']);
+    // Read config + quota + diagnostics for all monitored modules (TACHE-062)
+    const diagnosticsKeys = MONITORED_MODULES.map((m) => m.storageKey);
+    const storageData = await browser.storage.local.get([
+      'config',
+      'quota_state',
+      ...diagnosticsKeys,
+    ]);
     const config = storageData['config'] as
       | { modules: Record<string, boolean>; quota_limit: number | null }
       | undefined;
@@ -474,6 +667,11 @@ async function initPopup(): Promise<void> {
     mainContent.className = 'popup-content';
 
     renderScoreSection(mainContent, currentScore);
+
+    // Badge mode degrade (TACHE-062) : apres le score, avant le statut
+    const degradedModules = getDegradedModules(storageData);
+    renderDegradedBadge(mainContent, degradedModules);
+
     renderStatusSection(mainContent, activeCount, quotaRemaining, quotaReached);
     renderActionsSection(mainContent);
 

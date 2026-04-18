@@ -435,6 +435,36 @@
     "message": "Unable to retrieve data",
     "description": "Popup data retrieval error"
   },
+  "popup_degraded_mode_badge": {
+    "message": "Degraded mode",
+    "description": "Degraded mode badge label in popup"
+  },
+  "popup_degraded_mode_modules": {
+    "message": "Affected modules: $1",
+    "description": "Degraded modules list",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "M2, M7"
+      }
+    }
+  },
+  "popup_degraded_mode_learn_more": {
+    "message": "Learn more",
+    "description": "Learn more button in degraded badge"
+  },
+  "popup_degraded_mode_tooltip": {
+    "message": "One or more modules failed to start correctly for more than one hour. The extension is running in degraded mode.",
+    "description": "Tooltip text for degraded mode badge"
+  },
+  "popup_degraded_mode_reload": {
+    "message": "Reload extension",
+    "description": "Reload extension button in degraded badge"
+  },
+  "popup_degraded_mode_tooltip_close": {
+    "message": "Close",
+    "description": "Close the degraded badge tooltip"
+  },
   "options_title": {
     "message": "Settings — Sentinel Nudge",
     "description": "Options page title"

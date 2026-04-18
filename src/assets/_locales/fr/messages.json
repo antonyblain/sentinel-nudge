@@ -435,6 +435,36 @@
     "message": "Impossible de récupérer les données",
     "description": "Erreur de récupération des données popup"
   },
+  "popup_degraded_mode_badge": {
+    "message": "Mode dégradé",
+    "description": "Libellé du badge mode dégradé dans la popup"
+  },
+  "popup_degraded_mode_modules": {
+    "message": "Modules affectés : $1",
+    "description": "Liste des modules dégradés",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "M2, M7"
+      }
+    }
+  },
+  "popup_degraded_mode_learn_more": {
+    "message": "En savoir plus",
+    "description": "Bouton En savoir plus dans le badge dégradé"
+  },
+  "popup_degraded_mode_tooltip": {
+    "message": "Un ou plusieurs modules n’ont pas démarré correctement depuis plus d’une heure. L’extension fonctionne en mode dégradé.",
+    "description": "Texte de la tooltip explicative du mode dégradé"
+  },
+  "popup_degraded_mode_reload": {
+    "message": "Recharger l’extension",
+    "description": "Bouton de rechargement de l’extension depuis le badge dégradé"
+  },
+  "popup_degraded_mode_tooltip_close": {
+    "message": "Fermer",
+    "description": "Fermer la tooltip du badge dégradé"
+  },
   "options_title": {
     "message": "Paramètres — Sentinel Nudge",
     "description": "Titre de la page Options"

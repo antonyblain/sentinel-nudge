@@ -194,7 +194,7 @@ header {
 
 .btn-primary {
   background-color: var(--sn-color-accent);
-  color: #fff;
+  color: var(--sn-color-btn-fg, #fff); /* TACHE-150 WCAG AA matrix */
 }
 
 .btn-primary:hover {
@@ -222,6 +222,109 @@ header {
 
 .error-text {
   color: var(--sn-color-danger);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Badge mode degrade (TACHE-062)                                             */
+/* -------------------------------------------------------------------------- */
+
+/* Conteneur principal du badge */
+.degraded-badge {
+  background-color: var(--sn-color-warning-bg);
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  margin-bottom: var(--sn-space-md);
+  color: var(--sn-color-warning);
+}
+
+/* Ligne icone + libelle */
+.degraded-badge-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-space-xs);
+  margin-bottom: var(--sn-space-xs);
+}
+
+/* Icone SVG warning */
+.degraded-badge-icon {
+  flex-shrink: 0;
+  color: var(--sn-color-warning);
+}
+
+/* Libelle "Mode degrade" */
+.degraded-badge-label {
+  font-weight: var(--sn-font-weight-bold);
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+}
+
+/* Ligne des modules affectes */
+.degraded-badge-modules {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+  margin-bottom: var(--sn-space-xs);
+}
+
+/* Bouton "En savoir plus" */
+.degraded-badge-learn-more {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+.degraded-badge-learn-more:hover,
+.degraded-badge-learn-more:focus {
+  color: var(--sn-color-fg);
+  outline: 2px solid var(--sn-color-warning);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Tooltip explicative */
+.degraded-tooltip {
+  margin-top: var(--sn-space-sm);
+  padding: var(--sn-space-sm);
+  background-color: var(--sn-color-surface);
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius-sm);
+}
+
+/* Texte de la tooltip */
+.degraded-tooltip-text {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-fg);
+  margin-bottom: var(--sn-space-xs);
+  line-height: 1.4;
+}
+
+/* Boutons de la tooltip */
+.degraded-tooltip-reload,
+.degraded-tooltip-close {
+  background: none;
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius-sm);
+  padding: 2px var(--sn-space-xs);
+  cursor: pointer;
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+  font-family: inherit;
+  margin-right: var(--sn-space-xs);
+  margin-top: var(--sn-space-xs);
+}
+
+.degraded-tooltip-reload:hover,
+.degraded-tooltip-reload:focus,
+.degraded-tooltip-close:hover,
+.degraded-tooltip-close:focus {
+  background-color: var(--sn-color-warning-bg);
+  outline: 2px solid var(--sn-color-warning);
+  outline-offset: 2px;
 }
 
 /* Respect des préférences de mouvement réduit — DAT §11.2 */
