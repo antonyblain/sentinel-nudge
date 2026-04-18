@@ -364,25 +364,44 @@ function showToastM17(dataType: SensitiveDataType): void {
   // Shadow DOM pour isolation CSS
   const shadow = host.attachShadow({ mode: 'open' });
 
-  // Styles
+  // Styles — tokens v2 via :host + :host-context (T-143)
   const style = document.createElement('style');
   style.textContent = `
-    .toast { background:#1E3A5F; color:#E0E8F0; border-radius:8px; padding:16px 20px;
-      box-shadow:0 4px 12px rgba(30,58,95,0.3); max-width:380px; font:15px/1.5 system-ui,sans-serif;
+    :host {
+      --sn-bg: #1e3a5f; --sn-fg: #e0e8f0; --sn-muted: #a8c8e8;
+      --sn-danger: #c0392b; --sn-danger-hover: #a33025;
+      --sn-accent: #2e6da4; --sn-accent-hover: #245a87;
+      --sn-link: #8cc5e8;
+      --sn-radius: 8px;
+    }
+    :host-context([data-theme="dark"]) {
+      --sn-bg: #1a1a1f; --sn-fg: #e8e8f0; --sn-muted: #8888a0;
+      --sn-danger: #ef4444; --sn-danger-hover: #dc2626;
+      --sn-accent: #60a5fa; --sn-accent-hover: #93c5fd;
+      --sn-link: #93c5fd;
+    }
+    :host-context([data-theme="matrix"]) {
+      --sn-bg: #0e0e1c; --sn-fg: #e8e8ff; --sn-muted: #8888cc;
+      --sn-danger: #ff2d78; --sn-danger-hover: #ff5599;
+      --sn-accent: #ff2d78; --sn-accent-hover: #ff5599;
+      --sn-link: #00d4ff;
+      --sn-radius: 4px;
+    }
+    .toast { background:var(--sn-bg); color:var(--sn-fg); border-radius:var(--sn-radius); padding:16px 20px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.3); max-width:380px; font:15px/1.5 system-ui,sans-serif;
       animation:slideUp .2s ease-out; }
     @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
     .title { font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
     .icon { font-size:20px; }
-    .desc { font-size:13px; color:#A8C8E8; margin-bottom:12px; }
+    .desc { font-size:13px; color:var(--sn-muted); margin-bottom:12px; }
     .actions { display:flex; gap:8px; flex-wrap:wrap; }
     button { border:none; border-radius:6px; padding:8px 16px; font:14px system-ui,sans-serif;
       cursor:pointer; min-height:44px; }
-    .btn-danger { background:#C0392B; color:#fff; }
-    .btn-danger:hover { background:#A33025; }
-    .btn-secondary { background:#2E6DA4; color:#fff; }
-    .btn-secondary:hover { background:#245A87; }
-    .btn-link { background:none; color:#8CC5E8; text-decoration:underline; padding:8px; }
-    @media(prefers-reduced-motion:reduce){ .toast{animation:none} }
+    .btn-danger { background:var(--sn-danger); color:#fff; }
+    .btn-danger:hover { background:var(--sn-danger-hover); }
+    .btn-secondary { background:var(--sn-accent); color:#fff; }
+    .btn-secondary:hover { background:var(--sn-accent-hover); }
+    .btn-link { background:none; color:var(--sn-link); text-decoration:underline; padding:8px; }
   `;
   shadow.appendChild(style);
 
