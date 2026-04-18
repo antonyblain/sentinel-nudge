@@ -140,16 +140,40 @@
           padding: var(--sn-space-md);
         }
       }
+      /* ── Skip link WCAG 2.4.1 ──────────────────────────────── */
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+      .skip-link:focus {
+        position: fixed;
+        left: 1rem;
+        top: 1rem;
+        width: auto;
+        height: auto;
+        padding: 0.75rem 1rem;
+        background: var(--sn-color-accent, #1e40af);
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 0.375rem;
+        z-index: 9999;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
     <header>
       <span class="badge" aria-label="Module M2">Sites suspects</span>
       <h1>Contexte risqué — pourquoi ce domaine est suspect</h1>
       <p class="subtitle">Sentinel Nudge — Détecteur de sites suspects</p>
     </header>
 
-    <main>
+    <main id="main-content">
       <section aria-labelledby="section-risk">
         <h2 id="section-risk">Description du risque</h2>
         <p>

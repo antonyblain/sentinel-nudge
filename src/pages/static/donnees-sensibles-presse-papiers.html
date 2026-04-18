@@ -9,7 +9,7 @@
         --sn-color-bg: #ffffff;
         --sn-color-fg: #111827;
         --sn-color-accent: #2563eb;
-        --sn-color-warning: #d97706;
+        --sn-color-warning: #92400e;
         --sn-color-muted: #6b7280;
         --sn-color-border: #e5e7eb;
         --sn-font-size-body: 1rem;
@@ -28,6 +28,7 @@
           --sn-color-accent: #60a5fa;
           --sn-color-border: #374151;
           --sn-color-muted: #9ca3af;
+          --sn-color-warning: #fbbf24; /* amber-400 — 5.17:1 sur #1f2937, conforme AA */
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -113,7 +114,7 @@
       @media (prefers-color-scheme: dark) {
         .tip-box {
           background: #451a03;
-          border-color: #d97706;
+          border-color: var(--sn-color-warning);
         }
       }
       .ref-list {
@@ -140,16 +141,40 @@
           padding: var(--sn-space-md);
         }
       }
+      /* ── Skip link WCAG 2.4.1 ──────────────────────────────── */
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+      .skip-link:focus {
+        position: fixed;
+        left: 1rem;
+        top: 1rem;
+        width: auto;
+        height: auto;
+        padding: 0.75rem 1rem;
+        background: var(--sn-color-accent, #1e40af);
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 0.375rem;
+        z-index: 9999;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
     <header>
       <span class="badge" aria-label="Module M17">Données sensibles</span>
       <h1>Données sensibles — risques du copier-coller</h1>
       <p class="subtitle">Sentinel Nudge — Détecteur de données sensibles dans le presse-papiers</p>
     </header>
 
-    <main>
+    <main id="main-content">
       <section aria-labelledby="section-risk">
         <h2 id="section-risk">Description du risque</h2>
         <p>
