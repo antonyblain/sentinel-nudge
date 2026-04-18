@@ -46,5 +46,50 @@ export default defineConfig({
     include: ['../tests/unit/**/*.test.ts', '../tests/integration/**/*.test.ts'],
     setupFiles: [resolve(__dirname, 'tests/setup.ts')],
     tsconfig: resolve(__dirname, 'tsconfig.test.json'),
+
+    /**
+     * Configuration de la couverture de code — TACHE-025.
+     *
+     * Mode reporter-only : les rapports sont générés (text, html, lcov, json-summary)
+     * mais les seuils NE BLOQUENT PAS la CI.
+     *
+     * Seuils cibles : lines 80 %, functions 80 %, branches 80 %, statements 80 %.
+     * Couverture actuelle (2026-04-18) : ~36 % statements / ~67 % functions / ~80 % branches.
+     * Les seuils seront activés en TACHE-026 une fois TACHE-017 à 024 closes.
+     *
+     * Pour activer les seuils bloquants (TACHE-026) : décommenter la section thresholds
+     * ci-dessous et supprimer ce commentaire explicatif.
+     *
+     * Note sur les chemins : root Vite étant src/, les patterns include/exclude
+     * de coverage sont résolus depuis src/. '**\/*.ts' = src/**\/*.ts.
+     */
+    coverage: {
+      // Fournisseur V8 natif Node.js — aucune instrumentation Babel requise
+      provider: 'v8',
+      // Rapports produits dans ./coverage/ (text=console, html=navigateur, json-summary=badge CI, lcov=SonarQube/Codecov)
+      reporter: ['text', 'html', 'json-summary', 'lcov'],
+      // Répertoire de sortie relatif à la racine du projet (pas à src/)
+      reportsDirectory: '../coverage',
+      // Périmètre : uniquement le code source TypeScript dans src/
+      // Chemins relatifs au root Vite (src/)
+      include: ['**/*.ts'],
+      exclude: [
+        '**/*.d.ts',
+        '**/*.test.ts',
+        'assets/**',
+      ],
+      // -----------------------------------------------------------------------
+      // TACHE-026 : décommenter les thresholds ci-dessous pour activer les seuils
+      // bloquants une fois TACHE-017 à 024 closes (objectif 80 % couverture globale).
+      // perFile: false = seuil global projet, pas par fichier individuel.
+      // -----------------------------------------------------------------------
+      // thresholds: {
+      //   lines: 80,
+      //   functions: 80,
+      //   branches: 80,
+      //   statements: 80,
+      //   perFile: false,
+      // },
+    },
   },
 });
