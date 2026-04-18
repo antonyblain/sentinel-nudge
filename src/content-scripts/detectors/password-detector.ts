@@ -1655,6 +1655,11 @@ function attachSubmitListeners(): void {
  *
  * UC-05 : les mutations type="password" → type="text" (et inversement) sont
  * capturées pour maintenir le registre _snPasswordInputs à jour (INV-UC05-01).
+ *
+ * F-UC01-01 (TACHE-101) : correctif détection nœud racine React.
+ * Lorsque React insère un input[type="password"] comme addedNode direct
+ * (sans wrapper), querySelectorAll ne l'inclut pas. On appelle d'abord
+ * node.matches('input[type="password"]') pour couvrir ce cas (Cas A Google SPA).
  */
 function observeDynamicForms(): void {
   const observer = new MutationObserver((mutations) => {
@@ -1672,11 +1677,19 @@ function observeDynamicForms(): void {
     // Détecter les nouveaux formulaires / inputs password ajoutés dynamiquement
     childMutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
-        if (
-          node.nodeType === Node.ELEMENT_NODE &&
-          ((node as Element).tagName === 'FORM' ||
-            (node as Element).querySelector?.('input[type="password"]'))
-        ) {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        const el = node as Element;
+
+        // F-UC01-01 (TACHE-101) : nœud racine ajouté directement par React.
+        // querySelectorAll ne sélectionne PAS le nœud lui-même — on doit
+        // vérifier node.matches() séparément avant de chercher des descendants.
+        if (el.matches?.('input[type="password"]')) {
+          registerPasswordInput(el as HTMLInputElement);
+          hasNewForms = true;
+          return;
+        }
+
+        if (el.tagName === 'FORM' || el.querySelector?.('input[type="password"]')) {
           hasNewForms = true;
         }
       });
@@ -1875,4 +1888,5 @@ export {
   collectPasswordInputs,
   handleTypeAttributeMutation,
   handleFormSubmit,
+  observeDynamicForms,
 };
