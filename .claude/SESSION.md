@@ -2,6 +2,24 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (fin session 2026-04-19 — clôture propre demandée Commanditaire).** 🏁 **29 PR mergées** sur la session (#51 à #78 moins #75 fermée). Cycle UC-01 + Chantiers G/H/I/J + conformité RGPD user-friendly + audit GitHub + LL-030/031 + pixel-perfect popup 3 thèmes + hotfix 6 défauts rendu. **29 PR** dont :
+- Tests : 435 → **897 verts** (+462 tests sur la session)
+- Design system v2 : 3 thèmes retenus Aegis Light / Midnight Obsidian / Cyberpunk Neon intégrés
+- Structure popup pixel-perfect maquettes v3 (T-156)
+- Politique confidentialité v1.1 + AIPD v1.2 + registre traitements Art. 30 user-friendly (T-154)
+- Supply-chain hardening : SHA pinning CWE-829, CODEOWNERS, dependabot, LICENSE GPL-3.0 sur main
+- 2FA + Passkey activés (T-122), paramétrage repo (default=develop, squash only, auto-delete, T-129)
+
+**PR #79 hotfix en cours** : 6 fixes Commanditaire (bouton "Voir le tableau de bord", labels modules courts, doublon "lundi", texte blanc bouton dark, dégradé Cyberpunk top+bottom+glow, btn-fg matrix gardé noir AA-safe après arbitrage axe-core). CI partielle (E2E fail axe-core contraste matrix — remonté dans T-157 arbitrage demain).
+
+**TACHE-157 créée** (session demain 2026-04-20) : (a) angles/bords arrondis chips/boutons, (b) rendu bizarre en haut popup Aegis, (c) arbitrage contraste bouton Matrix (blanc pixel-perfect vs noir AA), (d) scroll résiduel popup.
+
+**Actions Commanditaire restantes** : recette manuelle Google+MS (TACHE-068), TACHE-112 passage repo public (guide prêt, 4 points gh CLI + 2 points UI), TACHE-157 finitions popup à la reprise.
+
+Clôture propre — aucun worktree actif. Base develop saine.
+
+---
+
 **Où on en est (session 2026-04-18 soir — TACHE-156 pixel-perfect popup).** TACHE-156 refonte pixel-perfect popup complète : commit `de154cd`, **PR #78 ouverte vers `develop`**, CI **4/4 verte** (897/897 tests, 2× Qualité + 2× E2E Playwright). Structure `div.popup-header` + emoji 🛡 + `h2`, fond bleu solide Aegis Light, `surface-2` + barre accent dégradée Midnight Obsidian, `surface-2` + texte cyan + glow Cyberpunk Neon. TACHE-152 et TACHE-153 passées Terminé dans le BACKLOG. TACHE-156 ajoutée Terminé. **Action Commanditaire** : vérifier le rendu visuel dans Chrome (charger le dist/ avec les 3 thèmes), puis merger PR #78 → develop.
 
 ---
