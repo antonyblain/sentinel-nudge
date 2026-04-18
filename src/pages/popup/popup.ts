@@ -354,64 +354,62 @@ export function renderScoreSection(
   const gaugeWrap = document.createElement('div');
   gaugeWrap.className = 'gauge-wrap';
 
-  // SVG circulaire
+  // SVG arc semi-circulaire (maquette v3 : viewBox 120x80, arc 180°)
+  // Path : M10,70 A50,50 0 0,1 110,70 — demi-cercle horizontal en haut
+  // Longueur de l'arc = π * 50 ≈ 157
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('class', 'gauge-svg');
-  svg.setAttribute('viewBox', '0 0 120 120');
+  svg.setAttribute('viewBox', '0 0 120 80');
   svg.setAttribute('width', '120');
-  svg.setAttribute('height', '120');
+  svg.setAttribute('height', '80');
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', ariaScore);
 
-  // Cercle de fond (track)
-  const bgCircle = document.createElementNS(svgNS, 'circle');
-  bgCircle.setAttribute('cx', '60');
-  bgCircle.setAttribute('cy', '60');
-  bgCircle.setAttribute('r', '50');
-  bgCircle.setAttribute('fill', 'none');
-  bgCircle.setAttribute('stroke', 'var(--sn-gauge-track)');
-  bgCircle.setAttribute('stroke-width', '12');
-  svg.appendChild(bgCircle);
+  const ARC_LENGTH = Math.PI * 50; // ≈ 157
 
-  // Cercle de progression
-  const circumference = 2 * Math.PI * 50;
-  const dashOffset = circumference * (1 - progressRatio);
-  const progressCircle = document.createElementNS(svgNS, 'circle');
-  progressCircle.setAttribute('cx', '60');
-  progressCircle.setAttribute('cy', '60');
-  progressCircle.setAttribute('r', '50');
-  progressCircle.setAttribute('fill', 'none');
-  progressCircle.setAttribute('stroke', displayColor);
-  progressCircle.setAttribute('stroke-width', '12');
-  progressCircle.setAttribute('stroke-linecap', 'round');
-  progressCircle.setAttribute('stroke-dasharray', String(circumference));
-  progressCircle.setAttribute('stroke-dashoffset', String(dashOffset));
-  progressCircle.setAttribute('transform', 'rotate(-90 60 60)');
-  svg.appendChild(progressCircle);
+  // Arc de fond (track)
+  const bgPath = document.createElementNS(svgNS, 'path');
+  bgPath.setAttribute('d', 'M10,70 A50,50 0 0,1 110,70');
+  bgPath.setAttribute('fill', 'none');
+  bgPath.setAttribute('stroke', 'var(--sn-gauge-track)');
+  bgPath.setAttribute('stroke-width', '10');
+  bgPath.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(bgPath);
 
-  // Texte score dans SVG (aria-hidden, visuel uniquement)
+  // Arc de progression
+  const dashOffset = ARC_LENGTH * (1 - progressRatio);
+  const progressPath = document.createElementNS(svgNS, 'path');
+  progressPath.setAttribute('d', 'M10,70 A50,50 0 0,1 110,70');
+  progressPath.setAttribute('fill', 'none');
+  progressPath.setAttribute('stroke', displayColor);
+  progressPath.setAttribute('stroke-width', '10');
+  progressPath.setAttribute('stroke-linecap', 'round');
+  progressPath.setAttribute('stroke-dasharray', String(ARC_LENGTH));
+  progressPath.setAttribute('stroke-dashoffset', String(dashOffset));
+  svg.appendChild(progressPath);
+
+  // Texte score dans SVG (centré dans l'arc, aria-hidden)
   const scoreText = document.createElementNS(svgNS, 'text');
   scoreText.setAttribute('x', '60');
-  scoreText.setAttribute('y', '62');
+  scoreText.setAttribute('y', '64');
   scoreText.setAttribute('text-anchor', 'middle');
-  scoreText.setAttribute('dominant-baseline', 'middle');
-  scoreText.setAttribute('font-size', '28');
+  scoreText.setAttribute('font-size', '22');
   scoreText.setAttribute('font-weight', '700');
   scoreText.setAttribute('fill', displayColor);
   scoreText.setAttribute('aria-hidden', 'true');
   scoreText.textContent = displayScore;
   svg.appendChild(scoreText);
 
-  // Texte /100 dans SVG
+  // Texte /100 sous le score
   const maxText = document.createElementNS(svgNS, 'text');
   maxText.setAttribute('x', '60');
-  maxText.setAttribute('y', '82');
+  maxText.setAttribute('y', '78');
   maxText.setAttribute('text-anchor', 'middle');
-  maxText.setAttribute('font-size', '12');
+  maxText.setAttribute('font-size', '9');
   maxText.setAttribute('fill', 'var(--sn-color-fg-muted)');
   maxText.setAttribute('aria-hidden', 'true');
-  maxText.textContent = '/100';
+  maxText.textContent = '/ 100';
   svg.appendChild(maxText);
 
   gaugeWrap.appendChild(svg);
