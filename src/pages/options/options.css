@@ -427,8 +427,8 @@ body {
   outline-offset: 2px;
 }
 
-/* Dark/matrix : danger-bg translucide -> contraste insuffisant WCAG AA
-   #fff sur #991b1b = 6.5:1 PASS  |  #fff sur #9b1239 = 5.2:1 PASS */
+/* Dark/matrix : danger text (#ef4444) sur fond translucide = 4.08:1 FAIL WCAG AA
+   Fix : fond danger solide + texte blanc (#fff sur #991b1b = 9.24:1 dark, #9b1239 = 8.8:1 matrix) */
 @media (prefers-color-scheme: dark) {
   .btn-danger {
     background-color: #991b1b;

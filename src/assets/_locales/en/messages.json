@@ -942,5 +942,141 @@
   "options_theme_matrix": {
     "message": "Matrix",
     "description": "Matrix theme option (Cyberpunk Neon)"
+  },
+  "popup_tagline": {
+    "message": "Cyber-hygiene score",
+    "description": "Tagline in popup header"
+  },
+  "popup_modules_section_title": {
+    "message": "Active modules",
+    "description": "Modules section title in popup"
+  },
+  "popup_modules_grid_aria": {
+    "message": "Protection modules grid",
+    "description": "Aria-label for modules grid"
+  },
+  "popup_nudges_today_label": {
+    "message": "Nudges today",
+    "description": "Label for quota progress bar"
+  },
+  "popup_score_trend_up": {
+    "message": "+ $1 this week",
+    "description": "Score trend going up",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "popup_score_trend_down": {
+    "message": "- $1 this week",
+    "description": "Score trend going down",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popup_score_trend_stable": {
+    "message": "Stable this week",
+    "description": "Score trend stable"
+  },
+  "dashboard_kpi_score_label": {
+    "message": "Global score",
+    "description": "Dashboard score KPI label"
+  },
+  "dashboard_kpi_score_sub": {
+    "message": "out of 100",
+    "description": "Dashboard score KPI sub-label"
+  },
+  "dashboard_kpi_nudges_label": {
+    "message": "Nudges received",
+    "description": "Dashboard nudges KPI label"
+  },
+  "dashboard_kpi_nudges_sub": {
+    "message": "this week",
+    "description": "Dashboard nudges KPI sub-label"
+  },
+  "dashboard_kpi_streak_label": {
+    "message": "Active streak",
+    "description": "Dashboard streak KPI label"
+  },
+  "dashboard_kpi_streak_sub": {
+    "message": "consecutive days",
+    "description": "Dashboard streak KPI sub-label"
+  },
+  "dashboard_nudge_history_title": {
+    "message": "Nudge history",
+    "description": "Dashboard nudge history section title"
+  },
+  "dashboard_nudge_history_empty": {
+    "message": "No nudges recorded",
+    "description": "Empty nudge list message"
+  },
+  "dashboard_nudge_tag_seen": {
+    "message": "Seen",
+    "description": "Seen nudge tag"
+  },
+  "dashboard_nudge_tag_dismissed": {
+    "message": "Dismissed",
+    "description": "Dismissed nudge tag"
+  },
+  "dashboard_whitelist_title": {
+    "message": "Trusted sites M2",
+    "description": "Dashboard whitelist section title"
+  },
+  "dashboard_whitelist_empty": {
+    "message": "No site added",
+    "description": "Empty whitelist message"
+  },
+  "dashboard_whitelist_add_label": {
+    "message": "Add a domain",
+    "description": "Whitelist add input label"
+  },
+  "dashboard_whitelist_add_btn": {
+    "message": "Add",
+    "description": "Add whitelist button"
+  },
+  "dashboard_whitelist_remove_btn": {
+    "message": "Remove",
+    "description": "Remove whitelist entry button"
+  },
+  "options_nav_modules": {
+    "message": "Modules",
+    "description": "Options nav — Modules"
+  },
+  "options_nav_appearance": {
+    "message": "Appearance",
+    "description": "Options nav — Appearance"
+  },
+  "options_nav_quota": {
+    "message": "Quota",
+    "description": "Options nav — Quota"
+  },
+  "options_nav_language": {
+    "message": "Language",
+    "description": "Options nav — Language"
+  },
+  "options_nav_data": {
+    "message": "My data",
+    "description": "Options nav — Data"
+  },
+  "options_nav_about": {
+    "message": "About",
+    "description": "Options nav — About"
+  },
+  "options_nav_accessibility": {
+    "message": "Accessibility",
+    "description": "Options nav — Accessibility"
+  },
+  "onboarding_hero_tagline": {
+    "message": "Improve your security habits",
+    "description": "Onboarding hero tagline"
+  },
+  "onboarding_hero_desc": {
+    "message": "Micro-nudges based on behavioral research. All processing is local, no telemetry.",
+    "description": "Onboarding hero description"
   }
 }
