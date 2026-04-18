@@ -318,11 +318,28 @@ test.describe('TACHE-150 — Audit axe-core automatisé (4 pages × 3 thèmes)',
           };
           allResults.push(result);
 
-          // Loguer les violations pour faciliter le diagnostic CI
+          // Vérifier le thème effectivement appliqué (diagnostic race condition)
+          const appliedTheme = await page.evaluate(
+            () => document.documentElement.dataset['theme'] ?? '(none)',
+          );
+          if (appliedTheme !== theme) {
+            console.warn(
+              JSON.stringify({
+                diagnostic: 'theme_mismatch',
+                page: pageConfig.id,
+                expected: theme,
+                actual: appliedTheme,
+              }),
+            );
+          }
+
+          // Loguer les violations avec détail des nœuds pour faciliter le diagnostic CI
           if (violations.length > 0) {
+            // Log résumé
             console.info(
               JSON.stringify({
                 audit: `${pageConfig.id}/${theme}`,
+                applied_theme: appliedTheme,
                 violations_count: violations.length,
                 blockers_count: blockers.length,
                 violations: violations.map((v) => ({
@@ -333,6 +350,26 @@ test.describe('TACHE-150 — Audit axe-core automatisé (4 pages × 3 thèmes)',
                 })),
               }),
             );
+            // Log détail des nœuds défaillants (cible CSS + couleurs)
+            for (const rawViolation of axeResults.violations) {
+              if (BLOCKING_IMPACTS.has(rawViolation.impact ?? '')) {
+                for (const node of rawViolation.nodes) {
+                  console.info(
+                    JSON.stringify({
+                      violation_node: rawViolation.id,
+                      page: pageConfig.id,
+                      theme,
+                      target: node.target,
+                      html: node.html?.substring(0, 200),
+                      any: node.any?.map((c) => ({
+                        id: c.id,
+                        data: c.data,
+                      })),
+                    }),
+                  );
+                }
+              }
+            }
           }
 
           // Assertion principale : zéro violation bloquante (critical/serious)
