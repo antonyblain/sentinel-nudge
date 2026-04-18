@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentinel Nudge — Thème Clair 1 : Aegis Light</title>
+<style>
+/* ============================================================
+   THÈME CLAIR 1 — AEGIS LIGHT
+   Concept : Clean professionnel. Blanc cassé, bleu acier Aegis,
+   ombres subtiles. Fidèle au brand book v1. Sobre, institutionnel,
+   adapté usage professionnel RSSI / entreprise.
+   Palette clé : #f5f7fa · #ffffff · #1e3a5f · #2e6da4 · #1a2733
+   Accessibilité : WCAG 2.2 AA — tous contrastes ≥ 4.5:1
+   Dark fallback : @media prefers-color-scheme: dark → Aegis Night
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── Tokens Clair ─── */
+:root {
+  --bg:           #f5f7fa;
+  --surface:      #ffffff;
+  --surface-2:    #eef2f7;
+  --border:       #d0dae8;
+  --fg:           #1a2733;
+  --fg-muted:     #5d7080;
+  --fg-subtle:    #8a9eb0;
+  --primary:      #1e3a5f;
+  --accent:       #2e6da4;
+  --accent-hover: #245a87;
+  --accent-light: #dbeeff;
+  --success:      #1a7a4a;
+  --success-bg:   #e6f4ed;
+  --danger:       #c0392b;
+  --danger-bg:    #fdecea;
+  --warning:      #b45309;
+  --warning-bg:   #fef3e2;
+  --gauge-low:    #e84040;
+  --gauge-mid:    #e09020;
+  --gauge-good:   #1a9050;
+  --gauge-track:  #d8e4ef;
+  --radius-sm:    4px;
+  --radius:       8px;
+  --radius-lg:    12px;
+  --shadow-sm:    0 1px 4px rgba(30,58,95,.10);
+  --shadow:       0 4px 12px rgba(30,58,95,.14);
+  --shadow-lg:    0 8px 28px rgba(30,58,95,.18);
+  --font:         system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --font-mono:    ui-monospace,"Cascadia Code",Consolas,monospace;
+}
+
+/* ─── Dark fallback auto (OS dark → Aegis Night) ─── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:           #0e1620;
+    --surface:      #162030;
+    --surface-2:    #1c2a3e;
+    --border:       #2a3f5a;
+    --fg:           #d8e8f8;
+    --fg-muted:     #7a9ab8;
+    --fg-subtle:    #4a6880;
+    --primary:      #6ba3d6;
+    --accent:       #4da8da;
+    --accent-hover: #6bbae4;
+    --accent-light: rgba(77,168,218,.15);
+    --success:      #4ade80;
+    --success-bg:   rgba(74,222,128,.12);
+    --danger:       #f87171;
+    --danger-bg:    rgba(248,113,113,.12);
+    --warning:      #fbbf24;
+    --warning-bg:   rgba(251,191,36,.10);
+    --gauge-track:  rgba(255,255,255,.08);
+    --shadow-sm:    0 1px 6px rgba(0,0,0,.40);
+    --shadow:       0 4px 20px rgba(0,0,0,.55);
+    --shadow-lg:    0 8px 40px rgba(0,0,0,.65);
+  }
+}
+
+/* ─── Base ─── */
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ─── Layout page ─── */
+.page-wrapper {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 100vh;
+  gap: 0;
+}
+
+/* ─── Sidebar navigation ─── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0;
+  box-shadow: var(--shadow-sm);
+}
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.sidebar-brand-icon {
+  width: 36px; height: 36px;
+  background: var(--primary);
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px; flex-shrink: 0;
+}
+.sidebar-brand-name {
+  font-size: 15px; font-weight: 700;
+  color: var(--primary); line-height: 1.2;
+}
+.sidebar-brand-sub {
+  font-size: 11px; color: var(--fg-muted);
+}
+.sidebar-nav { flex: 1; padding: 0 12px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 500;
+  color: var(--fg-muted); cursor: pointer; margin-bottom: 2px;
+  transition: background 150ms ease, color 150ms ease;
+  border: none; background: none; width: 100%; text-align: left;
+  min-height: 44px;
+}
+.nav-item:hover { background: var(--surface-2); color: var(--fg); }
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent); font-weight: 600;
+}
+.nav-item-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-item:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Contenu principal ─── */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 32px;
+  max-width: 960px;
+}
+
+/* ─── Sections ─── */
+.section-label {
+  display: inline-block;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 12px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--fg-muted);
+  margin-bottom: 16px;
+}
+.section-title {
+  font-size: 20px; font-weight: 700;
+  color: var(--primary); margin-bottom: 8px;
+}
+.section-desc {
+  font-size: 13px; color: var(--fg-muted); margin-bottom: 20px;
+}
+
+/* ─── Card ─── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.card-title {
+  font-size: 14px; font-weight: 700;
+  color: var(--fg-muted); text-transform: uppercase;
+  letter-spacing: .05em; margin-bottom: 16px;
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION 1 — POPUP ÉTENDUE
+   ══════════════════════════════════════════════════ */
+.popup-demo {
+  width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.popup-header {
+  background: var(--primary);
+  color: #fff;
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.popup-header-icon { font-size: 20px; }
+.popup-header-text h2 { font-size: 16px; font-weight: 700; }
+.popup-header-text p { font-size: 12px; opacity: .8; margin-top: 2px; }
+.popup-body { padding: 20px; }
+
+/* Score gauge SVG */
+.gauge-wrap {
+  display: flex; align-items: center; justify-content: center;
+  gap: 24px; margin-bottom: 20px;
+}
+.gauge-svg { width: 120px; }
+.gauge-info { text-align: left; }
+.gauge-score { font-size: 32px; font-weight: 700; color: var(--gauge-good); }
+.gauge-label { font-size: 13px; font-weight: 600; color: var(--gauge-good); }
+.gauge-trend { font-size: 12px; color: var(--fg-muted); margin-top: 4px; }
+
+/* Modules grid */
+.modules-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 16px;
+}
+.module-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px; font-weight: 500; color: var(--fg-muted);
+}
+.module-chip-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.module-chip-dot.active { background: var(--success); }
+.module-chip-dot.inactive { background: var(--gauge-track); }
+.module-chip-dot.warning { background: var(--gauge-mid); }
+
+/* Quota */
+.quota-bar-wrap { margin-bottom: 16px; }
+.quota-label {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--fg-muted); margin-bottom: 6px;
+}
+.quota-track {
+  height: 6px; background: var(--gauge-track);
+  border-radius: 3px; overflow: hidden;
+}
+.quota-fill {
+  height: 100%; border-radius: 3px;
+  background: var(--accent); width: 33%;
+  transition: width .4s ease;
+}
+
+/* Boutons popup */
+.popup-actions { display: flex; flex-direction: column; gap: 8px; }
+.btn {
+  min-height: 44px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; border: none;
+  transition: background 150ms ease, transform 100ms ease;
+  padding: 0 16px;
+}
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  background: var(--surface-2); color: var(--fg);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+.btn-danger-ghost {
+  background: var(--danger-bg); color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION 2 — DASHBOARD
+   ══════════════════════════════════════════════════ */
+.dashboard-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px; margin-bottom: 16px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.kpi-label { font-size: 12px; color: var(--fg-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+.kpi-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+.kpi-sub { font-size: 12px; color: var(--fg-muted); margin-top: 4px; }
+.kpi-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 6px; font-size: 12px; font-weight: 600;
+  padding: 2px 8px; border-radius: 999px;
+}
+.kpi-badge.up { background: var(--success-bg); color: var(--success); }
+.kpi-badge.down { background: var(--danger-bg); color: var(--danger); }
+
+/* Chart SVG */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
+}
+.chart-title { font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 16px; }
+
+/* Historique nudges */
+.nudge-list { display: flex; flex-direction: column; gap: 8px; }
+.nudge-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.nudge-icon {
+  width: 36px; height: 36px; border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.nudge-icon.m7 { background: var(--accent-light); }
+.nudge-icon.m2 { background: var(--warning-bg); }
+.nudge-icon.m17 { background: var(--success-bg); }
+.nudge-body { flex: 1; }
+.nudge-name { font-size: 13px; font-weight: 600; color: var(--fg); }
+.nudge-time { font-size: 11px; color: var(--fg-muted); margin-top: 2px; }
+.nudge-tag {
+  font-size: 11px; font-weight: 600; padding: 2px 8px;
+  border-radius: 999px; white-space: nowrap;
+}
+.nudge-tag.seen { background: var(--success-bg); color: var(--success); }
+.nudge-tag.dismissed { background: var(--surface-2); color: var(--fg-muted); }
+
+/* ══════════════════════════════════════════════════
+   SECTION 3 — OPTIONS
+   ══════════════════════════════════════════════════ */
+.options-layout {
+  display: grid; grid-template-columns: 220px 1fr; gap: 24px;
+}
+.options-sidebar {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.options-nav-item {
+  padding: 10px 14px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; color: var(--fg-muted);
+  cursor: pointer; min-height: 44px;
+  display: flex; align-items: center; gap: 8px;
+  border: none; background: none; text-align: left; width: 100%;
+  transition: background 150ms ease;
+}
+.options-nav-item:hover { background: var(--surface-2); color: var(--fg); }
+.options-nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+.options-nav-item:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Sélecteur de thème — 4 positions */
+.theme-selector {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.theme-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 16px; min-width: 80px; min-height: 80px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  cursor: pointer; font-size: 12px; font-weight: 600;
+  color: var(--fg-muted); transition: border-color 150ms ease;
+}
+.theme-btn:hover { border-color: var(--accent); color: var(--fg); }
+.theme-btn.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.theme-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.theme-btn-swatch {
+  width: 36px; height: 24px; border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.swatch-auto {
+  background: linear-gradient(135deg, #f5f7fa 50%, #0e1620 50%);
+}
+.swatch-light { background: #f5f7fa; }
+.swatch-dark { background: #0e1620; }
+.swatch-matrix { background: #000; border: 1px solid #00ff41; }
+
+/* Toggle modules */
+.module-toggle-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--surface-2);
+}
+.module-toggle-row:last-child { border-bottom: none; }
+.module-info { flex: 1; }
+.module-name { font-size: 14px; font-weight: 600; color: var(--fg); }
+.module-desc { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+/* Toggle switch */
+.toggle-track {
+  width: 44px; height: 24px; background: var(--border);
+  border-radius: 12px; position: relative; cursor: pointer;
+  transition: background 150ms ease; flex-shrink: 0;
+}
+.toggle-track.on { background: var(--accent); }
+.toggle-thumb {
+  width: 20px; height: 20px; background: #fff;
+  border-radius: 50%; position: absolute; top: 2px; left: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: transform 150ms ease;
+}
+.toggle-track.on .toggle-thumb { transform: translateX(20px); }
+
+/* ══════════════════════════════════════════════════
+   SECTION 4 — TOASTS ET OVERLAYS
+   ══════════════════════════════════════════════════ */
+.toasts-showcase {
+  display: flex; flex-direction: column; gap: 12px;
+}
+/* Toast M7 */
+.toast {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 380px;
+}
+.toast-m7 { background: var(--surface); border-left: 4px solid var(--accent); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+.toast-m17 { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--warning); }
+.toast-success { background: var(--success-bg); border: 1px solid var(--success); }
+.toast-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.toast-body { flex: 1; }
+.toast-title { font-size: 14px; font-weight: 700; color: var(--fg); margin-bottom: 4px; }
+.toast-text { font-size: 13px; color: var(--fg-muted); }
+.toast-close {
+  font-size: 18px; color: var(--fg-subtle); background: none; border: none;
+  cursor: pointer; padding: 0; line-height: 1; min-width: 44px; min-height: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Overlay M2 */
+.overlay-demo {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 24px; max-width: 400px;
+}
+.overlay-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.overlay-icon-wrap {
+  width: 48px; height: 48px;
+  background: var(--warning-bg);
+  border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.overlay-title { font-size: 16px; font-weight: 700; color: var(--fg); }
+.overlay-body { font-size: 13px; color: var(--fg-muted); line-height: 1.6; margin-bottom: 20px; }
+.overlay-actions { display: flex; gap: 8px; }
+
+/* ══════════════════════════════════════════════════
+   SECTION 5 — ONBOARDING
+   ══════════════════════════════════════════════════ */
+.onboarding-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden; max-width: 480px;
+}
+.onboarding-hero {
+  background: linear-gradient(135deg, var(--primary) 0%, #2e5f8f 100%);
+  padding: 32px 24px; text-align: center; color: #fff;
+}
+.onboarding-hero-icon { font-size: 40px; margin-bottom: 12px; }
+.onboarding-hero h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.onboarding-hero p { font-size: 14px; opacity: .85; line-height: 1.5; }
+.onboarding-body { padding: 24px; }
+.onboarding-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--surface-2);
+}
+.onboarding-step:last-child { border-bottom: none; }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent-light); color: var(--accent);
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.step-text { font-size: 13px; color: var(--fg); line-height: 1.5; }
+.step-text strong { color: var(--primary); }
+.onboarding-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 12px;
+}
+/* Consent opt-in M7 */
+.consent-box {
+  background: var(--accent-light);
+  border: 1px solid rgba(46,109,164,.25);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 16px 0;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.consent-box label { font-size: 13px; color: var(--fg); line-height: 1.5; }
+
+/* ─── Responsive label demo ─── */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ─── Page démo layout ─── */
+body { background: #e8ecf1; }
+.demo-wrapper {
+  max-width: 1280px; margin: 0 auto; padding: 32px;
+}
+.demo-page-title {
+  font-size: 24px; font-weight: 700; color: #1e3a5f;
+  margin-bottom: 8px;
+}
+.demo-page-sub {
+  font-size: 14px; color: #5d7080; margin-bottom: 32px;
+}
+.demo-section {
+  margin-bottom: 48px;
+}
+.demo-section-header {
+  font-size: 16px; font-weight: 700; color: #1e3a5f;
+  border-left: 4px solid #2e6da4; padding-left: 12px;
+  margin-bottom: 24px;
+}
+.demo-row {
+  display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;
+}
+
+/* Palette strip */
+.palette-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.swatch-pill {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 10px; color: #5d7080;
+}
+.swatch-pill-block {
+  width: 52px; height: 32px; border-radius: 6px;
+  border: 1px solid rgba(0,0,0,.1);
+}
+</style>
+</head>
+<body>
+<div class="demo-wrapper">
+
+  <div class="demo-page-title">
+    🛡 Thème Clair 1 — Aegis Light
+  </div>
+  <p class="demo-page-sub">
+    Concept : Sobre, institutionnel, professionnel RSSI. Blanc cassé + Bleu acier Aegis.
+    Dark fallback automatique : Aegis Night (OS dark → bascule douce). WCAG 2.2 AA.
+  </p>
+
+  <!-- Palette -->
+  <div class="palette-strip">
+    <div class="swatch-pill">
+      <div class="swatch-pill-block" style="background:#f5f7fa"></div><span>#f5f7fa</span>
+    </div>
+    <div class="swatch-pill">
+      <div class="swatch-pill-block" style="background:#ffffff"></div><span>#ffffff</span>
+    </div>
+    <div class="swatch-pill">
+      <div class="swatch-pill-block" style="background:#1e3a5f"></div><span>#1e3a5f</span>
+    </div>
+    <div class="swatch-pill">
+      <div class="swatch-pill-block" style="background:#2e6da4"></div><span>#2e6da4</span>
+    </div>
+    <div class="swatch-pill">
+      <div class="swatch-pill-block" style="background:#1a7a4a"></div><span>#1a7a4a</span>
+    </div>
+    <div class="swatch-pill">
+      <div class="swatch-pill-block" style="background:#c0392b"></div><span>#c0392b</span>
+    </div>
+  </div>
+
+  <!-- SECTION 1 : POPUP -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 1 — Popup étendue (320×480px)</div>
+    <div class="demo-row">
+      <div class="popup-demo">
+        <div class="popup-header">
+          <div class="popup-header-icon">🛡</div>
+          <div class="popup-header-text">
+            <h2>Sentinel Nudge</h2>
+            <p>Score de cyber-hygiène</p>
+          </div>
+        </div>
+        <div class="popup-body">
+          <!-- Score gauge -->
+          <div class="gauge-wrap">
+            <svg class="gauge-svg" viewBox="0 0 120 80" aria-label="Score 74 sur 100">
+              <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="#d8e4ef" stroke-width="10" stroke-linecap="round"/>
+              <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="#1a9050" stroke-width="10" stroke-linecap="round"
+                stroke-dasharray="157" stroke-dashoffset="40" stroke-dashoffset="41"/>
+              <text x="60" y="64" text-anchor="middle" font-size="22" font-weight="700" fill="#1a9050">74</text>
+              <text x="60" y="78" text-anchor="middle" font-size="9" fill="#5d7080">/ 100</text>
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-score">74</div>
+              <div class="gauge-label">Bon niveau</div>
+              <div class="gauge-trend">↑ +5 cette semaine</div>
+            </div>
+          </div>
+          <!-- Modules -->
+          <div style="font-size:12px;font-weight:700;color:#5d7080;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Modules actifs</div>
+          <div class="modules-grid">
+            <div class="module-chip"><div class="module-chip-dot active"></div>M2 Phishing</div>
+            <div class="module-chip"><div class="module-chip-dot active"></div>M3 Score</div>
+            <div class="module-chip"><div class="module-chip-dot active"></div>M5 Quiz</div>
+            <div class="module-chip"><div class="module-chip-dot active"></div>M6 Réutilis.</div>
+            <div class="module-chip"><div class="module-chip-dot active"></div>M7 MDP</div>
+            <div class="module-chip"><div class="module-chip-dot warning"></div>M9 2FA</div>
+            <div class="module-chip"><div class="module-chip-dot active"></div>M17 Session</div>
+            <div class="module-chip"><div class="module-chip-dot inactive"></div>M? inactif</div>
+          </div>
+          <!-- Quota -->
+          <div class="quota-bar-wrap">
+            <div class="quota-label">
+              <span>Nudges aujourd'hui</span>
+              <span>1 / 3</span>
+            </div>
+            <div class="quota-track"><div class="quota-fill"></div></div>
+          </div>
+          <!-- Actions -->
+          <div class="popup-actions">
+            <button class="btn btn-primary">Voir le tableau de bord</button>
+            <button class="btn btn-secondary">Paramètres</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2 : DASHBOARD -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 2 — Dashboard plein écran</div>
+
+    <div class="dashboard-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Score global</div>
+        <div class="kpi-value">74</div>
+        <div class="kpi-sub">sur 100</div>
+        <div class="kpi-badge up">↑ +5</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Nudges reçus</div>
+        <div class="kpi-value">12</div>
+        <div class="kpi-sub">cette semaine</div>
+        <div class="kpi-badge up">+3</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Série active</div>
+        <div class="kpi-value">7j</div>
+        <div class="kpi-sub">consécutifs</div>
+        <div class="kpi-badge up">Record</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Tendance hebdomadaire du score</div>
+      <svg viewBox="0 0 600 120" width="100%" style="display:block;" aria-label="Graphique tendance">
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2e6da4" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#2e6da4" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,80 L80,75 L160,68 L240,70 L320,60 L400,50 L480,42 L560,35 L600,30"
+          fill="none" stroke="#2e6da4" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M0,80 L80,75 L160,68 L240,70 L320,60 L400,50 L480,42 L560,35 L600,30 L600,120 L0,120 Z"
+          fill="url(#chartGrad)"/>
+        <text x="0" y="115" font-size="9" fill="#8a9eb0">Lun</text>
+        <text x="72" y="115" font-size="9" fill="#8a9eb0">Mar</text>
+        <text x="152" y="115" font-size="9" fill="#8a9eb0">Mer</text>
+        <text x="232" y="115" font-size="9" fill="#8a9eb0">Jeu</text>
+        <text x="312" y="115" font-size="9" fill="#8a9eb0">Ven</text>
+        <text x="392" y="115" font-size="9" fill="#8a9eb0">Sam</text>
+        <text x="472" y="115" font-size="9" fill="#8a9eb0">Dim</text>
+      </svg>
+    </div>
+
+    <div class="section-label">Historique nudges</div>
+    <div class="nudge-list">
+      <div class="nudge-item">
+        <div class="nudge-icon m7">🔑</div>
+        <div class="nudge-body">
+          <div class="nudge-name">M7 — Détection mot de passe faible</div>
+          <div class="nudge-time">Il y a 2h · gmail.com</div>
+        </div>
+        <span class="nudge-tag seen">Vu</span>
+      </div>
+      <div class="nudge-item">
+        <div class="nudge-icon m17">⏱</div>
+        <div class="nudge-body">
+          <div class="nudge-name">M17 — Session longue détectée</div>
+          <div class="nudge-time">Il y a 5h · github.com</div>
+        </div>
+        <span class="nudge-tag seen">Vu</span>
+      </div>
+      <div class="nudge-item">
+        <div class="nudge-icon m2">🚨</div>
+        <div class="nudge-body">
+          <div class="nudge-name">M2 — Risque phishing détecté</div>
+          <div class="nudge-time">Hier · site-inconnu.xyz</div>
+        </div>
+        <span class="nudge-tag dismissed">Ignoré</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3 : OPTIONS -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 3 — Paramètres & sélecteur de thème</div>
+    <div class="options-layout">
+      <div class="options-sidebar">
+        <button class="options-nav-item active">⚙️ Modules</button>
+        <button class="options-nav-item">🎨 Apparence</button>
+        <button class="options-nav-item">🔢 Quota</button>
+        <button class="options-nav-item">🌐 Langue</button>
+        <button class="options-nav-item">📦 Mes données</button>
+        <button class="options-nav-item">ℹ️ À propos</button>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Thème d'affichage</div>
+          <div class="theme-selector">
+            <button class="theme-btn selected" aria-pressed="true">
+              <div class="theme-btn-swatch swatch-auto"></div>
+              Auto (OS)
+            </button>
+            <button class="theme-btn">
+              <div class="theme-btn-swatch swatch-light"></div>
+              Clair
+            </button>
+            <button class="theme-btn">
+              <div class="theme-btn-swatch swatch-dark"></div>
+              Sombre
+            </button>
+            <button class="theme-btn">
+              <div class="theme-btn-swatch swatch-matrix"></div>
+              Matrix
+            </button>
+          </div>
+          <p style="font-size:12px;color:#5d7080;">
+            En mode Auto : le thème clair s'active si votre système est en mode clair, le thème sombre sinon.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">Modules de protection</div>
+          <div class="module-toggle-row">
+            <div class="module-info">
+              <div class="module-name">M7 — Détection mots de passe</div>
+              <div class="module-desc">Nudge lors de la saisie d'un mot de passe faible</div>
+            </div>
+            <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="module-toggle-row">
+            <div class="module-info">
+              <div class="module-name">M2 — Alerte phishing</div>
+              <div class="module-desc">Détecte les sites suspects et avertit</div>
+            </div>
+            <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="module-toggle-row">
+            <div class="module-info">
+              <div class="module-name">M9 — Double authentification</div>
+              <div class="module-desc">Rappel d'activer la 2FA sur les comptes sensibles</div>
+            </div>
+            <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="module-toggle-row">
+            <div class="module-info">
+              <div class="module-name">M17 — Sessions longues</div>
+              <div class="module-desc">Alerte après inactivité prolongée</div>
+            </div>
+            <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4 : TOASTS & OVERLAYS -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 4 — Toasts M7/M17 & Overlays M2/M6/M9</div>
+    <div class="demo-row">
+      <div class="toasts-showcase">
+        <div class="toast toast-m7">
+          <div class="toast-icon">🔑</div>
+          <div class="toast-body">
+            <div class="toast-title">Mot de passe faible détecté</div>
+            <div class="toast-text">Ce mot de passe ne respecte pas les bonnes pratiques. Utiliser un gestionnaire de mots de passe.</div>
+          </div>
+          <button class="toast-close" aria-label="Fermer">×</button>
+        </div>
+        <div class="toast toast-m17">
+          <div class="toast-icon">⏱</div>
+          <div class="toast-body">
+            <div class="toast-title">Session longue détectée</div>
+            <div class="toast-text">Vous êtes connecté depuis plus de 4h. Pensez à vous déconnecter.</div>
+          </div>
+          <button class="toast-close" aria-label="Fermer">×</button>
+        </div>
+        <div class="toast toast-success">
+          <div class="toast-icon">✅</div>
+          <div class="toast-body">
+            <div class="toast-title">Paramètres sauvegardés</div>
+            <div class="toast-text">Vos préférences ont été enregistrées localement.</div>
+          </div>
+        </div>
+      </div>
+      <div class="overlay-demo">
+        <div class="overlay-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="overlay-icon-wrap">⚠️</div>
+            <div>
+              <div class="overlay-title">Site suspect détecté</div>
+              <div style="font-size:12px;color:#5d7080;margin-top:2px;">M2 — Alerte phishing</div>
+            </div>
+          </div>
+          <button class="toast-close" aria-label="Fermer">×</button>
+        </div>
+        <p class="overlay-body">
+          Ce domaine présente des caractéristiques associées au phishing (homoglyphe, âge du domaine &lt; 7j, certificat auto-signé).
+          Il est recommandé de ne pas saisir d'identifiants sur cette page.
+        </p>
+        <div class="overlay-actions">
+          <button class="btn btn-danger-ghost">Ignorer</button>
+          <button class="btn btn-primary">Voir les détails</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5 : ONBOARDING -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 5 — Onboarding & opt-in M7</div>
+    <div class="demo-row">
+      <div class="onboarding-card">
+        <div class="onboarding-hero">
+          <div class="onboarding-hero-icon">🛡</div>
+          <h2>Bienvenue dans Sentinel Nudge</h2>
+          <p>Votre assistant de cyber-hygiène. Discret, local, sans télémétrie.</p>
+        </div>
+        <div class="onboarding-body">
+          <div class="onboarding-step">
+            <div class="step-num">1</div>
+            <div class="step-text"><strong>Activez les modules</strong> dont vous avez besoin — tout est désactivable à tout moment.</div>
+          </div>
+          <div class="onboarding-step">
+            <div class="step-num">2</div>
+            <div class="step-text"><strong>Vos données restent locales</strong> — aucune donnée ne quitte votre navigateur.</div>
+          </div>
+          <div class="onboarding-step">
+            <div class="step-num">3</div>
+            <div class="step-text"><strong>Recevez des nudges</strong> — des micro-alertes contextuelles basées sur la recherche comportementale.</div>
+          </div>
+          <div class="consent-box">
+            <input type="checkbox" id="consent-m7" style="width:20px;height:20px;accent-color:#2e6da4;margin-top:2px;flex-shrink:0;">
+            <label for="consent-m7">J'accepte que M7 analyse les champs mot de passe localement pour évaluer leur robustesse. <span style="color:#5d7080;">(Aucune donnée transmise)</span></label>
+          </div>
+        </div>
+        <div class="onboarding-footer">
+          <button class="btn btn-secondary" style="flex:1;">Ignorer</button>
+          <button class="btn btn-primary" style="flex:2;">Commencer →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

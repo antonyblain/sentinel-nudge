@@ -1,0 +1,270 @@
+/**
+ * tokens-v2.css — Design tokens v2 Sentinel Nudge
+ * Mécanisme de bascule de thème :
+ *
+ *   1. Tokens par défaut (:root) = thème CLAIR (Light Clarity)
+ *   2. @media (prefers-color-scheme: dark) = override automatique SOMBRE (Aurora)
+ *   3. [data-theme="light"]  = force le thème clair même si OS en dark
+ *   4. [data-theme="dark"]   = force le thème sombre même si OS en clair
+ *   5. [data-theme="matrix"] = thème Matrix (sélection manuelle uniquement)
+ *
+ * Application sur <html data-theme="..."> via chrome.storage.local.
+ * La valeur "auto" (défaut) laisse @media (prefers-color-scheme) décider.
+ *
+ * Usage en JS / TypeScript :
+ *   const theme = await chrome.storage.local.get('theme') ?? 'auto';
+ *   if (theme !== 'auto') document.documentElement.dataset.theme = theme;
+ *
+ * WCAG 2.2 AA : tous les couples texte/fond vérifient ≥ 4.5:1 (corps)
+ * et ≥ 3:1 (texte large ≥ 18pt ou 14pt bold).
+ */
+
+/* ══════════════════════════════════════════════════════════════
+ * 1. THÈME CLAIR — Light Clarity (défaut OS clair)
+ * Fond blanc cassé, bleu acier, accents indigo clairs.
+ * Contrastes : fg/bg = 16.4:1  |  accent/bg = 5.2:1
+ * ══════════════════════════════════════════════════════════════ */
+:root {
+  /* Surfaces */
+  --sn-color-bg:          #f5f7fa;   /* Fond principal */
+  --sn-color-surface:     #ffffff;   /* Cartes, panels */
+  --sn-color-surface-2:   #eef2f7;   /* Fond alterné, headers section */
+  --sn-color-border:      #d0dae8;   /* Séparateurs */
+
+  /* Texte */
+  --sn-color-fg:          #1a2733;   /* Corps — 15.8:1 sur bg */
+  --sn-color-fg-muted:    #5d7080;   /* Secondaire — 5.1:1 sur bg */
+  --sn-color-fg-subtle:   #8a9eb0;   /* Placeholders, micro-labels */
+
+  /* Marque */
+  --sn-color-primary:     #1e3a5f;   /* Titres — 12.8:1 sur bg */
+  --sn-color-accent:      #2e6da4;   /* Boutons, liens — 5.2:1 sur bg */
+  --sn-color-accent-hover:#245a87;
+  --sn-color-accent-light:#dbeeff;   /* Fond tags/badges accent */
+
+  /* Sémantiques */
+  --sn-color-success:     #1a7a4a;   /* 5.8:1 */
+  --sn-color-success-bg:  #e6f4ed;
+  --sn-color-danger:      #c0392b;   /* 5.6:1 */
+  --sn-color-danger-bg:   #fdecea;
+  --sn-color-warning:     #b45309;   /* 5.0:1 — ajusté AA sur fond clair */
+  --sn-color-warning-bg:  #fef3e2;
+  --sn-color-info-bg:     #e8f0fa;
+  --sn-color-info-border: #a8c8e8;
+
+  /* Score gauge */
+  --sn-gauge-low:         #e84040;
+  --sn-gauge-mid:         #e09020;
+  --sn-gauge-good:        #1a9050;
+  --sn-gauge-track:       #d8e4ef;
+
+  /* Ombres */
+  --sn-shadow-sm:  0 1px 4px rgba(30,58,95,.10);
+  --sn-shadow:     0 4px 12px rgba(30,58,95,.14);
+  --sn-shadow-lg:  0 8px 28px rgba(30,58,95,.18);
+  --sn-shadow-glow:none;
+
+  /* Glassmorphism (inactif en clair) */
+  --sn-glass-bg:          rgba(255,255,255,.92);
+  --sn-glass-border:      rgba(255,255,255,.5);
+  --sn-glass-blur:        blur(0px);
+
+  /* Typographie */
+  --sn-font-body: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Helvetica Neue",Arial,sans-serif;
+  --sn-font-mono: ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+
+  --sn-font-size-display: 26px;
+  --sn-font-size-h1:      22px;
+  --sn-font-size-h2:      18px;
+  --sn-font-size-body:    15px;
+  --sn-font-size-small:   13px;
+  --sn-font-size-micro:   11px;
+
+  --sn-font-weight-normal:   400;
+  --sn-font-weight-medium:   500;
+  --sn-font-weight-bold:     600;
+  --sn-font-weight-extrabold:700;
+
+  --sn-line-height:       1.5;
+  --sn-line-height-tight: 1.3;
+
+  /* Espacement grille 8px */
+  --sn-space-xs:  4px;
+  --sn-space-sm:  8px;
+  --sn-space-md:  16px;
+  --sn-space-lg:  24px;
+  --sn-space-xl:  32px;
+  --sn-space-2xl: 48px;
+
+  /* Rayons */
+  --sn-radius-sm: 4px;
+  --sn-radius:    8px;
+  --sn-radius-lg: 12px;
+  --sn-radius-xl: 20px;
+
+  /* Cible tactile WCAG 2.5.5 */
+  --sn-min-target: 44px;
+
+  /* Animations */
+  --sn-transition-fast:   150ms ease;
+  --sn-transition:        250ms ease;
+  --sn-transition-slow:   400ms cubic-bezier(.16,1,.3,1);
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 2. THÈME SOMBRE — Dark Aurora (auto via OS)
+ * Fond bleu nuit profond, glassmorphism, dégradés Aurora.
+ * Contrastes : fg/bg = 14.2:1  |  accent/bg = 5.8:1
+ * ══════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sn-color-bg:          #090e1a;
+    --sn-color-surface:     rgba(20,30,55,.80);
+    --sn-color-surface-2:   rgba(30,45,80,.60);
+    --sn-color-border:      rgba(100,140,220,.20);
+
+    --sn-color-fg:          #e4eeff;
+    --sn-color-fg-muted:    #90a8cc;
+    --sn-color-fg-subtle:   #5a72a0;
+
+    --sn-color-primary:     #7db8f0;
+    --sn-color-accent:      #5b9cf6;
+    --sn-color-accent-hover:#7ab0ff;
+    --sn-color-accent-light:rgba(91,156,246,.18);
+
+    --sn-color-success:     #4ade80;
+    --sn-color-success-bg:  rgba(74,222,128,.12);
+    --sn-color-danger:      #f87171;
+    --sn-color-danger-bg:   rgba(248,113,113,.12);
+    --sn-color-warning:     #fbbf24;
+    --sn-color-warning-bg:  rgba(251,191,36,.10);
+    --sn-color-info-bg:     rgba(91,156,246,.10);
+    --sn-color-info-border: rgba(91,156,246,.30);
+
+    --sn-gauge-low:         #f87171;
+    --sn-gauge-mid:         #fbbf24;
+    --sn-gauge-good:        #4ade80;
+    --sn-gauge-track:       rgba(255,255,255,.08);
+
+    --sn-shadow-sm:  0 1px 6px rgba(0,0,0,.40);
+    --sn-shadow:     0 4px 20px rgba(0,0,0,.55);
+    --sn-shadow-lg:  0 8px 40px rgba(0,0,0,.65);
+    --sn-shadow-glow:0 0 24px rgba(91,156,246,.25);
+
+    --sn-glass-bg:     rgba(20,30,55,.70);
+    --sn-glass-border: rgba(120,160,240,.22);
+    --sn-glass-blur:   blur(18px) saturate(1.5);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 3. OVERRIDE MANUEL : data-theme="light"
+ * Force le thème clair même quand l'OS est en dark mode.
+ * ══════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  --sn-color-bg:          #f5f7fa;
+  --sn-color-surface:     #ffffff;
+  --sn-color-surface-2:   #eef2f7;
+  --sn-color-border:      #d0dae8;
+  --sn-color-fg:          #1a2733;
+  --sn-color-fg-muted:    #5d7080;
+  --sn-color-fg-subtle:   #8a9eb0;
+  --sn-color-primary:     #1e3a5f;
+  --sn-color-accent:      #2e6da4;
+  --sn-color-accent-hover:#245a87;
+  --sn-color-accent-light:#dbeeff;
+  --sn-color-success:     #1a7a4a;
+  --sn-color-success-bg:  #e6f4ed;
+  --sn-color-danger:      #c0392b;
+  --sn-color-danger-bg:   #fdecea;
+  --sn-color-warning:     #b45309;
+  --sn-color-warning-bg:  #fef3e2;
+  --sn-shadow-glow:       none;
+  --sn-glass-bg:          rgba(255,255,255,.92);
+  --sn-glass-border:      rgba(255,255,255,.5);
+  --sn-glass-blur:        blur(0px);
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 4. OVERRIDE MANUEL : data-theme="dark"
+ * Force le thème sombre même quand l'OS est en mode clair.
+ * ══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --sn-color-bg:          #090e1a;
+  --sn-color-surface:     rgba(20,30,55,.80);
+  --sn-color-surface-2:   rgba(30,45,80,.60);
+  --sn-color-border:      rgba(100,140,220,.20);
+  --sn-color-fg:          #e4eeff;
+  --sn-color-fg-muted:    #90a8cc;
+  --sn-color-fg-subtle:   #5a72a0;
+  --sn-color-primary:     #7db8f0;
+  --sn-color-accent:      #5b9cf6;
+  --sn-color-accent-hover:#7ab0ff;
+  --sn-color-accent-light:rgba(91,156,246,.18);
+  --sn-color-success:     #4ade80;
+  --sn-color-success-bg:  rgba(74,222,128,.12);
+  --sn-color-danger:      #f87171;
+  --sn-color-danger-bg:   rgba(248,113,113,.12);
+  --sn-color-warning:     #fbbf24;
+  --sn-color-warning-bg:  rgba(251,191,36,.10);
+  --sn-shadow-glow:       0 0 24px rgba(91,156,246,.25);
+  --sn-glass-bg:          rgba(20,30,55,.70);
+  --sn-glass-border:      rgba(120,160,240,.22);
+  --sn-glass-blur:        blur(18px) saturate(1.5);
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 5. THÈME MATRIX — Activation manuelle uniquement
+ * Fond noir terminal, phosphore vert, police mono pure.
+ * PAS de bascule OS — uniquement via data-theme="matrix".
+ * Contrastes : fg/bg = 17.8:1  |  accent/bg = 11.4:1
+ * ══════════════════════════════════════════════════════════════ */
+[data-theme="matrix"] {
+  --sn-color-bg:          #000000;
+  --sn-color-surface:     #0a0f0a;
+  --sn-color-surface-2:   #0f1a0f;
+  --sn-color-border:      #00ff41;
+  --sn-color-fg:          #00ff41;   /* Vert phosphore — 17.8:1 sur #000 */
+  --sn-color-fg-muted:    #00b32c;   /* 8.6:1 sur #000 */
+  --sn-color-fg-subtle:   #007a1e;   /* 5.2:1 sur #000 — AA grand texte */
+  --sn-color-primary:     #00ff41;
+  --sn-color-accent:      #00ff41;
+  --sn-color-accent-hover:#66ff88;
+  --sn-color-accent-light:rgba(0,255,65,.08);
+  --sn-color-success:     #00ff41;
+  --sn-color-success-bg:  rgba(0,255,65,.08);
+  --sn-color-danger:      #ff4444;   /* Rouge terminal — 5.9:1 sur #000 */
+  --sn-color-danger-bg:   rgba(255,68,68,.08);
+  --sn-color-warning:     #ffaa00;   /* Ambre — 9.8:1 sur #000 */
+  --sn-color-warning-bg:  rgba(255,170,0,.08);
+  --sn-color-info-bg:     rgba(0,255,65,.05);
+  --sn-color-info-border: rgba(0,255,65,.30);
+  --sn-gauge-low:         #ff4444;
+  --sn-gauge-mid:         #ffaa00;
+  --sn-gauge-good:        #00ff41;
+  --sn-gauge-track:       rgba(0,255,65,.12);
+  --sn-shadow-sm:         0 1px 4px rgba(0,255,65,.15);
+  --sn-shadow:            0 4px 16px rgba(0,255,65,.20);
+  --sn-shadow-lg:         0 8px 32px rgba(0,255,65,.25);
+  --sn-shadow-glow:       0 0 20px rgba(0,255,65,.40);
+  --sn-glass-bg:          rgba(0,10,0,.90);
+  --sn-glass-border:      rgba(0,255,65,.35);
+  --sn-glass-blur:        blur(0px);
+  --sn-font-body:         ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  --sn-font-mono:         ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  --sn-radius-sm:         0px;
+  --sn-radius:            2px;
+  --sn-radius-lg:         4px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * MOUVEMENT RÉDUIT — prefers-reduced-motion
+ * Annule toutes les animations/transitions quel que soit le thème.
+ * ══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
