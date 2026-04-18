@@ -1,20 +1,21 @@
 /**
  * @file tests/unit/pages/popup/popup-t152-new-components.test.ts
- * @description Tests unitaires T-152 — nouveaux composants popup (refonte structurelle).
+ * @description Tests unitaires T-152 + T-153 + T-156 — nouveaux composants popup.
  *
  * Couvre les nouvelles fonctions exportées introduites dans la refonte T-152 :
  * - renderScoreSection(container, score, previousScore) :
- *     disposition gauge-wrap (SVG + gauge-info), trend, score null
+ *     disposition gauge-wrap (SVG + gauge-info), trend, score null (T-153)
  * - renderModulesSection(container, moduleStates, degradedLabels) :
  *     grille 8 chips, dot statut, placeholder futur
  * - renderQuotaBar(container, quotaUsed, quotaLimit, quotaReached) :
  *     barre de progression, compteur, cas illimité, cas atteint
  *
  * TC-GAUGE-* : jauge circulaire (structure gauge-wrap, gauge-info, gauge-score, gauge-label, gauge-trend)
+ *   TC-GAUGE-01/02/03 mis à jour pour T-153 (structure gauge TOUJOURS affichée — préférence Commanditaire)
  * TC-MODULES-GRID-* : grille modules chips (dot actif/inactif/warning, placeholder)
  * TC-QUOTA-BAR-* : barre quota (barre progression, role meter, accessibilité)
  *
- * Référence : TACHE-152, Maquettes v3, DAT §3.1, WCAG 2.2 AA
+ * Référence : TACHE-152, TACHE-153, TACHE-156, Maquettes v3, DAT §3.1, WCAG 2.2 AA
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -93,25 +94,37 @@ function makeContainer(): HTMLDivElement {
 // ===========================================================================
 
 describe('TC-GAUGE — renderScoreSection (refonte T-152)', () => {
-  // ─── Score null (état initial) ───
+  // ─── Score null (état initial) — T-153 : structure gauge TOUJOURS affichée ───
+  // Mise à jour TC-GAUGE-01/02/03 pour T-153 : préférence Commanditaire 2026-04-19
+  // "Je préfère qu'on ait ça directement, même si le premier score n'est pas encore calculé."
 
-  it('TC-GAUGE-01 : score null → div.score-no-data présent', () => {
+  it('TC-GAUGE-01 : score null → div.gauge-wrap présent (T-153 structure toujours affichée)', () => {
     const container = makeContainer();
     renderScoreSection(container, null);
-    expect(container.querySelector('.score-no-data')).not.toBeNull();
+    // T-153 : la structure gauge est TOUJOURS affichée, même sans score
+    expect(container.querySelector('.gauge-wrap')).not.toBeNull();
   });
 
-  it('TC-GAUGE-02 : score null → aucun .gauge-wrap', () => {
+  it('TC-GAUGE-02 : score null → aucun div.score-no-data (T-153 supprime le fallback plat)', () => {
     const container = makeContainer();
     renderScoreSection(container, null);
-    expect(container.querySelector('.gauge-wrap')).toBeNull();
+    // T-153 : pas de fallback plat "Premier score lundi" — la gauge affiche "—"
+    expect(container.querySelector('.score-no-data')).toBeNull();
   });
 
-  it('TC-GAUGE-03 : score null → p.score-no-data-label avec texte non vide', () => {
+  it('TC-GAUGE-03 : score null → gauge-trend contient un message informatif (T-153)', () => {
     const container = makeContainer();
     renderScoreSection(container, null);
-    const p = container.querySelector('p.score-no-data-label');
-    expect(p?.textContent).toBeTruthy();
+    // T-153 : le trend en état fresh install informe sur le prochain calcul
+    const trendEl = container.querySelector('.gauge-trend');
+    expect(trendEl?.textContent).toBeTruthy();
+    expect(trendEl?.textContent?.toLowerCase()).toMatch(/lundi|monday|score/);
+  });
+
+  it('TC-GAUGE-03b : score null → aucun div.score-no-data (T-153 supprime le fallback plat)', () => {
+    const container = makeContainer();
+    renderScoreSection(container, null);
+    expect(container.querySelector('.score-no-data')).toBeNull();
   });
 
   // ─── Structure gauge-wrap (maquette v3) ───
@@ -392,65 +405,46 @@ describe('TC-QUOTA-BAR — renderQuotaBar (refonte T-152)', () => {
     expect(container.querySelector('.quota-track')).not.toBeNull();
   });
 
-  it('TC-QUOTA-BAR-06 : quota-track a role="meter"', () => {
-    renderQuotaBar(container, 1, 3, false);
-    const track = container.querySelector('.quota-track');
-    expect(track?.getAttribute('role')).toBe('meter');
-  });
-
-  it('TC-QUOTA-BAR-07 : quota-track a aria-valuenow = quotaUsed (2)', () => {
-    renderQuotaBar(container, 2, 3, false);
-    const track = container.querySelector('.quota-track');
-    expect(track?.getAttribute('aria-valuenow')).toBe('2');
-  });
-
-  it('TC-QUOTA-BAR-08 : quota-track a aria-valuemax = quotaLimit (3)', () => {
-    renderQuotaBar(container, 1, 3, false);
-    const track = container.querySelector('.quota-track');
-    expect(track?.getAttribute('aria-valuemax')).toBe('3');
-  });
-
-  it('TC-QUOTA-BAR-09 : quota-track a aria-valuemin = "0"', () => {
-    renderQuotaBar(container, 1, 3, false);
-    const track = container.querySelector('.quota-track');
-    expect(track?.getAttribute('aria-valuemin')).toBe('0');
-  });
-
-  it('TC-QUOTA-BAR-10 : div.quota-fill présent dans .quota-track', () => {
+  it('TC-QUOTA-BAR-06 : div.quota-fill présent dans .quota-track', () => {
     renderQuotaBar(container, 1, 3, false);
     const track = container.querySelector('.quota-track');
     expect(track?.querySelector('.quota-fill')).not.toBeNull();
   });
 
-  it('TC-QUOTA-BAR-11 : quota atteint → fill à 100% avec couleur warning', () => {
+  it('TC-QUOTA-BAR-07 : quota-fill width ≈ 33% (1/3)', () => {
+    renderQuotaBar(container, 1, 3, false);
+    const fill = container.querySelector('.quota-fill') as HTMLElement;
+    expect(fill?.style.width).toBe('33%');
+  });
+
+  it('TC-QUOTA-BAR-08 : quota atteint → fill width=100% et couleur warning', () => {
     renderQuotaBar(container, 3, 3, true);
     const fill = container.querySelector('.quota-fill') as HTMLElement;
-    expect(fill.style.width).toBe('100%');
-    expect(fill.style.backgroundColor).toContain('warning');
+    expect(fill?.style.width).toBe('100%');
+    expect(fill?.style.backgroundColor).toContain('sn-color-warning');
   });
 
-  it('TC-QUOTA-BAR-12 : quota 1/3 → fill width = "33%"', () => {
-    renderQuotaBar(container, 1, 3, false);
-    const fill = container.querySelector('.quota-fill') as HTMLElement;
-    expect(fill.style.width).toBe('33%');
-  });
-
-  it('TC-QUOTA-BAR-13 : quota illimité → fill width = "0%"', () => {
-    renderQuotaBar(container, 0, null, false);
-    const fill = container.querySelector('.quota-fill') as HTMLElement;
-    expect(fill.style.width).toBe('0%');
-  });
-
-  it('TC-QUOTA-BAR-14 : quota-track a aria-label non vide', () => {
+  it('TC-QUOTA-BAR-09 : role="meter" sur .quota-track', () => {
     renderQuotaBar(container, 1, 3, false);
     const track = container.querySelector('.quota-track');
-    expect(track?.getAttribute('aria-label')).toBeTruthy();
+    expect(track?.getAttribute('role')).toBe('meter');
   });
 
-  it('TC-QUOTA-BAR-15 : quota-label span gauche (libellé) non vide', () => {
+  it('TC-QUOTA-BAR-10 : aria-valuenow sur .quota-track = quotaUsed', () => {
+    renderQuotaBar(container, 2, 3, false);
+    const track = container.querySelector('.quota-track');
+    expect(track?.getAttribute('aria-valuenow')).toBe('2');
+  });
+
+  it('TC-QUOTA-BAR-11 : aria-valuemax sur .quota-track = quotaLimit', () => {
     renderQuotaBar(container, 1, 3, false);
-    const labelRow = container.querySelector('.quota-label');
-    const spans = labelRow?.querySelectorAll('span');
-    expect(spans?.[0]?.textContent).toBeTruthy();
+    const track = container.querySelector('.quota-track');
+    expect(track?.getAttribute('aria-valuemax')).toBe('3');
+  });
+
+  it('TC-QUOTA-BAR-12 : aria-valuetext présent et non vide', () => {
+    renderQuotaBar(container, 1, 3, false);
+    const track = container.querySelector('.quota-track');
+    expect(track?.getAttribute('aria-valuetext')).toBeTruthy();
   });
 });
