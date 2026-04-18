@@ -151,6 +151,44 @@ Avant chaque `Agent(subagent_type=..., isolation="worktree", run_in_background=T
 6. ☐ Contexte SESSION.md + BACKLOG.md + INSTRUCTIONS.md + LESSONS_LEARNED.md mentionné ?
 7. ☐ TACHE BACKLOG correspondante existe et ID unique ?
 8. ☐ Si numéros TACHE à créer par l'agent : préciser la plage d'IDs réservée (éviter conflits parallélisme) ?
+9. ☐ **Si agent touche CSS / tokens / HTML : section « Impact accessibilité » incluse avec pré-vérif axe-core ? (LL-030/P-024)**
+
+---
+
+## 4bis. Section « Impact accessibilité » — agents touchant CSS / tokens / HTML (LL-030)
+
+**À inclure OBLIGATOIREMENT dans tout brief d'agent Dev qui modifie** : `src/assets/styles/tokens.css`, `src/pages/*/*.css`, `src/pages/*/*.html`, `src/content-scripts/ui/*.ts` (toasts/overlays), ou tout fichier impactant le rendu visuel.
+
+```markdown
+## Impact accessibilité — à respecter impérativement (LL-030 / P-024)
+
+1. **Lire** `docs/accessibilite/audit-axe-core-themes-v1.0.md` avant toute modification
+   pour connaître les contrastes actuels et les zones historiquement sensibles.
+
+2. **Zones critiques à NE PAS régresser** (historique P-024) :
+   - `popup` en thème `dark` (Midnight Obsidian) — contrastes boutons + liens
+   - `options` en thème `dark` — idem
+   - `onboarding` en thème `dark` (historique PR #59 T-150)
+
+3. **Tokens calibrés à préserver** (contrast ratio ≥ 4.5:1 WCAG AA) :
+   - `--sn-color-accent` (`#60a5fa` en dark)
+   - `--sn-color-btn-fg` (`#0d0d0f` en dark)
+   - `--sn-color-warning` (`#92400e` en light, `#f59e0b` en dark)
+
+4. **Pré-vérification locale obligatoire si Playwright disponible** :
+   ```bash
+   npm run build && npm run test:e2e -- accessibility-themes
+   ```
+   Si local impossible : documenter dans le rapport final et surveiller activement
+   CI via I-009 (polling `gh pr checks <num>` jusqu'à SUCCESS). Itérer immédiatement
+   en cas de violations détectées.
+
+5. **Seuil audit axe-core requis** : 12/12 combinaisons (4 pages × 3 thèmes) PASS
+   avec `tags: wcag2a wcag2aa wcag21aa wcag22aa`. Aucune violation `critical` ou
+   `serious` acceptée.
+```
+
+Rationale : le pattern d'échec CI axe-core après refonte CSS s'est produit 2 fois (PR #59 et PR T-143). La règle doit permettre aux futurs agents Dev d'anticiper et réduire les cycles push-fail-fix.
 
 ---
 
@@ -159,6 +197,7 @@ Avant chaque `Agent(subagent_type=..., isolation="worktree", run_in_background=T
 | Version | Date | Modifications |
 |---|---|---|
 | v1.0 | 2026-04-19 | Création initiale — capitalise LL-028 + recommandations audit T-138 v1.1 |
+| v1.1 | 2026-04-19 | Ajout §4bis « Impact accessibilité » (LL-030/P-024 — agents touchant CSS/tokens/HTML doivent pré-vérifier axe-core) |
 
 ---
 
