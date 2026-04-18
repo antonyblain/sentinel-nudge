@@ -1,20 +1,28 @@
 /**
  * @file tests/unit/content-scripts/password-detector-uc01.test.ts
- * @description Tests unitaires/intégration UC-01 — Login multi-étape (Microsoft cross-hostname,
- *              deep link Step 2, filtre isCreationForm sur SSO).
+ * @description Tests unitaires/intégration UC-01 — Login multi-étape (Google SPA,
+ *              Microsoft cross-hostname, deep link Step 2, filtre isCreationForm sur SSO).
  *
  * Couvre :
+ * - TC-UC01-01 : Google SPA — correctif F-UC01-01 (TACHE-101) détection nœud racine React,
+ *                hash rattaché à accounts.google.com (INV-UC01-01), pending_m7_toast
+ *                avec expires_at futur (ADR-002 R-CLI-03). Ajouté TACHE-124 post PR #29.
  * - TC-UC01-02 : Microsoft cross-hostname — hash rattaché au hostname Step 2 (login.live.com),
  *                réutilisation inter-domaines détectée, pending_m7_toast créé avec login.live.com.
  * - TC-UC01-03 : Deep link Step 2 direct — détection M7 active sans Step 1 préalable.
  * - TC-UC01-04 : Filtre isCreationForm sur page SSO Step 2 — doit retourner false (pas de
  *                faux positif) ; comportement documenté si un hint "Create account" est présent.
  *
- * TC-UC01-01 (Google SPA) — NON TRAITÉ : dépendance TACHE-101 (correctif F-UC01-01
- *   observeDynamicForms node.matches), à ajouter après merge de la PR T-101.
  * TC-UC01-05 (Okta) — NON TRAITÉ : hors périmètre v1 (ARB-068-03 Option A).
  *
  * Stratégie :
+ * - TC-UC01-01 : trois tests distincts.
+ *   A : mock MutationObserver — vérification directe que node.matches() du correctif
+ *       TACHE-101 enregistre un nœud racine React dans _snPasswordInputs.
+ *   B : handleFormSubmit simulant un input enregistré via le correctif F-UC01-01 —
+ *       domain_hash validé SHA-256 hex 64 chars, distinct du password hash (INV-UC01-01).
+ *   C : M7 handler avec crypto.subtle.decrypt mocké — pending_m7_toast écrit avec
+ *       domain_hash accounts.google.com et expires_at futur (ADR-002 R-CLI-03).
  * - TC-UC01-02 : test d'intégration M7 handler — deux soumissions successives avec même
  *   password hash, domain_hash distincts (login.microsoftonline.com vs login.live.com).
  *   Vérifie que le handler M7 détecte la réutilisation et écrit pending_m7_toast avec
@@ -27,7 +35,7 @@
  *   (via l'observation du message password_submitted envoyé ou non).
  *
  * Mini-DAT TACHE-068 v1.1 §12 — Tests de recette automatisés correspondants :
- *   TC-UC01-02, TC-UC01-03, TC-UC01-04
+ *   TC-UC01-01, TC-UC01-02, TC-UC01-03, TC-UC01-04
  *
  * Invariants vérifiés :
  *   INV-UC01-01 : domain_hash calculé exclusivement sur hostname de Step 2
@@ -35,7 +43,7 @@
  *   INV-UC01-03 : pending_m7_toast ne contient que domain_hash + expires_at
  *   INV-UC01-04 : isCreationForm retourne false sur page de connexion SSO standard
  *
- * Référence : mini-DAT TACHE-068 v1.1 §3, §12 ; ADR-002 R-CLI-03 ; TACHE-091
+ * Référence : mini-DAT TACHE-068 v1.1 §3, §12 ; ADR-002 R-CLI-03 ; TACHE-091 ; TACHE-124
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -175,6 +183,12 @@ const DOMAIN_HASH_MICROSOFTONLINE = 'a'.repeat(64);
  * (Step 2 — hostname effectif de saisie ; INV-UC01-01).
  */
 const DOMAIN_HASH_LIVE = 'b'.repeat(64);
+
+/**
+ * domain_hash simulé pour accounts.google.com
+ * (Step 2 Google SPA — hostname stable tout au long du flux ; INV-UC01-01).
+ */
+const DOMAIN_HASH_GOOGLE = 'c'.repeat(64);
 
 /** Crée un PasswordHashRecord factice */
 function buildHashRecord(hash: string, domainHash: string, id = 1): PasswordHashRecord {
@@ -410,10 +424,15 @@ describe('TC-UC01-02 — Microsoft cross-hostname : hash rattaché à login.live
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// Import du module password-detector pour TC-UC01-03 et TC-UC01-04
+// Import du module password-detector pour TC-UC01-01, TC-UC01-03 et TC-UC01-04
 // L'import doit être APRÈS la définition de global.chrome (ci-dessus).
 // ---------------------------------------------------------------------------
-import { _snPasswordInputs, handleFormSubmit } from '@/content-scripts/detectors/password-detector';
+import {
+  _snPasswordInputs,
+  handleFormSubmit,
+  observeDynamicForms,
+  registerPasswordInput,
+} from '@/content-scripts/detectors/password-detector';
 
 describe('TC-UC01-03 — Deep link Step 2 direct : détection M7 active sans Step 1', () => {
   /**
@@ -752,5 +771,333 @@ describe('TC-UC01-04 — Filtre isCreationForm sur page SSO Step 2', () => {
     // + lien forgot présent → Signal 5 absent
     // → isCreationForm=false → M7 envoie password_submitted (INV-UC01-04)
     expect(m7Messages.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ===========================================================================
+// TC-UC01-01 — Google SPA : login multi-étape avec correctif F-UC01-01 (TACHE-101)
+//
+// Ajouté par TACHE-124 — post merge PR #29 (fix) et PR #30 (TC-UC01-02/03/04).
+//
+// INV-UC01-01 : domain_hash calculé exclusivement sur hostname de Step 2
+//               (accounts.google.com stable tout au long du flux SPA React)
+// INV-UC01-03 : pending_m7_toast contient uniquement domain_hash + expires_at
+//
+// Référence : mini-DAT TACHE-068 v1.1 §2 Cas A, §3.1 F-UC01-01, §12 TC-UC01-01
+// ===========================================================================
+
+describe('TC-UC01-01 — Google SPA : correctif F-UC01-01 TACHE-101 + détection accounts.google.com', () => {
+  /**
+   * Contexte : Google utilise un routage SPA React. La page ne recharge pas entre
+   * Step 1 (email) et Step 2 (password). React insère le champ type="password"
+   * directement comme nœud racine dans addedNodes du MutationObserver (F-UC01-01).
+   *
+   * Avant TACHE-101, querySelectorAll('input[type="password"]', addedNode) ne
+   * sélectionnait pas le nœud lui-même → champ non détecté sur Google SPA.
+   * Après TACHE-101, node.matches('input[type="password"]') est vérifié en premier.
+   *
+   * Ces tests valident les trois aspects du correctif dans le contexte Google SPA :
+   * A — le correctif node.matches() enregistre bien le nœud racine React
+   * B — handleFormSubmit sur l'input enregistré produit un domain_hash valide (INV-UC01-01)
+   * C — deuxième visite avec même password → pending_m7_toast créé avec domain_hash
+   *     accounts.google.com et expires_at futur (ADR-002 R-CLI-03)
+   */
+
+  // -------------------------------------------------------------------------
+  // TC-UC01-01-A
+  // -------------------------------------------------------------------------
+
+  describe('TC-UC01-01-A — nœud racine React détecté via node.matches() (correctif F-UC01-01)', () => {
+    /**
+     * Mock MutationObserver pour capturer le callback injecté par observeDynamicForms().
+     * Stratégie identique à password-detector-fuc0101.test.ts TC-F-UC01-01-01.
+     */
+    let capturedCallback: MutationCallback | null = null;
+    let observeSpy: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      _snPasswordInputs.clear();
+      document.body.innerHTML = '';
+      capturedCallback = null;
+      observeSpy = vi.fn();
+
+      vi.stubGlobal(
+        'MutationObserver',
+        vi.fn().mockImplementation((callback: MutationCallback) => {
+          capturedCallback = callback;
+          return {
+            observe: observeSpy,
+            disconnect: vi.fn(),
+            takeRecords: vi.fn().mockReturnValue([]),
+          };
+        }),
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      document.body.innerHTML = '';
+      _snPasswordInputs.clear();
+    });
+
+    it(
+      'TC-UC01-01-A : input[type="password"] inséré comme nœud racine React sur accounts.google.com ' +
+        '→ enregistré dans _snPasswordInputs via node.matches() (correctif TACHE-101)',
+      () => {
+        /**
+         * Simule le comportement de React sur accounts.google.com Step 2 :
+         * React appelle DOM.appendChild(inputPassword) directement, sans wrapper.
+         * MutationObserver signale addedNodes = [inputPassword] (nœud racine).
+         *
+         * Sans le correctif TACHE-101 :
+         *   querySelectorAll('input[type="password"]', inputPassword) → [] (vide)
+         *   → registerPasswordInput non appelé → M7 aveugle
+         *
+         * Avec le correctif TACHE-101 :
+         *   inputPassword.matches('input[type="password"]') → true
+         *   → registerPasswordInput(inputPassword) appelé → M7 actif
+         */
+        // Arrange : démarrer l'observation (capture le callback MutationObserver)
+        observeDynamicForms();
+        expect(capturedCallback).not.toBeNull();
+
+        // Créer l'input exactement comme React le fait sur Google SPA Step 2 :
+        // nœud racine direct, sans wrapper div ni form
+        const passwordInput = document.createElement('input');
+        passwordInput.type = 'password';
+
+        // Construire un MutationRecord simulant addedNodes = [passwordInput] (racine directe)
+        const mockMutations: MutationRecord[] = [
+          {
+            type: 'childList',
+            target: document.body,
+            addedNodes: [passwordInput] as unknown as NodeList,
+            removedNodes: [] as unknown as NodeList,
+            previousSibling: null,
+            nextSibling: null,
+            attributeName: null,
+            attributeNamespace: null,
+            oldValue: null,
+          } as unknown as MutationRecord,
+        ];
+
+        // Act : déclencher le callback comme le navigateur le ferait au Step 2 Google SPA
+        capturedCallback!(mockMutations, {} as MutationObserver);
+
+        // Assert : le correctif TACHE-101 a enregistré l'input dans _snPasswordInputs
+        // (node.matches('input[type="password"]') = true → registerPasswordInput appelé)
+        expect(_snPasswordInputs.has(passwordInput)).toBe(true);
+
+        // Vérification complémentaire : observeDynamicForms a bien démarré l'observation
+        expect(observeSpy).toHaveBeenCalledWith(document.body, expect.any(Object));
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // TC-UC01-01-B
+  // -------------------------------------------------------------------------
+
+  describe('TC-UC01-01-B — domain_hash calculé sur accounts.google.com (hostname SPA stable, INV-UC01-01)', () => {
+    afterEach(() => {
+      document.body.innerHTML = '';
+      _snPasswordInputs.clear();
+    });
+
+    it(
+      'TC-UC01-01-B : après enregistrement via F-UC01-01, handleFormSubmit envoie password_submitted ' +
+        'avec domain_hash SHA-256 valide 64 chars, distinct du hash password (INV-UC01-01)',
+      async () => {
+        /**
+         * Simule l'état post-correctif TACHE-101 sur accounts.google.com :
+         * 1. observeDynamicForms() a détecté l'input React comme nœud racine
+         *    → registerPasswordInput(pwdInput) a été appelé → _snPasswordInputs contient l'input
+         * 2. L'utilisateur saisit son mot de passe et clique "Suivant"
+         * 3. handleFormSubmit envoie password_submitted avec hash + domain_hash
+         *
+         * Invariant vérifié : domain_hash est un SHA-256 hex 64 chars ≠ password hash
+         * (les deux calculs sont indépendants — INV-UC01-01 documenté dans le mini-DAT).
+         *
+         * Note : location.hostname dans jsdom est '' (empty string). Le domain_hash calculé
+         * est SHA-256(salt + '') = valeur déterministe. Ce qui importe ici est la forme
+         * (hex 64 chars) et l'indépendance par rapport au hash password.
+         */
+        // Arrange : simuler l'état post-observeDynamicForms (input enregistré via F-UC01-01)
+        const form = document.createElement('form');
+        const pwdInput = document.createElement('input');
+        pwdInput.type = 'password';
+        pwdInput.value = 'GoogleSPAPassword!Step2';
+        form.appendChild(pwdInput);
+        document.body.appendChild(form);
+
+        // Enregistrer l'input comme le ferait le correctif F-UC01-01 via observeDynamicForms
+        registerPasswordInput(pwdInput);
+        expect(_snPasswordInputs.has(pwdInput)).toBe(true);
+
+        vi.mocked(chrome.storage.local.get).mockImplementationOnce(
+          (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
+            callback({ installation_salt: 'b1'.repeat(32) });
+          },
+        );
+
+        const capturedMessages: unknown[] = [];
+        vi.mocked(chrome.runtime.sendMessage).mockImplementation(
+          (msg: unknown, callback?: (r: unknown) => void) => {
+            capturedMessages.push(msg);
+            callback?.({ success: true, action: 'skip', reason: 'no_reuse' });
+          },
+        );
+
+        const submitEvent = { isTrusted: true } as unknown as SubmitEvent;
+
+        // Act : soumission Step 2 Google SPA (post-correctif F-UC01-01)
+        await handleFormSubmit(submitEvent, pwdInput);
+
+        // Assert : password_submitted envoyé (INV-UC01-02 : pas de mot de passe en clair)
+        const m7Messages = capturedMessages.filter(
+          (msg) =>
+            typeof msg === 'object' &&
+            msg !== null &&
+            (msg as Record<string, unknown>)['module'] === 'M7' &&
+            (msg as Record<string, unknown>)['action'] === 'password_submitted',
+        );
+        expect(m7Messages.length).toBeGreaterThanOrEqual(1);
+
+        const payload = (m7Messages[0] as Record<string, unknown>)['payload'] as Record<
+          string,
+          unknown
+        >;
+
+        // domain_hash doit être un hash SHA-256 valide (64 hex chars) — INV-UC01-01
+        const domainHash = payload['domain_hash'] as string;
+        expect(typeof domainHash).toBe('string');
+        expect(domainHash).toHaveLength(64);
+        expect(/^[0-9a-f]{64}$/.test(domainHash)).toBe(true);
+
+        // domain_hash ≠ password hash (deux calculs SHA-256 distincts — INV-UC01-01)
+        const passwordHash = payload['hash'] as string;
+        expect(typeof passwordHash).toBe('string');
+        expect(passwordHash).toHaveLength(64);
+        expect(domainHash).not.toBe(passwordHash);
+
+        // INV-UC01-02 : mot de passe jamais en clair dans le payload
+        expect(payload['hash']).not.toBe('GoogleSPAPassword!Step2');
+        expect(payload).not.toHaveProperty('password');
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // TC-UC01-01-C
+  // -------------------------------------------------------------------------
+
+  describe('TC-UC01-01-C — pending_m7_toast avec domain_hash accounts.google.com + expires_at futur (ADR-002 R-CLI-03)', () => {
+    it(
+      'TC-UC01-01-C : deuxième visite même utilisateur/password → réutilisation détectée → ' +
+        'pending_m7_toast créé avec DOMAIN_HASH_GOOGLE et expires_at dans le futur (INV-UC01-03)',
+      async () => {
+        /**
+         * Scénario : l'utilisateur utilise le même mot de passe sur deux sites différents.
+         * M7 détecte la réutilisation inter-domaines au moment de la connexion Google SPA.
+         *
+         * Contexte :
+         * - Utilisation préalable : même mot de passe utilisé sur login.live.com (DOMAIN_HASH_LIVE)
+         *   → hash candidat stocké sous DOMAIN_HASH_LIVE (domaine différent de Google)
+         * - Connexion Google : soumission depuis accounts.google.com (DOMAIN_HASH_GOOGLE)
+         *   → isPasswordReused = true (candidate.domain_hash !== DOMAIN_HASH_GOOGLE — inter-domaines)
+         *   → pending_m7_toast écrit avec DOMAIN_HASH_GOOGLE + expires_at futur
+         *
+         * Note : le handler M7 ignore les candidats du même domain_hash (réutilisation
+         * intra-domaine ignorée — ligne isPasswordReused : candidate.domain_hash === domainHash).
+         * Pour déclencher la détection, le candidat doit être d'un domaine différent.
+         *
+         * ADR-002 R-CLI-03 : l'intent doit avoir un expires_at (pas timestamp legacy).
+         * INV-UC01-03 : pending_m7_toast contient uniquement domain_hash + expires_at.
+         * INV-UC01-01 : domain_hash = SHA-256(salt + "accounts.google.com"), jamais Step 1.
+         *
+         * Stratégie : crypto.subtle.decrypt mocké pour retourner le hash en clair →
+         * isPasswordReused retourne true → handler écrit pending_m7_toast.
+         */
+        // Arrange : hash candidat existant sous login.live.com (domaine différent de Google)
+        // → inter-domaines : candidat.domain_hash (LIVE) ≠ submit courant (GOOGLE)
+        const candidateFromLive = buildHashRecord(HASH_PASSWORD_REUSED, DOMAIN_HASH_LIVE, 3);
+        const storage = createMockStorage({ candidates: [candidateFromLive] });
+        const { heartbeat, incident } = createMockServices();
+
+        // Mock crypto.subtle.decrypt pour simuler la détection de réutilisation
+        const encoder = new TextEncoder();
+        const fakeDecrypted = encoder.encode(HASH_PASSWORD_REUSED).buffer as ArrayBuffer;
+        const originalCrypto = globalThis.crypto;
+        Object.defineProperty(globalThis, 'crypto', {
+          value: {
+            subtle: {
+              decrypt: vi.fn().mockResolvedValue(fakeDecrypted),
+            },
+          },
+          writable: true,
+          configurable: true,
+        });
+
+        const handler = createM7Handler(
+          storage as StorageService,
+          createFakeKey(),
+          heartbeat as HeartbeatService,
+          incident as IncidentService,
+        );
+
+        const nowBefore = Date.now();
+
+        // Act : soumission depuis accounts.google.com avec un hash déjà utilisé sur un autre site
+        const response = await handler(
+          {
+            module: 'M7',
+            action: 'password_submitted',
+            payload: { hash: HASH_PASSWORD_REUSED, domain_hash: DOMAIN_HASH_GOOGLE },
+            timestamp: Date.now(),
+          },
+          {} as chrome.runtime.MessageSender,
+        );
+
+        // Restaurer crypto original
+        Object.defineProperty(globalThis, 'crypto', {
+          value: originalCrypto,
+          writable: true,
+          configurable: true,
+        });
+
+        // Assert : réutilisation détectée → action 'show'
+        expect(response.success).toBe(true);
+        expect(response.action).toBe('show');
+        expect((response as { data?: { domain_hash?: string } }).data?.domain_hash).toBe(
+          DOMAIN_HASH_GOOGLE,
+        );
+
+        // pending_m7_toast écrit dans chrome.storage.local (INV-UC01-03, ADR-002)
+        const pendingToast = mockLocalStorage[PENDING_M7_TOAST_KEY] as
+          | Record<string, unknown>
+          | undefined;
+        expect(pendingToast).toBeDefined();
+
+        // domain_hash = accounts.google.com (hostname SPA stable — INV-UC01-01)
+        expect(pendingToast?.['domain_hash']).toBe(DOMAIN_HASH_GOOGLE);
+
+        // expires_at doit être dans le futur (TTL 10 min — R-CLI-03 / ADR-002 / TACHE-091)
+        expect(typeof pendingToast?.['expires_at']).toBe('number');
+        expect(pendingToast?.['expires_at'] as number).toBeGreaterThan(nowBefore);
+        expect(pendingToast?.['expires_at'] as number).toBeLessThanOrEqual(
+          nowBefore + PENDING_M7_TOAST_TTL_MS + 200,
+        );
+
+        // Aucun champ 'timestamp' (format legacy supprimé — R-CLI-03 / TACHE-091)
+        expect(pendingToast?.['timestamp']).toBeUndefined();
+
+        // INV-UC01-03 : pending_m7_toast ne contient que domain_hash + expires_at
+        // Vérifier via readPendingM7Toast (lecture officielle)
+        const readResult = await readPendingM7Toast();
+        expect(readResult).not.toBeNull();
+        expect(readResult?.domain_hash).toBe(DOMAIN_HASH_GOOGLE);
+        expect(readResult?.expires_at).toBeGreaterThan(nowBefore);
+      },
+    );
   });
 });
