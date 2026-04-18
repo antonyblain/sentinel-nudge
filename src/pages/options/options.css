@@ -427,6 +427,34 @@ body {
   outline-offset: 2px;
 }
 
+/* Dark/matrix : danger text (#ef4444) sur fond translucide = 4.08:1 FAIL WCAG AA
+   Fix : fond danger solide + texte blanc (#fff sur #ef4444 = 4.52:1) */
+@media (prefers-color-scheme: dark) {
+  .btn-danger {
+    background-color: var(--sn-color-danger);
+    color: #ffffff;
+    border-color: var(--sn-color-danger);
+  }
+
+  .btn-danger:hover {
+    background-color: var(--sn-color-danger);
+    opacity: 0.9;
+  }
+}
+
+[data-theme='dark'] .btn-danger,
+[data-theme='matrix'] .btn-danger {
+  background-color: var(--sn-color-danger);
+  color: #ffffff;
+  border-color: var(--sn-color-danger);
+}
+
+[data-theme='dark'] .btn-danger:hover,
+[data-theme='matrix'] .btn-danger:hover {
+  background-color: var(--sn-color-danger);
+  opacity: 0.9;
+}
+
 /* Statut operations donnees */
 .data-status {
   margin-top: var(--sn-space-sm);
