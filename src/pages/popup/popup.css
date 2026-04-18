@@ -1,8 +1,17 @@
 /**
  * popup.css — Styles de la popup Sentinel Nudge
- * Tokens centralises dans tokens.css (importe via HTML)
- * Taille fixe : 320px x ~400px (MV3 popup)
- * T-143 : refonte sur tokens v2 (3 themes : Aegis Light / Midnight Obsidian / Cyberpunk Neon)
+ *
+ * Refonte pixel-perfect T-156 — rendu identique aux 3 maquettes v3 retenues :
+ *   - theme-clair-1-aegis-light       (clair / défaut OS)
+ *   - theme-sombre-2-midnight-obsidian (sombre / OS dark)
+ *   - theme-matrix-2-cyberpunk-neon    (matrix / sélection manuelle)
+ *
+ * Tokens centralisés dans tokens.css (importé via HTML).
+ * Les 3 thèmes se déclinent automatiquement via les tokens v2.
+ * Taille fixe : 320px × ~480px (MV3 popup).
+ *
+ * Référence : docs/p4-conception/design-proposals-v3/ — Section 1 Popup
+ * WCAG 2.2 AA : contrastes ≥ 4.5:1, cibles ≥ 44px, skip link, focus visible
  */
 
 /* Reset minimal */
@@ -23,11 +32,20 @@ body {
   background-color: var(--sn-color-bg);
   width: 320px;
   min-height: 360px;
-  max-height: 480px;
+  max-height: 600px;
   overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Lien d'evitement (WCAG 2.4.1 A) */
+/* Racine de la popup */
+#popup-root {
+  background: var(--sn-color-surface);
+  border-radius: var(--sn-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--sn-shadow-lg);
+}
+
+/* ─── Skip link (WCAG 2.4.1 A — T-132) ─────────────────────────────────── */
 .skip-link {
   position: absolute;
   top: -100%;
@@ -46,7 +64,7 @@ body {
   top: 0;
 }
 
-/* Masquage visuel accessible (sr-only) — DAT §11.5 */
+/* ─── Masquage visuel accessible (sr-only) ──────────────────────────────── */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -59,155 +77,282 @@ body {
   border: 0;
 }
 
-/* En-tête popup */
-header {
-  background-color: var(--sn-color-primary);
-  padding: var(--sn-space-sm) var(--sn-space-md);
-  border-bottom: 1px solid var(--sn-color-border);
-}
+/* ══════════════════════════════════════════════════════════════════════════
+   HEADER — div.popup-header
+   Pixel-perfect selon les 3 maquettes v3 (Section 1 — Popup)
+   ══════════════════════════════════════════════════════════════════════════ */
 
-.popup-header-inner {
+/**
+ * Aegis Light (clair — défaut) :
+ *   background: var(--sn-color-primary) = #1e3a5f (bleu acier)
+ *   Texte blanc, pas de barre accent, icône emoji 20px
+ */
+.popup-header {
+  background: var(--sn-color-primary);
+  color: #fff;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
-  /* justify-content: center; — T-152: aligned left per maquette v3 */
-  gap: var(--sn-space-sm);
+  gap: 12px;
+  position: relative;
 }
 
-.header-shield {
-  color: #ffffff;
+/* Barre d'accent décorative — masquée en mode clair (Aegis Light) */
+.popup-header-accent {
+  display: none;
+  width: 4px;
+  height: 40px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--sn-color-accent) 0%, var(--sn-color-accent-muted) 100%);
   flex-shrink: 0;
 }
 
-.popup-title {
-  font-size: var(--sn-font-size-h2);
-  font-weight: var(--sn-font-weight-bold);
-  color: #ffffff;
-  text-align: center;
+/* Icône bouclier emoji 🛡 */
+.popup-header-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
-/* Dark theme header: primary = #818cf8 comme bg + #fff = 2.98:1 FAIL WCAG AA
-   Fix : surface bg + primary text (#818cf8 sur #1a1a1f = 5.6:1) */
-@media (prefers-color-scheme: dark) {
-  header {
-    background-color: var(--sn-color-surface);
-    border-bottom-color: var(--sn-color-border);
-  }
-
-  .header-shield,
-  .popup-title {
-    color: var(--sn-color-primary);
-  }
-}
-
-[data-theme='dark'] header {
-  background-color: var(--sn-color-surface);
-  border-bottom-color: var(--sn-color-border);
-}
-
-[data-theme='dark'] .header-shield,
-[data-theme='dark'] .popup-title {
-  color: var(--sn-color-primary);
-}
-
-[data-theme='matrix'] header {
-  background-color: var(--sn-color-surface);
-  border-bottom: 1px solid var(--sn-color-primary);
-  box-shadow: var(--sn-shadow-glow);
-}
-
-[data-theme='matrix'] .header-shield,
-[data-theme='matrix'] .popup-title {
-  color: var(--sn-color-primary);
-}
-
-/* Contenu principal */
-.popup-content {
+/* Conteneur texte (titre + tagline) */
+.popup-header-text {
   display: flex;
   flex-direction: column;
-  gap: var(--sn-space-md);
-  padding: var(--sn-space-md);
+  gap: 2px;
 }
 
-/* Section titre */
-.section-title {
-  font-size: var(--sn-font-size-small);
-  font-weight: var(--sn-font-weight-bold);
+/* Titre h2 — "Sentinel Nudge" */
+.popup-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+/* Tagline — "Score de cyber-hygiène" */
+.popup-tagline {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 2px;
+  line-height: 1;
+}
+
+/* ─── Midnight Obsidian (sombre) ────────────────────────────────────────── */
+/**
+ * Fond surface-2 sombre, barre accent visible (gradient indigo→teal),
+ * titre en couleur fg principale (pas blanc), tagline en fg-muted
+ */
+@media (prefers-color-scheme: dark) {
+  .popup-header {
+    background: var(--sn-color-surface-2);
+    border-bottom: 1px solid var(--sn-color-border);
+    color: var(--sn-color-fg);
+  }
+
+  .popup-header-accent {
+    display: block;
+  }
+
+  .popup-title {
+    color: var(--sn-color-fg);
+  }
+
+  .popup-tagline {
+    color: var(--sn-color-fg-muted);
+  }
+}
+
+[data-theme='dark'] .popup-header {
+  background: var(--sn-color-surface-2);
+  border-bottom: 1px solid var(--sn-color-border);
+  color: var(--sn-color-fg);
+}
+
+[data-theme='dark'] .popup-header-accent {
+  display: block;
+}
+
+[data-theme='dark'] .popup-title {
+  color: var(--sn-color-fg);
+}
+
+[data-theme='dark'] .popup-tagline {
+  color: var(--sn-color-fg-muted);
+}
+
+/* ─── Cyberpunk Neon (matrix) ───────────────────────────────────────────── */
+/**
+ * Fond surface-2 très sombre (violet foncé), bordure inférieure dim,
+ * barre accent masquée (pas dans la maquette matrix),
+ * icône 24px, titre en neon-cyan avec text-shadow glow,
+ * séparateur néon top-to-bottom via box-shadow
+ */
+[data-theme='matrix'] .popup-header {
+  background: var(--sn-color-surface-2);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+  color: var(--sn-color-fg);
+  gap: 14px;
+}
+
+[data-theme='matrix'] .popup-header-accent {
+  display: none;
+}
+
+[data-theme='matrix'] .popup-header-icon {
+  font-size: 24px;
+}
+
+[data-theme='matrix'] .popup-title {
+  color: var(--sn-color-primary); /* = neon-cyan via tokens matrix */
+  text-shadow: var(--sn-shadow-glow);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 15px;
+}
+
+[data-theme='matrix'] .popup-tagline {
+  color: var(--sn-color-fg-muted);
+  font-family: var(--sn-font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* Force le thème clair (override dark OS) */
+[data-theme='light'] .popup-header {
+  background: var(--sn-color-primary);
+  color: #fff;
+  border-bottom: none;
+}
+
+[data-theme='light'] .popup-header-accent {
+  display: none;
+}
+
+[data-theme='light'] .popup-title {
+  color: #fff;
+}
+
+[data-theme='light'] .popup-tagline {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CORPS DE LA POPUP — div.popup-body
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-sm);
+  padding: 20px;
+}
+
+/* ─── Titre de section (ex: "MODULES ACTIFS") ───────────────────────────── */
+.card-title {
+  font-size: 12px;
+  font-weight: 700;
   color: var(--sn-color-fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: var(--sn-space-sm);
+  margin-bottom: var(--sn-space-xs);
 }
 
-/* Jauge de score */
-.score-gauge-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sn-space-xs);
+[data-theme='matrix'] .card-title {
+  font-family: var(--sn-font-mono);
+  letter-spacing: 0.1em;
+  color: var(--sn-color-primary);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SCORE GAUGE — div.gauge-wrap (arc SVG 180° + gauge-info côte-à-côte)
+   Pixel-perfect : viewBox 120×80, path M10,70 A50,50 0 0,1 110,70
+   ══════════════════════════════════════════════════════════════════════════ */
 
 .gauge-wrap {
   display: flex;
   align-items: center;
-  gap: var(--sn-space-md);
-  width: 100%;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 4px;
+}
+
+.gauge-svg {
+  width: 120px;
+  flex-shrink: 0;
 }
 
 .gauge-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sn-space-xs);
-  flex: 1;
+  text-align: left;
 }
 
+/* Grand score numérique (ex: "74") */
 .gauge-score {
   font-size: 32px;
-  font-weight: var(--sn-font-weight-extrabold);
-  line-height: 1;
+  font-weight: 700;
   color: var(--sn-gauge-good);
+  line-height: 1;
 }
 
 [data-theme='matrix'] .gauge-score {
   font-family: var(--sn-font-mono);
+  font-size: 40px;
   text-shadow: var(--sn-shadow-glow);
 }
 
+/* Label niveau (ex: "Bon niveau") */
 .gauge-label {
-  font-size: var(--sn-font-size-small);
-  font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-fg);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sn-gauge-good);
+  margin-top: 2px;
 }
 
+[data-theme='matrix'] .gauge-label {
+  font-weight: 700;
+  text-shadow: var(--sn-shadow-glow);
+}
+
+/* Tendance (ex: "↑ +5 cette semaine") */
 .gauge-trend {
-  font-size: var(--sn-font-size-micro);
+  font-size: 12px;
   color: var(--sn-color-fg-muted);
+  margin-top: 4px;
 }
 
-.score-level {
-  font-size: var(--sn-font-size-small);
-  font-weight: var(--sn-font-weight-bold);
-}
+/* ══════════════════════════════════════════════════════════════════════════
+   GRILLE MODULES — div.modules-grid (chips 2 colonnes × 4 lignes)
+   ══════════════════════════════════════════════════════════════════════════ */
 
-/* Grille modules (chips) */
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--sn-space-xs);
-  margin-top: var(--sn-space-xs);
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sn-space-sm);
+  margin-bottom: 4px;
 }
 
 .module-chip {
   display: flex;
   align-items: center;
-  gap: var(--sn-space-xs);
-  padding: var(--sn-space-xs) var(--sn-space-sm);
-  background-color: var(--sn-color-surface-2);
-  border-radius: var(--sn-radius-sm);
-  font-size: var(--sn-font-size-micro);
-  font-weight: var(--sn-font-weight-medium);
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--sn-color-surface-2);
+  border: 1px solid var(--sn-color-border);
+  border-radius: var(--sn-radius);
+  font-size: 12px;
+  font-weight: 500;
   color: var(--sn-color-fg-muted);
+  transition: border-color var(--sn-transition-fast);
 }
 
+[data-theme='matrix'] .module-chip {
+  border-radius: var(--sn-radius-sm);
+}
+
+[data-theme='matrix'] .module-chip:hover {
+  border-color: var(--sn-color-accent-muted);
+  color: var(--sn-color-fg);
+}
+
+/* Points de statut des chips */
 .module-chip-dot {
   width: 8px;
   height: 8px;
@@ -220,16 +365,36 @@ header {
 }
 
 .module-chip-dot.inactive {
-  background-color: var(--sn-color-border);
+  background-color: var(--sn-gauge-track);
 }
 
 .module-chip-dot.warning {
   background-color: var(--sn-gauge-mid);
 }
 
-/* Barre de quota */
+[data-theme='matrix'] .module-chip-dot.active {
+  box-shadow: var(--sn-shadow-glow);
+}
+
+[data-theme='matrix'] .module-chip-dot.warning {
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BARRE QUOTA — div.quota-bar-wrap
+   ══════════════════════════════════════════════════════════════════════════ */
+
 .quota-bar-wrap {
-  margin-top: var(--sn-space-sm);
+  margin-bottom: 4px;
+}
+
+.quota-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--sn-color-fg-muted);
+  margin-bottom: 6px;
 }
 
 .quota-track {
@@ -239,52 +404,238 @@ header {
   overflow: hidden;
 }
 
+/* Variante matrix : quota bar fine (4px, maquette cyberpunk) */
+[data-theme='matrix'] .quota-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
 .quota-fill {
   height: 100%;
-  background-color: var(--sn-color-accent);
   border-radius: 3px;
+  background-color: var(--sn-color-accent);
   transition: width var(--sn-transition-fast);
 }
 
-/* Badge KPI tendance */
-.kpi-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px var(--sn-space-xs);
+[data-theme='matrix'] .quota-fill {
+  background: linear-gradient(90deg, var(--sn-color-primary), var(--sn-color-accent-muted));
+  border-radius: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BOUTONS D'ACTION — div.popup-actions
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-sm);
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 0 16px;
+  min-height: var(--sn-min-target); /* WCAG 2.5.5 — cibles ≥ 44px */
+  border-radius: var(--sn-radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition:
+    background var(--sn-transition-fast),
+    transform 100ms ease;
+  text-align: center;
+  font-family: var(--sn-font-body);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+/* Bouton principal */
+.btn-primary {
+  background: var(--sn-color-accent);
+  color: var(--sn-color-btn-fg);
+}
+
+.btn-primary:hover {
+  background: var(--sn-color-accent-hover);
+}
+
+/* Cyberpunk Neon — bouton primaire transparent avec bordure néon */
+[data-theme='matrix'] .btn {
   border-radius: var(--sn-radius-sm);
-  font-size: var(--sn-font-size-micro);
-  font-weight: var(--sn-font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 13px;
 }
 
-.kpi-badge-up {
-  background-color: var(--sn-color-success-bg);
-  color: var(--sn-color-success);
+[data-theme='matrix'] .btn:focus-visible {
+  outline: 2px solid var(--sn-color-primary);
+  outline-offset: 3px;
+  box-shadow: var(--sn-shadow-glow);
 }
 
-.kpi-badge-down {
-  background-color: var(--sn-color-danger-bg);
+[data-theme='matrix'] .btn-primary {
+  background: transparent;
+  color: var(--sn-color-primary); /* neon-cyan via tokens matrix */
+  border: 1px solid var(--sn-color-primary);
+  box-shadow: var(--sn-shadow-glow);
+}
+
+[data-theme='matrix'] .btn-primary:hover {
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+}
+
+/* Bouton secondaire */
+.btn-secondary {
+  background: var(--sn-color-surface-2);
+  color: var(--sn-color-fg);
+  border: 1px solid var(--sn-color-border);
+}
+
+.btn-secondary:hover {
+  background: var(--sn-color-border);
+}
+
+[data-theme='matrix'] .btn-secondary {
+  background: transparent;
+  color: var(--sn-color-fg-muted);
+  border: 1px solid rgba(0, 212, 255, 0.15); /* border-dim matrix */
+}
+
+[data-theme='matrix'] .btn-secondary:hover {
+  border-color: var(--sn-color-danger); /* neon-mag via danger token matrix */
   color: var(--sn-color-danger);
 }
 
-/* État initial (pas encore de score) */
-.score-no-data {
+/* ══════════════════════════════════════════════════════════════════════════
+   ÉTATS DE CHARGEMENT / ERREUR
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.loading-text,
+.error-text {
   text-align: center;
-  padding: var(--sn-space-md) 0;
+  padding: var(--sn-space-lg) var(--sn-space-md);
+  color: var(--sn-color-fg-muted);
+  font-size: var(--sn-font-size-small);
 }
 
-.score-no-data-label {
-  font-size: var(--sn-font-size-h2);
-  font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-fg-muted);
+.error-text {
+  color: var(--sn-color-danger);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BADGE MODE DÉGRADÉ (TACHE-062)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.degraded-badge {
+  background-color: var(--sn-color-warning-bg);
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  color: var(--sn-color-warning);
+}
+
+.degraded-badge-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-space-xs);
   margin-bottom: var(--sn-space-xs);
 }
 
-.score-no-data-date {
-  font-size: var(--sn-font-size-small);
-  color: var(--sn-color-fg-muted);
+.degraded-badge-icon {
+  flex-shrink: 0;
+  color: var(--sn-color-warning);
 }
 
-/* Section statut */
+.degraded-badge-label {
+  font-weight: var(--sn-font-weight-bold);
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+}
+
+.degraded-badge-modules {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+  margin-bottom: var(--sn-space-xs);
+}
+
+.degraded-badge-learn-more {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+.degraded-badge-learn-more:hover,
+.degraded-badge-learn-more:focus {
+  color: var(--sn-color-fg);
+  outline: 2px solid var(--sn-color-warning);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.degraded-tooltip {
+  margin-top: var(--sn-space-sm);
+  padding: var(--sn-space-sm);
+  background-color: var(--sn-color-surface);
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius-sm);
+}
+
+.degraded-tooltip-text {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-fg);
+  margin-bottom: var(--sn-space-xs);
+  line-height: 1.4;
+}
+
+.degraded-tooltip-reload,
+.degraded-tooltip-close {
+  background: none;
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius-sm);
+  padding: 2px var(--sn-space-xs);
+  cursor: pointer;
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-warning);
+  font-family: inherit;
+  margin-right: var(--sn-space-xs);
+  margin-top: var(--sn-space-xs);
+}
+
+.degraded-tooltip-reload:hover,
+.degraded-tooltip-reload:focus,
+.degraded-tooltip-close:hover,
+.degraded-tooltip-close:focus {
+  background-color: var(--sn-color-warning-bg);
+  outline: 2px solid var(--sn-color-warning);
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SÉLECTEURS LEGACY (compatibilité tests existants)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Section titre legacy (popup-render-sections.test.ts) */
+.section-title {
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--sn-space-sm);
+}
+
+/* Status section legacy (popup-render-sections.test.ts) */
 .status-section {
   border: 1px solid var(--sn-color-border);
   border-radius: var(--sn-radius);
@@ -313,7 +664,6 @@ header {
   flex-shrink: 0;
 }
 
-/* Groupe valeur KPI : chiffre principal + complement optionnel */
 .status-value-group {
   display: flex;
   flex-direction: column;
@@ -334,7 +684,7 @@ header {
   white-space: nowrap;
 }
 
-/* Boutons d'action */
+/* Actions legacy (popup-render-sections.test.ts) */
 .actions {
   display: flex;
   flex-direction: column;
@@ -342,234 +692,22 @@ header {
   margin-top: var(--sn-space-xs);
 }
 
-.btn {
-  display: block;
-  width: 100%;
-  padding: var(--sn-space-sm) var(--sn-space-md);
-  min-height: var(--sn-min-target); /* WCAG 2.5.5 — cibles 44×44px */
-  border: none;
-  border-radius: var(--sn-radius);
-  font-size: var(--sn-font-size-body);
+/* Badge KPI tendance (score-no-data legacy removed per T-153) */
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--sn-space-xs);
+  border-radius: var(--sn-radius-sm);
+  font-size: var(--sn-font-size-micro);
   font-weight: var(--sn-font-weight-bold);
-  cursor: pointer;
-  text-align: center;
-  transition:
-    background-color var(--sn-transition-fast),
-    transform var(--sn-transition-fast);
 }
 
-.btn:focus-visible {
-  outline: 3px solid var(--sn-color-accent);
-  outline-offset: 2px;
+.kpi-badge-up {
+  background-color: var(--sn-color-success-bg);
+  color: var(--sn-color-success);
 }
 
-.btn-primary {
-  background-color: var(--sn-color-accent);
-  color: var(--sn-color-btn-fg);
-}
-
-.btn-primary:hover {
-  background-color: var(--sn-color-accent-hover);
-}
-
-[data-theme='matrix'] .btn-primary {
-  box-shadow: 0 0 12px rgba(255, 45, 120, 0.4);
-}
-
-.btn-secondary {
-  background-color: var(--sn-color-surface-2);
-  color: var(--sn-color-fg);
-  border: 1px solid var(--sn-color-border);
-}
-
-.btn-secondary:hover {
-  background-color: var(--sn-color-border);
-}
-
-/* États de chargement et erreur */
-.loading-text,
-.error-text {
-  text-align: center;
-  padding: var(--sn-space-lg) 0;
-  color: var(--sn-color-fg-muted);
-  font-size: var(--sn-font-size-small);
-}
-
-.error-text {
+.kpi-badge-down {
+  background-color: var(--sn-color-danger-bg);
   color: var(--sn-color-danger);
-}
-
-/* -------------------------------------------------------------------------- */
-/* Badge mode degrade (TACHE-062)                                             */
-/* -------------------------------------------------------------------------- */
-
-/* Conteneur principal du badge */
-.degraded-badge {
-  background-color: var(--sn-color-warning-bg);
-  border: 1px solid var(--sn-color-warning);
-  border-radius: var(--sn-radius);
-  padding: var(--sn-space-sm) var(--sn-space-md);
-  margin: var(--sn-space-sm) var(--sn-space-md) 0;
-  color: var(--sn-color-warning);
-}
-
-/* Ligne icone + libelle */
-.degraded-badge-header {
-  display: flex;
-  align-items: center;
-  gap: var(--sn-space-xs);
-  margin-bottom: var(--sn-space-xs);
-}
-
-/* Icone SVG warning */
-.degraded-badge-icon {
-  flex-shrink: 0;
-  color: var(--sn-color-warning);
-}
-
-/* Libelle "Mode degrade" */
-.degraded-badge-label {
-  font-weight: var(--sn-font-weight-bold);
-  font-size: var(--sn-font-size-small);
-  color: var(--sn-color-warning);
-}
-
-/* Ligne des modules affectes */
-.degraded-badge-modules {
-  font-size: var(--sn-font-size-small);
-  color: var(--sn-color-warning);
-  margin-bottom: var(--sn-space-xs);
-}
-
-/* Bouton "En savoir plus" */
-.degraded-badge-learn-more {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-size: var(--sn-font-size-small);
-  color: var(--sn-color-warning);
-  text-decoration: underline;
-  font-family: inherit;
-}
-
-.degraded-badge-learn-more:hover,
-.degraded-badge-learn-more:focus {
-  color: var(--sn-color-fg);
-  outline: 2px solid var(--sn-color-warning);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-/* Tooltip explicative */
-.degraded-tooltip {
-  margin-top: var(--sn-space-sm);
-  padding: var(--sn-space-sm);
-  background-color: var(--sn-color-surface);
-  border: 1px solid var(--sn-color-warning);
-  border-radius: var(--sn-radius-sm);
-}
-
-/* Texte de la tooltip */
-.degraded-tooltip-text {
-  font-size: var(--sn-font-size-small);
-  color: var(--sn-color-fg);
-  margin-bottom: var(--sn-space-xs);
-  line-height: 1.4;
-}
-
-/* Boutons de la tooltip */
-.degraded-tooltip-reload,
-.degraded-tooltip-close {
-  background: none;
-  border: 1px solid var(--sn-color-warning);
-  border-radius: var(--sn-radius-sm);
-  padding: 2px var(--sn-space-xs);
-  cursor: pointer;
-  font-size: var(--sn-font-size-small);
-  color: var(--sn-color-warning);
-  font-family: inherit;
-  margin-right: var(--sn-space-xs);
-  margin-top: var(--sn-space-xs);
-}
-
-.degraded-tooltip-reload:hover,
-.degraded-tooltip-reload:focus,
-.degraded-tooltip-close:hover,
-.degraded-tooltip-close:focus {
-  background-color: var(--sn-color-warning-bg);
-  outline: 2px solid var(--sn-color-warning);
-  outline-offset: 2px;
-}
-
-/* ═══ REFONTE STRUCTURELLE T-152 — Nouveaux sélecteurs maquettes v3 ═══════ */
-
-/* Header : disposition icone + texte (titre + tagline) */
-.popup-header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.popup-tagline {
-  font-size: var(--sn-font-size-micro);
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1;
-}
-
-[data-theme='dark'] .popup-tagline {
-  color: var(--sn-color-fg-muted);
-}
-
-[data-theme='matrix'] .popup-tagline {
-  color: var(--sn-color-fg-muted);
-  font-family: var(--sn-font-mono);
-  letter-spacing: 0.04em;
-}
-
-/* Corps de la popup — remplace .popup-content dans la nouvelle structure */
-.popup-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sn-space-sm);
-  padding: var(--sn-space-md);
-}
-
-/* Titre de section petites majuscules (ex: "MODULES ACTIFS") */
-.card-title {
-  font-size: var(--sn-font-size-micro);
-  font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: var(--sn-space-xs);
-}
-
-[data-theme='matrix'] .card-title {
-  font-family: var(--sn-font-mono);
-  letter-spacing: 0.1em;
-  color: var(--sn-color-primary);
-}
-
-/* Ligne label quota (libelle gauche + compteur droite) */
-.quota-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--sn-font-size-micro);
-  color: var(--sn-color-fg-muted);
-  margin-bottom: var(--sn-space-xs);
-}
-
-/* Boutons d'action — classe maquette v3 .popup-actions */
-.popup-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sn-space-sm);
-  margin-top: var(--sn-space-xs);
-}
-
-/* Chip module : border explicite pour meilleur rendu (maquette v3) */
-.module-chip {
-  border: 1px solid var(--sn-color-border);
 }
