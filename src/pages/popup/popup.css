@@ -85,6 +85,30 @@ header {
   text-align: center;
 }
 
+/* Dark theme header: primary = #818cf8 comme bg + #fff = 2.98:1 FAIL WCAG AA
+   Fix : surface bg + primary text (#818cf8 sur #1a1a1f = 5.6:1) */
+@media (prefers-color-scheme: dark) {
+  header {
+    background-color: var(--sn-color-surface);
+    border-bottom-color: var(--sn-color-border);
+  }
+
+  .header-shield,
+  .popup-title {
+    color: var(--sn-color-primary);
+  }
+}
+
+[data-theme='dark'] header {
+  background-color: var(--sn-color-surface);
+  border-bottom-color: var(--sn-color-border);
+}
+
+[data-theme='dark'] .header-shield,
+[data-theme='dark'] .popup-title {
+  color: var(--sn-color-primary);
+}
+
 [data-theme='matrix'] header {
   background-color: var(--sn-color-surface);
   border-bottom: 1px solid var(--sn-color-primary);
