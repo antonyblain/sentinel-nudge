@@ -67,6 +67,12 @@ try {
 /** Délai de debounce pour l'évaluation zxcvbn (ms) */
 const DEBOUNCE_MS = 150;
 
+/**
+ * Timer de coalescing pour le console.info de handleTypeAttributeMutation.
+ * Évite le spam de logs lors des toggles rapides (rate-limiting 100ms — M-SEC-02).
+ */
+let _snMutationLogTimer: ReturnType<typeof setTimeout> | null = null;
+
 /** Délai de détection gestionnaire de mots de passe après focus (ms) */
 const PASSWORD_MANAGER_DETECT_MS = 500;
 
@@ -162,7 +168,7 @@ function collectPasswordInputs(scope: HTMLFormElement | Document): HTMLInputElem
  * - type → "password" (depuis "text") : enregistrer dans _snPasswordInputs
  *   (INV-UC05-02 : inputs démarrant en text + togglés vers password sont capturés)
  *
- * Sécurité (R-CLI-07) : ne jamais logger input.value.
+ * Sécurité (INV-SEC-02) : ne jamais logger input.value.
  *
  * @param mutations - Liste des MutationRecord filtrés sur type='attributes'
  */
@@ -178,18 +184,27 @@ function handleTypeAttributeMutation(mutations: MutationRecord[]): void {
     // Dans les deux cas, on enregistre pour couvrir INV-UC05-01 et INV-UC05-02
     if (newType === 'text' || newType === 'password') {
       registerPasswordInput(target);
-      console.info(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: 'Sentinel Nudge UC-05: type attribute mutation registered',
-          context: {
-            input_id: target.id || '(none)',
-            input_name: target.name || '(none)',
-            new_type: newType,
-          },
-        }),
-      );
+      // M-SEC-02 : coalescing 100ms — évite le spam de logs lors des toggles rapides.
+      // Le log est différé et coalescé : N mutations dans une fenêtre de 100ms
+      // produisent UN seul console.info au lieu de N (rate-limiting).
+      if (_snMutationLogTimer !== null) {
+        clearTimeout(_snMutationLogTimer);
+      }
+      _snMutationLogTimer = setTimeout(() => {
+        _snMutationLogTimer = null;
+        console.info(
+          JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: 'Sentinel Nudge UC-05: type attribute mutation registered',
+            context: {
+              input_id: target.id || '(none)',
+              input_name: target.name || '(none)',
+              new_type: newType,
+            },
+          }),
+        );
+      }, 100);
     }
   }
 }
@@ -1619,22 +1634,28 @@ function attachSubmitListeners(): void {
     const pwdCount = form.querySelectorAll<HTMLInputElement>('input[type="password"]').length;
     if (pwdCount > 0) pwdFormsCount++;
 
-    form.addEventListener('submit', (event) => {
-      // UC-05 (TACHE-072) : utiliser collectPasswordInputs pour inclure les inputs
-      // togglés en type="text" qui sont dans le registre _snPasswordInputs (INV-UC05-01)
-      const pwdFields = collectPasswordInputs(form);
-      console.info(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: 'Sentinel Nudge M7/M9: submit event captured',
-          context: { pwdFields: pwdFields.length, formAction: form.action || '(none)' },
-        }),
-      );
-      pwdFields.forEach((field) => {
-        void handleFormSubmit(event, field);
-      });
-    });
+    // M-SEC-01 : capture:true pour intercepter le submit avant tout script page
+    // qui pourrait appeler stopPropagation() en phase bubble.
+    form.addEventListener(
+      'submit',
+      (event) => {
+        // UC-05 (TACHE-072) : utiliser collectPasswordInputs pour inclure les inputs
+        // togglés en type="text" qui sont dans le registre _snPasswordInputs (INV-UC05-01)
+        const pwdFields = collectPasswordInputs(form);
+        console.info(
+          JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: 'Sentinel Nudge M7/M9: submit event captured',
+            context: { pwdFields: pwdFields.length, formAction: form.action || '(none)' },
+          }),
+        );
+        pwdFields.forEach((field) => {
+          void handleFormSubmit(event, field);
+        });
+      },
+      { capture: true },
+    );
   });
   if (newlyAttached > 0) {
     console.info(
@@ -1861,10 +1882,28 @@ function initPasswordDetector(): void {
   observeDynamicForms();
 }
 
+// ---------------------------------------------------------------------------
+// TACHE-094 : isExtensionContext() — guard mockable pour les tests unitaires
+// ---------------------------------------------------------------------------
+
+/**
+ * Retourne true si le script s'exécute dans un contexte d'extension Chrome réel
+ * (chrome.runtime.id défini). Retourne false dans un environnement de test unitaire
+ * (vitest/jsdom) où chrome est absent ou mocké sans runtime.id.
+ *
+ * Exporté pour permettre le mock dans les tests unitaires (TACHE-094).
+ * L'auto-exécution de initPasswordDetector() est conditionnée sur cette fonction.
+ *
+ * @returns true si l'environnement est une extension Chrome avec runtime actif
+ */
+export function isExtensionContext(): boolean {
+  return typeof chrome !== 'undefined' && typeof chrome.runtime?.id === 'string';
+}
+
 // Démarrage du détecteur
-// Conditionné sur la présence de chrome pour permettre les tests unitaires
-// (import du module sans auto-exécution dans l'environnement vitest/jsdom)
-if (typeof chrome !== 'undefined') {
+// Conditionné sur isExtensionContext() pour permettre les tests unitaires
+// (import du module sans auto-exécution dans l'environnement vitest/jsdom — TACHE-094)
+if (isExtensionContext()) {
   console.info(
     JSON.stringify({
       timestamp: new Date().toISOString(),
@@ -1889,4 +1928,5 @@ export {
   handleTypeAttributeMutation,
   handleFormSubmit,
   observeDynamicForms,
+  initPasswordDetector,
 };
