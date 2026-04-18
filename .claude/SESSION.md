@@ -2,6 +2,10 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (session 2026-04-18 matin — Chantier B UC P0 v1 ouvert, 4 PR mergées en cycle parallélisé).** 🎯 **UC-01 login multi-étape traité** : mini-DAT v1.1 ARB A/A/A + matrice compatibilité providers M7 (livrable vivant) + correctif F-UC01-01 (T-101) + 8 tests TC-UC01-02/03/04 = **PR #27, #29, #30**. **Audit configuration GitHub** produit (T-116, PR #28, score 42/100) — **anomalie LICENSE GitHub détecte MIT vs local GPL v3 → TACHE-121 BUG Must**, bloquante pour T-112 passage public. **427/427 tests verts**. Commanditaire reporte recette manuelle Google + Microsoft ainsi que 2FA en fin de cycle (TACHE-122). Enchaînement en cours : TACHE-121 fix LICENSE + TACHE-119 CODEOWNERS/dependabot + TACHE-124 test Google SPA + **plan de tests manuels consolidé** demandé par le Commanditaire.
+
+---
+
 **Où on en est (fin session 2026-04-17 soirée).** 🎯 **Chantier A "Remédiation ADR audit modules" vidé** + **dispositif Sécurité OSS produit** (dormant jusqu'à publication publique du repo) + **référentiel ISO 27001 v1.1** publié + **PDCA capitalisé sur la parallélisation d'agents Fabrique**.
 
 **12 PR supplémentaires mergées vers `develop`** sur cette session soirée (PR #14 → #25), s'ajoutant aux 13 du matin (PR #3 → #13) = **25 PR mergées sur la journée 2026-04-17** :
