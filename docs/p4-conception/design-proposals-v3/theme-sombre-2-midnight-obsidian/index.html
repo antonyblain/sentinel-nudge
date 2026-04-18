@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentinel Nudge — Thème Sombre 2 : Midnight Obsidian</title>
+<style>
+/* ============================================================
+   THÈME SOMBRE 2 — MIDNIGHT OBSIDIAN
+   Concept : Charbon profond, accents indigo/teal, surfaces
+   légèrement élevées (Material You dark). Minimaliste premium,
+   inspiré des apps Android 14 / Figma dark / Arc browser.
+   Différence vs Aurora : pas de glassmorphism, surfaces solides
+   avec élévations, accent teal chaud au lieu de bleu froid.
+   Plus sobre, moins "spectaculaire", plus confortable longue durée.
+   Palette clé : #0d0d0f · #1a1a1f · #2563eb · #06b6d4 · #22c55e
+   Accessibilité : WCAG 2.2 AA — fg/bg 13.8:1 | accent 4.7:1
+   Fallback clair : data-theme="light" → version Obsidian Light
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── Tokens Midnight Obsidian ─── */
+:root, [data-theme="dark"] {
+  --bg:           #0d0d0f;
+  --surface:      #1a1a1f;
+  --surface-2:    #232328;
+  --surface-3:    #2c2c34;
+  --border:       #2e2e38;
+  --border-bright:#404050;
+  --fg:           #e8e8f0;
+  --fg-muted:     #8888a0;
+  --fg-subtle:    #555568;
+  --primary:      #818cf8;
+  --accent:       #2563eb;
+  --accent-hover: #3b72f8;
+  --accent-teal:  #06b6d4;
+  --accent-light: rgba(37,99,235,.15);
+  --success:      #22c55e;
+  --success-bg:   rgba(34,197,94,.12);
+  --danger:       #ef4444;
+  --danger-bg:    rgba(239,68,68,.12);
+  --warning:      #f59e0b;
+  --warning-bg:   rgba(245,158,11,.10);
+  --info-bg:      rgba(37,99,235,.10);
+  --info-border:  rgba(37,99,235,.28);
+  --gauge-low:    #ef4444;
+  --gauge-mid:    #f59e0b;
+  --gauge-good:   #22c55e;
+  --gauge-track:  rgba(255,255,255,.07);
+  --elevation-1:  0 1px 3px rgba(0,0,0,.5), 0 1px 8px rgba(0,0,0,.3);
+  --elevation-2:  0 4px 16px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.4);
+  --elevation-3:  0 8px 32px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.5);
+  --radius-sm:    4px;
+  --radius:       8px;
+  --radius-lg:    12px;
+  --radius-xl:    20px;
+  --font:         system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --font-mono:    ui-monospace,"Cascadia Code",Consolas,monospace;
+}
+
+/* ─── Fallback clair élégant ─── */
+[data-theme="light"] {
+  --bg: #f8f9ff; --surface: #fff; --surface-2: #f0f1ff;
+  --surface-3: #e4e6ff; --border: #dde0f5; --border-bright: #bac0e8;
+  --fg: #14142a; --fg-muted: #5c5e78; --fg-subtle: #9094b8;
+  --primary: #3730a3; --accent: #2563eb; --accent-hover: #1d4ed8;
+  --accent-teal: #0891b2; --accent-light: #eff6ff;
+  --success: #16a34a; --success-bg: #f0fdf4;
+  --danger: #dc2626; --danger-bg: #fef2f2;
+  --warning: #d97706; --warning-bg: #fffbeb;
+  --elevation-1: 0 1px 4px rgba(55,48,163,.10);
+  --elevation-2: 0 4px 12px rgba(55,48,163,.12);
+  --elevation-3: 0 8px 24px rgba(55,48,163,.15);
+}
+
+/* ─── Base ─── */
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ─── Page démo ─── */
+.demo-wrapper { max-width: 1280px; margin: 0 auto; padding: 32px; }
+.demo-page-title { font-size: 24px; font-weight: 700; color: var(--fg); margin-bottom: 8px; }
+.demo-page-sub { font-size: 14px; color: var(--fg-muted); margin-bottom: 32px; }
+.demo-section { margin-bottom: 56px; }
+.demo-section-header {
+  font-size: 15px; font-weight: 700;
+  color: var(--primary); border-left: 4px solid var(--accent-teal);
+  padding-left: 12px; margin-bottom: 24px;
+}
+.demo-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+
+/* Palette strip */
+.palette-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.swatch-pill { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: var(--fg-muted); }
+.swatch-pill-block { width: 52px; height: 32px; border-radius: 6px; border: 1px solid var(--border); }
+
+/* ─── Card solide ─── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-1);
+}
+.card-inner { padding: 20px; }
+.card-title {
+  font-size: 11px; font-weight: 700; color: var(--fg-muted);
+  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 16px;
+}
+
+/* ─── Btn ─── */
+.btn {
+  min-height: 44px; border-radius: var(--radius);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; border: none;
+  transition: background 150ms ease;
+  padding: 0 20px;
+}
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-teal { background: var(--accent-teal); color: #fff; }
+.btn-secondary { background: var(--surface-2); color: var(--fg); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface-3); }
+.btn-danger-ghost { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger); }
+
+/* ══════════════════════════════════════════════════
+   SECTION 1 — POPUP
+   ══════════════════════════════════════════════════ */
+.popup-demo {
+  width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elevation-3);
+  overflow: hidden;
+}
+.popup-header {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.popup-header-accent {
+  width: 4px; height: 40px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-teal) 100%);
+  flex-shrink: 0;
+}
+.popup-header h2 { font-size: 16px; font-weight: 700; color: var(--fg); }
+.popup-header p { font-size: 12px; color: var(--fg-muted); margin-top: 2px; }
+.popup-body { padding: 20px; }
+
+/* Score gauge */
+.gauge-wrap { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+.gauge-info { text-align: left; }
+.gauge-score { font-size: 34px; font-weight: 700; color: var(--gauge-good); line-height: 1; }
+.gauge-level { font-size: 13px; font-weight: 600; color: var(--gauge-good); }
+.gauge-trend { font-size: 12px; color: var(--fg-muted); margin-top: 4px; }
+
+/* Modules */
+.modules-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px; margin-bottom: 16px;
+}
+.module-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px; font-weight: 500; color: var(--fg-muted);
+}
+.chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.chip-dot.on { background: var(--success); }
+.chip-dot.off { background: rgba(255,255,255,.12); }
+.chip-dot.warn { background: var(--warning); }
+
+/* Quota */
+.quota-wrap { margin-bottom: 16px; }
+.quota-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--fg-muted); margin-bottom: 6px; }
+.quota-track { height: 4px; background: var(--gauge-track); border-radius: 2px; overflow: hidden; }
+.quota-fill { height: 100%; width: 33%; background: var(--accent-teal); border-radius: 2px; }
+.popup-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* ══════════════════════════════════════════════════
+   SECTION 2 — DASHBOARD
+   ══════════════════════════════════════════════════ */
+.kpi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--elevation-1);
+  position: relative; overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 3px;
+}
+.kpi-card.blue::before { background: var(--accent); }
+.kpi-card.teal::before { background: var(--accent-teal); }
+.kpi-card.green::before { background: var(--success); }
+.kpi-label { font-size: 11px; font-weight: 700; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.kpi-value { font-size: 30px; font-weight: 700; color: var(--fg); }
+.kpi-badge { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.b-up { background: var(--success-bg); color: var(--success); }
+
+/* Chart */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px; margin-bottom: 16px;
+  box-shadow: var(--elevation-1);
+}
+.chart-title { font-size: 14px; font-weight: 600; color: var(--fg); margin-bottom: 16px; }
+
+/* Historique */
+.nudge-list { display: flex; flex-direction: column; gap: 8px; }
+.nudge-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color 150ms ease;
+}
+.nudge-row:hover { border-color: var(--border-bright); }
+.nudge-icon-box {
+  width: 38px; height: 38px; border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.nudge-icon-box.m7 { background: var(--info-bg); border: 1px solid var(--info-border); }
+.nudge-icon-box.m17 { background: var(--warning-bg); border: 1px solid rgba(245,158,11,.25); }
+.nudge-icon-box.m2 { background: var(--danger-bg); border: 1px solid rgba(239,68,68,.25); }
+.nudge-text { flex: 1; }
+.nudge-text strong { font-size: 13px; font-weight: 600; color: var(--fg); display: block; }
+.nudge-text span { font-size: 12px; color: var(--fg-muted); }
+.tag { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+.tag-ok { background: var(--success-bg); color: var(--success); }
+.tag-skip { background: rgba(255,255,255,.06); color: var(--fg-muted); }
+
+/* ══════════════════════════════════════════════════
+   SECTION 3 — OPTIONS
+   ══════════════════════════════════════════════════ */
+.options-layout { display: grid; grid-template-columns: 200px 1fr; gap: 20px; }
+.options-sidebar { display: flex; flex-direction: column; gap: 2px; }
+.opt-nav {
+  padding: 10px 14px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; color: var(--fg-muted);
+  cursor: pointer; min-height: 44px;
+  display: flex; align-items: center; gap: 8px;
+  border: none; background: none; text-align: left; width: 100%;
+  transition: background 150ms ease, color 150ms ease;
+}
+.opt-nav:hover { background: var(--surface-2); color: var(--fg); }
+.opt-nav.active { background: var(--info-bg); color: var(--primary); font-weight: 600; border-left: 2px solid var(--accent); }
+.opt-nav:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Sélecteur thème — tabs */
+.theme-tabs {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+.theme-tab {
+  flex: 1; padding: 10px 12px;
+  border-radius: var(--radius);
+  font-size: 12px; font-weight: 600;
+  color: var(--fg-muted); cursor: pointer;
+  border: none; background: none;
+  transition: all 150ms ease; min-height: 44px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.theme-tab:hover { background: var(--surface-3); color: var(--fg); }
+.theme-tab.selected { background: var(--surface); color: var(--fg); box-shadow: var(--elevation-1); }
+.theme-tab.selected.dark-tab { color: var(--primary); }
+.theme-tab:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tab-dot { width: 24px; height: 14px; border-radius: 3px; border: 1px solid var(--border); }
+.td-auto { background: linear-gradient(135deg, #f8f9ff 50%, #0d0d0f 50%); }
+.td-light { background: #f8f9ff; }
+.td-dark { background: #0d0d0f; border-color: var(--border-bright); }
+.td-matrix { background: #000; border-color: #00ff41; }
+
+/* Toggle */
+.mod-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.mod-row:last-child { border-bottom: none; }
+.mod-info { flex: 1; }
+.mod-name { font-size: 14px; font-weight: 600; color: var(--fg); }
+.mod-desc { font-size: 12px; color: var(--fg-muted); margin-top: 3px; }
+.toggle-track {
+  width: 44px; height: 24px;
+  background: var(--border);
+  border-radius: 12px; position: relative; cursor: pointer;
+  transition: background 150ms ease; flex-shrink: 0;
+}
+.toggle-track.on { background: var(--accent-teal); }
+.toggle-thumb {
+  width: 20px; height: 20px; background: #fff;
+  border-radius: 50%; position: absolute; top: 2px; left: 2px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  transition: transform 150ms ease;
+}
+.toggle-track.on .toggle-thumb { transform: translateX(20px); }
+
+/* ══════════════════════════════════════════════════
+   SECTION 4 — TOASTS & OVERLAYS
+   ══════════════════════════════════════════════════ */
+.toasts-col { display: flex; flex-direction: column; gap: 12px; }
+.toast {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-2);
+  max-width: 380px;
+}
+.toast-bar { width: 3px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+.toast-bar.blue { background: var(--accent); }
+.toast-bar.warn { background: var(--warning); }
+.toast-bar.ok { background: var(--success); }
+.toast-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.toast-content { flex: 1; }
+.toast-title { font-size: 14px; font-weight: 700; color: var(--fg); margin-bottom: 3px; }
+.toast-text { font-size: 13px; color: var(--fg-muted); }
+.toast-close {
+  font-size: 18px; color: var(--fg-subtle); background: none; border: none;
+  cursor: pointer; width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Overlay */
+.overlay-demo {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elevation-3);
+  padding: 28px; max-width: 420px;
+  border-top: 3px solid var(--warning);
+}
+.overlay-module-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--warning-bg); color: var(--warning);
+  font-size: 12px; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; margin-bottom: 16px;
+}
+.overlay-h { font-size: 18px; font-weight: 700; color: var(--fg); margin-bottom: 12px; }
+.overlay-body { font-size: 13px; color: var(--fg-muted); line-height: 1.7; margin-bottom: 24px; }
+.overlay-actions { display: flex; gap: 10px; }
+
+/* ══════════════════════════════════════════════════
+   SECTION 5 — ONBOARDING
+   ══════════════════════════════════════════════════ */
+.onboarding-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elevation-3);
+  overflow: hidden; max-width: 480px;
+}
+.onboarding-hero {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  padding: 32px 28px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.onboarding-hero::before {
+  content: '';
+  position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 200px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-teal), transparent);
+}
+.onboarding-hero-icon { font-size: 44px; margin-bottom: 14px; display: block; }
+.onboarding-hero h2 { font-size: 22px; font-weight: 700; color: var(--fg); margin-bottom: 8px; }
+.onboarding-hero p { font-size: 14px; color: var(--fg-muted); line-height: 1.5; max-width: 320px; margin: 0 auto; }
+.onboarding-body { padding: 24px; }
+.step-row { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.step-row:last-of-type { border-bottom: none; }
+.step-num {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border-bright);
+  color: var(--fg-muted); font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.step-text { font-size: 13px; color: var(--fg-muted); line-height: 1.6; }
+.step-text strong { color: var(--fg); }
+.consent-row {
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius);
+  padding: 14px 16px; margin: 16px 0;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.onboarding-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="demo-wrapper">
+
+  <div class="demo-page-title">🛡 Thème Sombre 2 — Midnight Obsidian</div>
+  <p class="demo-page-sub">
+    Concept : Charbon mat, surfaces solides élevées, accents Indigo + Teal. Inspiré Material You / Arc / Figma dark.
+    Plus sobre et confortable que Aurora. Fallback clair élégant. WCAG 2.2 AA.
+  </p>
+
+  <!-- Palette -->
+  <div class="palette-strip">
+    <div class="swatch-pill"><div class="swatch-pill-block" style="background:#0d0d0f"></div><span>#0d0d0f</span></div>
+    <div class="swatch-pill"><div class="swatch-pill-block" style="background:#1a1a1f"></div><span>#1a1a1f</span></div>
+    <div class="swatch-pill"><div class="swatch-pill-block" style="background:#818cf8"></div><span>#818cf8</span></div>
+    <div class="swatch-pill"><div class="swatch-pill-block" style="background:#06b6d4"></div><span>#06b6d4</span></div>
+    <div class="swatch-pill"><div class="swatch-pill-block" style="background:#22c55e"></div><span>#22c55e</span></div>
+    <div class="swatch-pill"><div class="swatch-pill-block" style="background:#ef4444"></div><span>#ef4444</span></div>
+    <div class="swatch-pill"><div class="swatch-pill-block" style="background:#f59e0b"></div><span>#f59e0b</span></div>
+  </div>
+
+  <!-- SECTION 1 : POPUP -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 1 — Popup étendue (320×480px)</div>
+    <div class="demo-row">
+      <div class="popup-demo">
+        <div class="popup-header">
+          <div class="popup-header-accent"></div>
+          <div>
+            <h2>🛡 Sentinel Nudge</h2>
+            <p>Score de cyber-hygiène</p>
+          </div>
+        </div>
+        <div class="popup-body">
+          <div class="gauge-wrap">
+            <svg width="120" height="80" viewBox="0 0 120 80" aria-label="Score 74">
+              <defs>
+                <linearGradient id="gaugeGrad2" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#06b6d4"/>
+                  <stop offset="100%" stop-color="#22c55e"/>
+                </linearGradient>
+              </defs>
+              <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10" stroke-linecap="round"/>
+              <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="url(#gaugeGrad2)" stroke-width="10" stroke-linecap="round"
+                stroke-dasharray="157" stroke-dashoffset="40"/>
+              <text x="60" y="64" text-anchor="middle" font-size="22" font-weight="700" fill="#22c55e">74</text>
+              <text x="60" y="78" text-anchor="middle" font-size="9" fill="#8888a0">/ 100</text>
+            </svg>
+            <div class="gauge-info">
+              <div class="gauge-score">74</div>
+              <div class="gauge-level">Bon niveau</div>
+              <div class="gauge-trend">↑ +5 cette semaine</div>
+            </div>
+          </div>
+          <div class="modules-grid">
+            <div class="module-chip"><div class="chip-dot on"></div>M2 Phishing</div>
+            <div class="module-chip"><div class="chip-dot on"></div>M3 Score</div>
+            <div class="module-chip"><div class="chip-dot on"></div>M5 Quiz</div>
+            <div class="module-chip"><div class="chip-dot on"></div>M6 Réutil.</div>
+            <div class="module-chip"><div class="chip-dot on"></div>M7 MDP</div>
+            <div class="module-chip"><div class="chip-dot warn"></div>M9 2FA</div>
+            <div class="module-chip"><div class="chip-dot on"></div>M17 Session</div>
+            <div class="module-chip"><div class="chip-dot off"></div>Module off</div>
+          </div>
+          <div class="quota-wrap">
+            <div class="quota-label"><span>Nudges aujourd'hui</span><span>1 / 3</span></div>
+            <div class="quota-track"><div class="quota-fill"></div></div>
+          </div>
+          <div class="popup-actions">
+            <button class="btn btn-teal">Voir le tableau de bord</button>
+            <button class="btn btn-secondary">Paramètres</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2 : DASHBOARD -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 2 — Dashboard plein écran</div>
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Score global</div>
+        <div class="kpi-value">74</div>
+        <span class="kpi-badge b-up">↑ +5 pts</span>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Nudges reçus</div>
+        <div class="kpi-value">12</div>
+        <span class="kpi-badge b-up">cette semaine</span>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Série active</div>
+        <div class="kpi-value">7j</div>
+        <span class="kpi-badge b-up">Record</span>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Tendance hebdomadaire du score</div>
+      <svg viewBox="0 0 600 120" width="100%" aria-label="Graphique score hebdo">
+        <defs>
+          <linearGradient id="chartGrad3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="lineG3" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#2563eb"/>
+            <stop offset="50%" stop-color="#06b6d4"/>
+            <stop offset="100%" stop-color="#22c55e"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,80 L80,75 L160,68 L240,70 L320,60 L400,50 L480,42 L600,32"
+          fill="none" stroke="url(#lineG3)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M0,80 L80,75 L160,68 L240,70 L320,60 L400,50 L480,42 L600,32 L600,120 L0,120 Z"
+          fill="url(#chartGrad3)"/>
+        <circle cx="320" cy="60" r="4" fill="#06b6d4"/>
+        <circle cx="600" cy="32" r="5" fill="#22c55e"/>
+        <text x="0" y="115" font-size="9" fill="#555568">Lun</text>
+        <text x="72" y="115" font-size="9" fill="#555568">Mar</text>
+        <text x="152" y="115" font-size="9" fill="#555568">Mer</text>
+        <text x="232" y="115" font-size="9" fill="#555568">Jeu</text>
+        <text x="312" y="115" font-size="9" fill="#555568">Ven</text>
+        <text x="392" y="115" font-size="9" fill="#555568">Sam</text>
+        <text x="472" y="115" font-size="9" fill="#555568">Dim</text>
+      </svg>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--fg-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">
+      Historique des nudges
+    </div>
+    <div class="nudge-list">
+      <div class="nudge-row">
+        <div class="nudge-icon-box m7">🔑</div>
+        <div class="nudge-text">
+          <strong>M7 — Mot de passe faible détecté</strong>
+          <span>Il y a 2h · gmail.com</span>
+        </div>
+        <span class="tag tag-ok">Vu</span>
+      </div>
+      <div class="nudge-row">
+        <div class="nudge-icon-box m17">⏱</div>
+        <div class="nudge-text">
+          <strong>M17 — Session longue</strong>
+          <span>Il y a 5h · github.com</span>
+        </div>
+        <span class="tag tag-ok">Vu</span>
+      </div>
+      <div class="nudge-row">
+        <div class="nudge-icon-box m2">🚨</div>
+        <div class="nudge-text">
+          <strong>M2 — Risque phishing</strong>
+          <span>Hier · site-inconnu.xyz</span>
+        </div>
+        <span class="tag tag-skip">Ignoré</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3 : OPTIONS -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 3 — Paramètres &amp; sélecteur de thème</div>
+    <div class="options-layout">
+      <div class="options-sidebar">
+        <button class="opt-nav active">⚙️ Modules</button>
+        <button class="opt-nav">🎨 Apparence</button>
+        <button class="opt-nav">🔢 Quota</button>
+        <button class="opt-nav">🌐 Langue</button>
+        <button class="opt-nav">📦 Mes données</button>
+        <button class="opt-nav">ℹ️ À propos</button>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-inner">
+            <div class="card-title">Thème d'affichage</div>
+            <div class="theme-tabs" role="group" aria-label="Sélection du thème">
+              <button class="theme-tab" aria-pressed="false">
+                <div class="tab-dot td-auto"></div>Auto
+              </button>
+              <button class="theme-tab" aria-pressed="false">
+                <div class="tab-dot td-light"></div>Clair
+              </button>
+              <button class="theme-tab selected dark-tab" aria-pressed="true">
+                <div class="tab-dot td-dark"></div>Sombre
+              </button>
+              <button class="theme-tab" aria-pressed="false">
+                <div class="tab-dot td-matrix"></div>Matrix
+              </button>
+            </div>
+            <p style="font-size:12px;color:var(--fg-muted);">
+              Auto : thème selon l'OS. Sombre actif. Matrix = activation manuelle uniquement.
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-inner">
+            <div class="card-title">Modules de protection</div>
+            <div class="mod-row">
+              <div class="mod-info">
+                <div class="mod-name">M7 — Détection mots de passe</div>
+                <div class="mod-desc">Nudge lors de la saisie d'un mot de passe faible</div>
+              </div>
+              <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+            </div>
+            <div class="mod-row">
+              <div class="mod-info">
+                <div class="mod-name">M2 — Alerte phishing</div>
+                <div class="mod-desc">Détecte les sites suspects</div>
+              </div>
+              <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+            </div>
+            <div class="mod-row">
+              <div class="mod-info">
+                <div class="mod-name">M9 — Double authentification</div>
+                <div class="mod-desc">Rappel d'activer la 2FA</div>
+              </div>
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+            </div>
+            <div class="mod-row">
+              <div class="mod-info">
+                <div class="mod-name">M17 — Sessions longues</div>
+                <div class="mod-desc">Alerte après inactivité prolongée</div>
+              </div>
+              <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4 : TOASTS & OVERLAYS -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 4 — Toasts M7/M17 &amp; Overlays M2/M6/M9</div>
+    <div class="demo-row">
+      <div class="toasts-col">
+        <div class="toast">
+          <div class="toast-bar blue"></div>
+          <div class="toast-icon">🔑</div>
+          <div class="toast-content">
+            <div class="toast-title">Mot de passe faible — M7</div>
+            <div class="toast-text">Utiliser un gestionnaire de mots de passe.</div>
+          </div>
+          <button class="toast-close" aria-label="Fermer">×</button>
+        </div>
+        <div class="toast">
+          <div class="toast-bar warn"></div>
+          <div class="toast-icon">⏱</div>
+          <div class="toast-content">
+            <div class="toast-title">Session longue — M17</div>
+            <div class="toast-text">Connecté 4h+ sur github.com.</div>
+          </div>
+          <button class="toast-close" aria-label="Fermer">×</button>
+        </div>
+        <div class="toast">
+          <div class="toast-bar ok"></div>
+          <div class="toast-icon">✅</div>
+          <div class="toast-content">
+            <div class="toast-title">Paramètres sauvegardés</div>
+            <div class="toast-text">Préférences enregistrées localement.</div>
+          </div>
+        </div>
+      </div>
+      <div class="overlay-demo">
+        <div class="overlay-module-tag">⚠️ M2 Phishing</div>
+        <div class="overlay-h">Site suspect détecté</div>
+        <p class="overlay-body">
+          Ce domaine présente des caractéristiques de phishing :
+          homoglyphe, domaine &lt; 7j, certificat auto-signé.
+          Ne saisissez pas d'identifiants sur cette page.
+        </p>
+        <div class="overlay-actions">
+          <button class="btn btn-secondary">Ignorer</button>
+          <button class="btn btn-teal">Voir les détails</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5 : ONBOARDING -->
+  <div class="demo-section">
+    <div class="demo-section-header">Section 5 — Onboarding &amp; opt-in M7</div>
+    <div class="demo-row">
+      <div class="onboarding-card">
+        <div class="onboarding-hero">
+          <span class="onboarding-hero-icon">🛡</span>
+          <h2>Bienvenue dans Sentinel Nudge</h2>
+          <p>Votre assistant de cyber-hygiène. Discret, local, zéro télémétrie.</p>
+        </div>
+        <div class="onboarding-body">
+          <div class="step-row">
+            <div class="step-num">1</div>
+            <div class="step-text"><strong>Activez les modules</strong> de votre choix — tout est réversible.</div>
+          </div>
+          <div class="step-row">
+            <div class="step-num">2</div>
+            <div class="step-text"><strong>Vos données restent locales</strong> — aucune donnée ne quitte votre navigateur.</div>
+          </div>
+          <div class="step-row">
+            <div class="step-num">3</div>
+            <div class="step-text"><strong>Recevez des micro-nudges</strong> contextuels basés sur la recherche comportementale.</div>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="m7-obsidian" style="width:20px;height:20px;accent-color:#06b6d4;flex-shrink:0;margin-top:1px;">
+            <label for="m7-obsidian" style="font-size:13px;color:var(--fg-muted);line-height:1.5;">
+              J'accepte que M7 analyse localement mes champs mot de passe.
+              <span style="color:var(--fg-subtle);">Aucune donnée transmise.</span>
+            </label>
+          </div>
+        </div>
+        <div class="onboarding-footer">
+          <button class="btn btn-secondary" style="flex:1;">Ignorer</button>
+          <button class="btn btn-teal" style="flex:2;">Commencer →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
