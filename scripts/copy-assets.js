@@ -19,6 +19,10 @@ const copies = [
   { from: 'assets/icons', to: 'assets/icons' },
   { from: 'assets/_locales', to: '_locales' },
   { from: 'assets/data', to: 'assets/data' },
+  // HOTFIX tokens-not-bundled : assets/styles doit être copié pour que les
+  // 7 pages statiques d'explication (pages/static/*.html) qui référencent
+  // ../../assets/styles/tokens.css via <link> trouvent le fichier dans dist/.
+  { from: 'assets/styles', to: 'assets/styles' },
   { from: 'pages/static', to: 'pages/static' },
 ];
 
