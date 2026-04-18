@@ -30,6 +30,7 @@
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
+import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
 
 /** Seuil de score vert */
 const SCORE_GREEN = 70;
@@ -753,6 +754,9 @@ async function initDashboard(): Promise<void> {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Appliquer le thème AVANT le rendu pour éviter le FOUC (TACHE-148)
+  void initTheme();
+  watchThemeChanges();
   initDashboard().catch((err: unknown) => {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
     console.error(

@@ -27,6 +27,7 @@
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
+import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
 import type { ModuleId } from '@/shared/types/modules';
 
 /** Nombre total d'étapes */
@@ -689,6 +690,9 @@ async function initOnboarding(): Promise<void> {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Appliquer le thème AVANT le rendu pour éviter le FOUC (TACHE-148)
+  void initTheme();
+  watchThemeChanges();
   initOnboarding().catch((err: unknown) => {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
     console.error(

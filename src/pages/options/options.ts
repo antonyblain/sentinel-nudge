@@ -33,6 +33,7 @@
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
+import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
 import type {
   ExportPayload,
   EventPayload,
@@ -105,6 +106,9 @@ const MODULE_INFOS: Array<{
 /**
  * Type de la configuration stockée dans chrome.storage.local.
  */
+/** Type de valeur du thème de l'interface (TACHE-147). */
+type ThemeValue = 'auto' | 'light' | 'dark' | 'matrix';
+
 interface StoredConfig {
   modules: Record<ModuleId, boolean>;
   quota_limit: 3 | 5 | 10 | null;
@@ -112,6 +116,8 @@ interface StoredConfig {
   language: 'fr' | 'en';
   onboarding_complete: boolean;
   toast_auto_dismiss?: boolean;
+  /** Thème retenu par l'utilisateur ('auto' = suit l'OS). */
+  theme?: ThemeValue;
 }
 
 /**
@@ -571,6 +577,92 @@ function renderAccessibilitySection(
   wrapper.appendChild(input);
   wrapper.appendChild(label);
   fieldset.appendChild(wrapper);
+  root.appendChild(section);
+}
+
+/**
+ * Construit la section Apparence (sélecteur de thème 4 positions).
+ *
+ * Persiste la valeur dans `chrome.storage.local` clé `theme`.
+ * Valeurs : 'auto' | 'light' | 'dark' | 'matrix'.
+ * Applique immédiatement `data-theme` sur `<html>` (sauf 'auto').
+ *
+ * Accessibilité :
+ * - radiogroup avec aria-label (WCAG 1.3.1, 4.1.2)
+ * - focus visible via CSS
+ * - navigation clavier flèches native (radiogroup behavior)
+ *
+ * @param root       - Élément parent
+ * @param config     - Configuration courante (champ theme)
+ * @param feedbackEl - Élément feedback global
+ */
+function renderAppearanceSection(
+  root: HTMLElement,
+  config: StoredConfig,
+  feedbackEl: HTMLElement,
+): void {
+  const [section, fieldset] = createSection(
+    browser.i18n.getMessage('options_section_appearance') || 'Apparence',
+  );
+
+  // Le fieldset fait office de radiogroup
+  fieldset.setAttribute('role', 'radiogroup');
+  fieldset.setAttribute(
+    'aria-label',
+    browser.i18n.getMessage('options_theme_label') || "Thème de l'interface",
+  );
+
+  const themeOptions: Array<{ value: ThemeValue; key: string; defaultLabel: string }> = [
+    { value: 'auto', key: 'options_theme_auto', defaultLabel: 'Auto (OS)' },
+    { value: 'light', key: 'options_theme_light', defaultLabel: 'Clair' },
+    { value: 'dark', key: 'options_theme_dark', defaultLabel: 'Sombre' },
+    { value: 'matrix', key: 'options_theme_matrix', defaultLabel: 'Matrix' },
+  ];
+
+  const currentTheme: ThemeValue = config.theme ?? 'auto';
+
+  for (const opt of themeOptions) {
+    const radioId = `theme-${opt.value}`;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'radio-option theme-radio-option';
+
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.id = radioId;
+    input.name = 'ui-theme';
+    input.value = opt.value;
+    input.checked = currentTheme === opt.value;
+    input.className = 'radio-input';
+
+    input.addEventListener('change', () => {
+      if (!input.checked) return;
+      const newTheme = opt.value;
+      config.theme = newTheme;
+
+      // Application immédiate sur <html> (TACHE-148)
+      if (newTheme === 'auto') {
+        delete document.documentElement.dataset['theme'];
+      } else {
+        document.documentElement.dataset['theme'] = newTheme;
+      }
+
+      // Persistance dans chrome.storage.local (clé directe 'theme')
+      browser.storage.local
+        .set({ theme: newTheme })
+        .then(() => showSavedFeedback(feedbackEl))
+        .catch(() => undefined);
+    });
+
+    const label = document.createElement('label');
+    label.htmlFor = radioId;
+    label.className = 'radio-label';
+    label.textContent = browser.i18n.getMessage(opt.key) || opt.defaultLabel;
+
+    wrapper.appendChild(input);
+    wrapper.appendChild(label);
+    fieldset.appendChild(wrapper);
+  }
+
   root.appendChild(section);
 }
 
@@ -1036,6 +1128,7 @@ async function initOptions(): Promise<void> {
       language: 'fr',
       onboarding_complete: false,
       toast_auto_dismiss: true,
+      theme: 'auto' as ThemeValue,
       ...config,
     };
 
@@ -1046,6 +1139,7 @@ async function initOptions(): Promise<void> {
     renderProfileSection(root, effectiveConfig, feedbackEl);
     renderLanguageSection(root, effectiveConfig, feedbackEl);
     renderAccessibilitySection(root, effectiveConfig, feedbackEl);
+    renderAppearanceSection(root, effectiveConfig, feedbackEl);
     renderDataSection(root, effectiveConfig);
     renderTransparencySection(root);
     renderAboutSection(root);
@@ -1071,6 +1165,9 @@ async function initOptions(): Promise<void> {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Appliquer le thème AVANT le rendu pour éviter le FOUC (TACHE-148)
+  void initTheme();
+  watchThemeChanges();
   initOptions().catch((err: unknown) => {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
     console.error(

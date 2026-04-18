@@ -27,6 +27,7 @@
 
 import { browser } from '@/shared/browser/browser-adapter';
 import { MODULE_IDS } from '@/shared/constants/modules';
+import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
 
 /** Nombre total de modules v1 (7). Rattache a MODULE_IDS pour eviter la desync en v2. */
 const TOTAL_MODULES_V1 = MODULE_IDS.length;
@@ -503,6 +504,9 @@ async function initPopup(): Promise<void> {
 
 // Attendre le chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
+  // Appliquer le thème AVANT le rendu pour éviter le FOUC (TACHE-148)
+  void initTheme();
+  watchThemeChanges();
   initPopup().catch((err: unknown) => {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
     console.error(
