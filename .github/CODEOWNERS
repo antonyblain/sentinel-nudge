@@ -1,0 +1,29 @@
+# CODEOWNERS — Sentinel Nudge
+# Format : <pattern> <owner(s)>
+# Référence : https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# Généré par TACHE-119 — supply-chain hardening (REC-07 audit-config-github-v1.0)
+
+# Propriétaire par défaut — couvre tous les fichiers non explicitement listés ci-dessous
+*                         @antonyblain
+
+# Infrastructure CI/CD et gouvernance GitHub — sensibilité supply-chain (ISO A.8.30)
+/.github/                 @antonyblain
+
+# Architecture système et service-worker — zone critique intégrité extension (ISO A.8.32)
+/src/background/          @antonyblain
+
+# Documentation sécurité — contrôle d'accès et traçabilité (ISO A.5.15)
+/docs/securite/           @antonyblain
+
+# Documentation RGPD/DPO — données personnelles et conformité (ISO A.5.15)
+/docs/rgpd/               @antonyblain
+
+# Licence du projet — intégrité légale GPL v3 (bloquant TACHE-112 passage public)
+/LICENSE                  @antonyblain
+
+# Politique de divulgation des vulnérabilités — sécurité OSS (ISO A.5.26)
+/SECURITY.md              @antonyblain
+
+# Manifeste des dépendances npm — supply-chain (S2C2F / ISO A.8.8)
+/package.json             @antonyblain
+/package-lock.json        @antonyblain

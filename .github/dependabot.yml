@@ -1,0 +1,88 @@
+# dependabot.yml — Sentinel Nudge
+# Mise à jour automatique des dépendances (REC-18 audit-config-github-v1.0)
+# Généré par TACHE-119 — supply-chain hardening
+# Référence : https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+
+updates:
+  # ----------------------------------------------------------------
+  # Écosystème npm — dépendances applicatives et de développement
+  # Fréquence : hebdomadaire (lundi 06:00 UTC)
+  # ----------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+
+    # Séparation prod vs dev : PRs distinctes pour faciliter la revue
+    # Les dépendances de production (@zxcvbn-ts/core) ont un impact direct
+    # sur l'extension livrée ; les dépendances de développement ont un
+    # impact sur la chaîne de build et de tests uniquement.
+    groups:
+      prod-dependencies:
+        dependency-type: "production"
+      dev-dependencies:
+        dependency-type: "development"
+
+    # Limite de PRs ouvertes simultanément pour éviter la saturation
+    open-pull-requests-limit: 5
+
+    reviewers:
+      - "antonyblain"
+
+    # Ignore les bumps majeurs de libs dont la compatibilité MV3 est fragile.
+    # Justification :
+    #   - vite@v6 : incompatibilités documentées avec vite-plugin-web-extension
+    #     et les Service Workers MV3 (lesson LL — feedback_versions_npm.md).
+    #     Un bump majeur doit faire l'objet d'une évaluation manuelle dédiée.
+    #   - vite-plugin-web-extension@v5+ : couplé à vite, même raisonnement.
+    ignore:
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite-plugin-web-extension"
+        update-types: ["version-update:semver-major"]
+
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+
+    labels:
+      - "dependencies"
+
+  # ----------------------------------------------------------------
+  # Écosystème github-actions — actions tierces des workflows CI/CD
+  # Fréquence : mensuelle (1er du mois, 06:00 UTC)
+  # SHA pinning recommandé (REC — audit §3) — à faire manuellement
+  # après chaque mise à jour proposée par Dependabot (TACHE-120).
+  # ----------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+
+    # Toutes les actions groupées ensemble pour une PR unique mensuelle
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+    open-pull-requests-limit: 3
+
+    reviewers:
+      - "antonyblain"
+
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+
+    labels:
+      - "dependencies"
+      - "github-actions"
