@@ -1,6 +1,7 @@
 /**
  * options.css — Styles de la page Options Sentinel Nudge
  * Tokens centralises dans tokens.css (importe via HTML)
+ * T-143 : refonte sur tokens v2 (3 themes : Aegis Light / Midnight Obsidian / Cyberpunk Neon)
  */
 
 *,
@@ -20,6 +21,25 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: var(--sn-space-xl);
+}
+
+/* Lien d'evitement (WCAG 2.4.1 A) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background-color: var(--sn-color-accent);
+  color: var(--sn-color-btn-fg);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  z-index: 9999;
+  text-decoration: none;
+  border-radius: 0 0 var(--sn-radius) 0;
+}
+
+.skip-link:focus {
+  top: 0;
 }
 
 .sr-only {
@@ -52,7 +72,7 @@ body {
   bottom: 24px;
   right: 24px;
   background: var(--sn-color-success);
-  color: #fff;
+  color: var(--sn-color-btn-fg);
   padding: var(--sn-space-sm) var(--sn-space-lg);
   border-radius: var(--sn-radius);
   font-size: var(--sn-font-size-body);
@@ -62,8 +82,8 @@ body {
   opacity: 0;
   transform: translateY(12px);
   transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+    opacity var(--sn-transition),
+    transform var(--sn-transition);
   pointer-events: none;
 }
 
@@ -78,9 +98,11 @@ body {
 }
 
 .options-fieldset {
+  background-color: var(--sn-color-surface);
   border: 1px solid var(--sn-color-border);
-  border-radius: var(--sn-radius);
+  border-radius: var(--sn-radius-lg);
   padding: var(--sn-space-md) var(--sn-space-lg);
+  box-shadow: var(--sn-shadow-sm);
 }
 
 .options-legend {
@@ -93,7 +115,7 @@ body {
 /* Description de section */
 .section-desc {
   font-size: var(--sn-font-size-small);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   margin-bottom: var(--sn-space-md);
 }
 
@@ -103,7 +125,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: var(--sn-space-sm) 0;
-  border-bottom: 1px solid var(--sn-color-surface);
+  border-bottom: 1px solid var(--sn-color-surface-2);
 }
 
 .module-toggle:last-of-type {
@@ -124,7 +146,7 @@ body {
 
 .module-toggle-desc {
   font-size: var(--sn-font-size-small);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   margin-top: var(--sn-space-xs);
 }
 
@@ -142,7 +164,7 @@ body {
   background-color: var(--sn-color-border);
   border-radius: 12px;
   position: relative;
-  transition: background-color 150ms ease;
+  transition: background-color var(--sn-transition-fast);
   cursor: pointer;
 }
 
@@ -153,10 +175,18 @@ body {
   left: 2px;
   width: 20px;
   height: 20px;
-  background-color: #fff;
+  background-color: #ffffff; /* Blanc sur fond accent : contraste WCAG AA */
   border-radius: 50%;
-  transition: transform 150ms ease;
+  transition: transform var(--sn-transition-fast);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .toggle-switch::after {
+  background-color: var(--sn-color-fg);
+}
+
+[data-theme='matrix'] .toggle-switch::after {
+  background-color: var(--sn-color-primary);
 }
 
 .toggle-input:checked + .toggle-switch {
@@ -167,9 +197,82 @@ body {
   transform: translateX(20px);
 }
 
+[data-theme='matrix'] .toggle-input:checked + .toggle-switch {
+  box-shadow: 0 0 8px rgba(255, 45, 120, 0.4);
+}
+
 .toggle-input:focus-visible + .toggle-switch {
   outline: 3px solid var(--sn-color-accent);
   outline-offset: 2px;
+}
+
+/* Selecteur de theme */
+.theme-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sn-space-sm);
+  margin-top: var(--sn-space-sm);
+}
+
+.theme-btn {
+  min-width: 80px;
+  padding: var(--sn-space-xs) var(--sn-space-sm);
+  min-height: var(--sn-min-target);
+  border: 2px solid var(--sn-color-border);
+  border-radius: var(--sn-radius);
+  background-color: var(--sn-color-surface-2);
+  color: var(--sn-color-fg);
+  font-family: inherit;
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-medium);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sn-space-xs);
+  transition:
+    border-color var(--sn-transition-fast),
+    background-color var(--sn-transition-fast);
+}
+
+.theme-btn:hover {
+  border-color: var(--sn-color-accent);
+}
+
+.theme-btn.selected,
+.theme-btn[aria-pressed='true'] {
+  border-color: var(--sn-color-accent);
+  background-color: var(--sn-color-accent-light);
+}
+
+.theme-btn:focus-visible {
+  outline: 3px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+.theme-btn-swatch {
+  width: 40px;
+  height: 20px;
+  border-radius: var(--sn-radius-sm);
+  border: 1px solid var(--sn-color-border);
+  display: block;
+}
+
+.swatch-auto {
+  background: linear-gradient(135deg, #f5f7fa 50%, #0d0d0f 50%);
+}
+
+.swatch-light {
+  background-color: #f5f7fa;
+}
+
+.swatch-dark {
+  background-color: #0d0d0f;
+}
+
+.swatch-matrix {
+  background-color: #0a0a14;
+  box-shadow: 0 0 4px rgba(0, 212, 255, 0.5);
 }
 
 /* Formulaires */
@@ -184,7 +287,7 @@ body {
   width: 100%;
   max-width: 300px;
   padding: var(--sn-space-sm) var(--sn-space-md);
-  min-height: 44px; /* WCAG 2.5.5 */
+  min-height: var(--sn-min-target); /* WCAG 2.5.5 */
   border: 1px solid var(--sn-color-border);
   border-radius: var(--sn-radius);
   font-size: var(--sn-font-size-body);
@@ -212,7 +315,7 @@ body {
 /* Radio profil */
 .radio-option {
   padding: var(--sn-space-sm) 0;
-  border-bottom: 1px solid var(--sn-color-surface);
+  border-bottom: 1px solid var(--sn-color-surface-2);
 }
 
 .radio-option:last-of-type {
@@ -244,12 +347,12 @@ body {
 
 .radio-desc {
   font-size: var(--sn-font-size-small);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   margin-top: var(--sn-space-xs);
   margin-left: 28px;
 }
 
-/* Toggle checkbox accessibilité */
+/* Toggle checkbox accessibilite */
 .toggle-row {
   display: flex;
   align-items: center;
@@ -273,29 +376,29 @@ body {
 .toggle-label {
   font-size: var(--sn-font-size-body);
   cursor: pointer;
-  min-height: 44px; /* WCAG 2.5.5 */
+  min-height: var(--sn-min-target); /* WCAG 2.5.5 */
   display: flex;
   align-items: center;
 }
 
-/* Boutons données */
+/* Boutons donnees */
 .data-btn {
   display: block;
   width: 100%;
   margin-bottom: var(--sn-space-sm);
   padding: var(--sn-space-sm) var(--sn-space-md);
-  min-height: 44px; /* WCAG 2.5.5 */
+  min-height: var(--sn-min-target); /* WCAG 2.5.5 */
   border-radius: var(--sn-radius);
   font-size: var(--sn-font-size-body);
   font-weight: var(--sn-font-weight-bold);
   cursor: pointer;
   text-align: center;
-  transition: background-color 150ms ease;
+  transition: background-color var(--sn-transition-fast);
   border: none;
 }
 
 .btn-secondary {
-  background-color: var(--sn-color-surface);
+  background-color: var(--sn-color-surface-2);
   color: var(--sn-color-fg);
   border: 1px solid var(--sn-color-border);
 }
@@ -324,7 +427,7 @@ body {
   outline-offset: 2px;
 }
 
-/* Statut opérations données */
+/* Statut operations donnees */
 .data-status {
   margin-top: var(--sn-space-sm);
   padding: var(--sn-space-sm) var(--sn-space-md);
@@ -351,7 +454,7 @@ body {
   color: var(--sn-color-accent);
   font-size: var(--sn-font-size-small);
   text-decoration: underline;
-  min-height: 44px; /* WCAG 2.5.5 */
+  min-height: var(--sn-min-target); /* WCAG 2.5.5 */
   display: inline-flex;
   align-items: center;
 }
@@ -361,10 +464,10 @@ body {
   outline-offset: 2px;
 }
 
-/* À propos */
+/* A propos */
 .about-info {
   font-size: var(--sn-font-size-small);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   margin-bottom: var(--sn-space-sm);
 }
 
@@ -375,7 +478,7 @@ body {
   font-size: var(--sn-font-size-small);
   text-decoration: underline;
   margin-bottom: var(--sn-space-sm);
-  min-height: 44px;
+  min-height: var(--sn-min-target);
 }
 
 .about-link:focus-visible {
@@ -387,7 +490,7 @@ body {
 .loading-text {
   text-align: center;
   padding: var(--sn-space-xl) 0;
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
 }
 
 .error-text {
@@ -395,13 +498,4 @@ body {
   padding: var(--sn-space-md);
   background-color: var(--sn-color-danger-bg);
   border-radius: var(--sn-radius);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-  }
 }
