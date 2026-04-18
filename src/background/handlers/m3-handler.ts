@@ -27,6 +27,11 @@ import { StorageService } from '@/background/storage-service';
 import { ScoreCalculator } from '@/background/score-calculator';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+import { createLogger } from '@/shared/utils/logger';
+import { classifyError } from '@/shared/utils/classify-error';
+
+/** Logger scopé M3Handler — mitigation R-M7-08 / TACHE-104 */
+const logger = createLogger('M3Handler');
 
 /** Seuil de score pour badge vert */
 const BADGE_GREEN_THRESHOLD = 70;
@@ -70,8 +75,8 @@ async function updateBadge(score: number): Promise<void> {
     await chrome.action.setBadgeText({ text: String(score) });
     await chrome.action.setBadgeBackgroundColor({ color });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.warn(`[M3Handler] Impossible de mettre à jour le badge: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.warn('impossible_de_mettre_à_jour_le_badge', { error_code: classifyError(err) });
   }
 }
 
@@ -155,8 +160,8 @@ async function handleCalculateScore(
       },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M3Handler] Erreur calcul score: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_calcul_score', { error_code: classifyError(err) });
     // IndexedDB corrompue — effacer le badge (SFD §2.2.4)
     await clearBadge();
     return { success: false, action: 'error', reason: 'storage_error' };
@@ -203,8 +208,8 @@ async function handleGetScore(
       },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M3Handler] Erreur get_score: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_get_score', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'storage_error' };
   }
 }
