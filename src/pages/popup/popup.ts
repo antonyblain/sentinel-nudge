@@ -333,123 +333,118 @@ export function renderScoreSection(
   const section = document.createElement('section');
   section.setAttribute('aria-label', browser.i18n.getMessage('popup_score_label') || 'Score');
 
-  if (score === null) {
-    const noDataDiv = document.createElement('div');
-    noDataDiv.className = 'score-no-data';
+  // TACHE-153 : structure gauge TOUJOURS affichée, même sans score (fresh install).
+  // Préférence Commanditaire 2026-04-19 : pas de fallback plat "Premier score lundi".
+  const hasScore = score !== null;
+  const displayScore = hasScore ? String(score) : '\u2014'; // em-dash si pas de score
+  const displayColor = hasScore ? scoreColor(score) : 'var(--sn-color-fg-muted)';
+  const displayLabel = hasScore
+    ? scoreLevelLabel(score)
+    : browser.i18n.getMessage('popup_score_pending_label') || 'En cours';
+  const displayTrend = hasScore
+    ? buildTrendLabel(previousScore, score)
+    : browser.i18n.getMessage('popup_score_pending_trend') ||
+      `Premier score lundi ${getNextMonday()}`;
+  const progressRatio = hasScore ? score / 100 : 0;
+  const ariaScore = hasScore
+    ? `Score ${score}/100 \u2014 ${displayLabel}`
+    : browser.i18n.getMessage('popup_score_pending_aria') || 'Score en cours de calcul';
 
-    const noDataLabel = document.createElement('p');
-    noDataLabel.className = 'score-no-data-label';
-    noDataLabel.textContent =
-      browser.i18n.getMessage('popup_score_no_data') || 'Premier score lundi';
-    noDataDiv.appendChild(noDataLabel);
+  // Disposition cote-a-cote : SVG + info score (maquette v3)
+  const gaugeWrap = document.createElement('div');
+  gaugeWrap.className = 'gauge-wrap';
 
-    const nextDate = document.createElement('p');
-    nextDate.className = 'score-no-data-date';
-    const nextMondayStr = getNextMonday();
-    nextDate.textContent =
-      browser.i18n.getMessage('popup_score_first_monday', nextMondayStr) ||
-      `Votre premier score sera calcule le ${nextMondayStr}`;
-    noDataDiv.appendChild(nextDate);
+  // SVG circulaire
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'gauge-svg');
+  svg.setAttribute('viewBox', '0 0 120 120');
+  svg.setAttribute('width', '120');
+  svg.setAttribute('height', '120');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', ariaScore);
 
-    section.appendChild(noDataDiv);
-  } else {
-    // Disposition cote-a-cote : SVG + info score (maquette v3)
-    const gaugeWrap = document.createElement('div');
-    gaugeWrap.className = 'gauge-wrap';
+  // Cercle de fond (track)
+  const bgCircle = document.createElementNS(svgNS, 'circle');
+  bgCircle.setAttribute('cx', '60');
+  bgCircle.setAttribute('cy', '60');
+  bgCircle.setAttribute('r', '50');
+  bgCircle.setAttribute('fill', 'none');
+  bgCircle.setAttribute('stroke', 'var(--sn-gauge-track)');
+  bgCircle.setAttribute('stroke-width', '12');
+  svg.appendChild(bgCircle);
 
-    // SVG circulaire
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('class', 'gauge-svg');
-    svg.setAttribute('viewBox', '0 0 120 120');
-    svg.setAttribute('width', '120');
-    svg.setAttribute('height', '120');
-    svg.setAttribute('role', 'img');
-    const levelLabel = scoreLevelLabel(score);
-    svg.setAttribute('aria-label', `Score ${score}/100 \u2014 ${levelLabel}`);
+  // Cercle de progression
+  const circumference = 2 * Math.PI * 50;
+  const dashOffset = circumference * (1 - progressRatio);
+  const progressCircle = document.createElementNS(svgNS, 'circle');
+  progressCircle.setAttribute('cx', '60');
+  progressCircle.setAttribute('cy', '60');
+  progressCircle.setAttribute('r', '50');
+  progressCircle.setAttribute('fill', 'none');
+  progressCircle.setAttribute('stroke', displayColor);
+  progressCircle.setAttribute('stroke-width', '12');
+  progressCircle.setAttribute('stroke-linecap', 'round');
+  progressCircle.setAttribute('stroke-dasharray', String(circumference));
+  progressCircle.setAttribute('stroke-dashoffset', String(dashOffset));
+  progressCircle.setAttribute('transform', 'rotate(-90 60 60)');
+  svg.appendChild(progressCircle);
 
-    // Cercle de fond (track)
-    const bgCircle = document.createElementNS(svgNS, 'circle');
-    bgCircle.setAttribute('cx', '60');
-    bgCircle.setAttribute('cy', '60');
-    bgCircle.setAttribute('r', '50');
-    bgCircle.setAttribute('fill', 'none');
-    bgCircle.setAttribute('stroke', 'var(--sn-gauge-track)');
-    bgCircle.setAttribute('stroke-width', '12');
-    svg.appendChild(bgCircle);
+  // Texte score dans SVG (aria-hidden, visuel uniquement)
+  const scoreText = document.createElementNS(svgNS, 'text');
+  scoreText.setAttribute('x', '60');
+  scoreText.setAttribute('y', '62');
+  scoreText.setAttribute('text-anchor', 'middle');
+  scoreText.setAttribute('dominant-baseline', 'middle');
+  scoreText.setAttribute('font-size', '28');
+  scoreText.setAttribute('font-weight', '700');
+  scoreText.setAttribute('fill', displayColor);
+  scoreText.setAttribute('aria-hidden', 'true');
+  scoreText.textContent = displayScore;
+  svg.appendChild(scoreText);
 
-    // Cercle de progression
-    const circumference = 2 * Math.PI * 50;
-    const dashOffset = circumference * (1 - score / 100);
-    const progressCircle = document.createElementNS(svgNS, 'circle');
-    progressCircle.setAttribute('cx', '60');
-    progressCircle.setAttribute('cy', '60');
-    progressCircle.setAttribute('r', '50');
-    progressCircle.setAttribute('fill', 'none');
-    progressCircle.setAttribute('stroke', scoreColor(score));
-    progressCircle.setAttribute('stroke-width', '12');
-    progressCircle.setAttribute('stroke-linecap', 'round');
-    progressCircle.setAttribute('stroke-dasharray', String(circumference));
-    progressCircle.setAttribute('stroke-dashoffset', String(dashOffset));
-    progressCircle.setAttribute('transform', 'rotate(-90 60 60)');
-    svg.appendChild(progressCircle);
+  // Texte /100 dans SVG
+  const maxText = document.createElementNS(svgNS, 'text');
+  maxText.setAttribute('x', '60');
+  maxText.setAttribute('y', '82');
+  maxText.setAttribute('text-anchor', 'middle');
+  maxText.setAttribute('font-size', '12');
+  maxText.setAttribute('fill', 'var(--sn-color-fg-muted)');
+  maxText.setAttribute('aria-hidden', 'true');
+  maxText.textContent = '/100';
+  svg.appendChild(maxText);
 
-    // Texte score dans SVG (aria-hidden, visuel uniquement)
-    const scoreText = document.createElementNS(svgNS, 'text');
-    scoreText.setAttribute('x', '60');
-    scoreText.setAttribute('y', '62');
-    scoreText.setAttribute('text-anchor', 'middle');
-    scoreText.setAttribute('dominant-baseline', 'middle');
-    scoreText.setAttribute('font-size', '28');
-    scoreText.setAttribute('font-weight', '700');
-    scoreText.setAttribute('fill', scoreColor(score));
-    scoreText.setAttribute('aria-hidden', 'true');
-    scoreText.textContent = String(score);
-    svg.appendChild(scoreText);
+  gaugeWrap.appendChild(svg);
 
-    // Texte /100 dans SVG
-    const maxText = document.createElementNS(svgNS, 'text');
-    maxText.setAttribute('x', '60');
-    maxText.setAttribute('y', '82');
-    maxText.setAttribute('text-anchor', 'middle');
-    maxText.setAttribute('font-size', '12');
-    maxText.setAttribute('fill', 'var(--sn-color-fg-muted)');
-    maxText.setAttribute('aria-hidden', 'true');
-    maxText.textContent = '/100';
-    svg.appendChild(maxText);
+  // Info score a droite (maquette v3)
+  const gaugeInfo = document.createElement('div');
+  gaugeInfo.className = 'gauge-info';
 
-    gaugeWrap.appendChild(svg);
+  // Grand score numerique textuel (aria-hidden : SVG porte le sens)
+  const gaugeScoreEl = document.createElement('div');
+  gaugeScoreEl.className = 'gauge-score';
+  gaugeScoreEl.style.color = displayColor;
+  gaugeScoreEl.textContent = displayScore;
+  gaugeScoreEl.setAttribute('aria-hidden', 'true');
+  gaugeInfo.appendChild(gaugeScoreEl);
 
-    // Info score a droite (maquette v3)
-    const gaugeInfo = document.createElement('div');
-    gaugeInfo.className = 'gauge-info';
+  // Label niveau
+  const gaugeLabelEl = document.createElement('div');
+  gaugeLabelEl.className = 'gauge-label';
+  gaugeLabelEl.style.color = displayColor;
+  gaugeLabelEl.textContent = displayLabel;
+  gaugeLabelEl.setAttribute('aria-hidden', 'true');
+  gaugeInfo.appendChild(gaugeLabelEl);
 
-    // Grand score numerique textuel (aria-hidden : SVG porte le sens)
-    const gaugeScoreEl = document.createElement('div');
-    gaugeScoreEl.className = 'gauge-score';
-    gaugeScoreEl.style.color = scoreColor(score);
-    gaugeScoreEl.textContent = String(score);
-    gaugeScoreEl.setAttribute('aria-hidden', 'true');
-    gaugeInfo.appendChild(gaugeScoreEl);
+  // Tendance (ou message "premier score lundi" si pas encore de score)
+  const gaugeTrendEl = document.createElement('div');
+  gaugeTrendEl.className = 'gauge-trend';
+  gaugeTrendEl.textContent = displayTrend;
+  gaugeTrendEl.setAttribute('aria-hidden', 'true');
+  gaugeInfo.appendChild(gaugeTrendEl);
 
-    // Label niveau
-    const gaugeLabelEl = document.createElement('div');
-    gaugeLabelEl.className = 'gauge-label';
-    gaugeLabelEl.style.color = scoreColor(score);
-    gaugeLabelEl.textContent = levelLabel;
-    gaugeLabelEl.setAttribute('aria-hidden', 'true');
-    gaugeInfo.appendChild(gaugeLabelEl);
-
-    // Tendance
-    const gaugeTrendEl = document.createElement('div');
-    gaugeTrendEl.className = 'gauge-trend';
-    gaugeTrendEl.textContent = buildTrendLabel(previousScore, score);
-    gaugeTrendEl.setAttribute('aria-hidden', 'true');
-    gaugeInfo.appendChild(gaugeTrendEl);
-
-    gaugeWrap.appendChild(gaugeInfo);
-    section.appendChild(gaugeWrap);
-  }
+  gaugeWrap.appendChild(gaugeInfo);
+  section.appendChild(gaugeWrap);
 
   container.appendChild(section);
 }

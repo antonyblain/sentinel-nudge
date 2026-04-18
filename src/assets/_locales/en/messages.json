@@ -357,6 +357,18 @@
     "message": "First score on Monday",
     "description": "Message before first score calculation"
   },
+  "popup_score_pending_label": {
+    "message": "Pending",
+    "description": "Label shown under gauge when no score yet (TACHE-153)"
+  },
+  "popup_score_pending_trend": {
+    "message": "First score calculated on Monday",
+    "description": "Trend text shown under gauge when no score yet (TACHE-153)"
+  },
+  "popup_score_pending_aria": {
+    "message": "Score being calculated",
+    "description": "Gauge aria-label when no score yet (TACHE-153)"
+  },
   "popup_score_first_monday": {
     "message": "Your first score will be calculated on $1",
     "description": "Message with date of first Monday",

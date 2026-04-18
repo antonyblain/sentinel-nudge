@@ -93,25 +93,37 @@ function makeContainer(): HTMLDivElement {
 // ===========================================================================
 
 describe('TC-GAUGE — renderScoreSection (refonte T-152)', () => {
-  // ─── Score null (état initial) ───
+  // ─── Score null (état initial) — TACHE-153 : structure gauge préservée ───
 
-  it('TC-GAUGE-01 : score null → div.score-no-data présent', () => {
+  it('TC-GAUGE-01 : score null → div.gauge-wrap présent (T-153 structure complète fresh install)', () => {
     const container = makeContainer();
     renderScoreSection(container, null);
-    expect(container.querySelector('.score-no-data')).not.toBeNull();
+    expect(container.querySelector('.gauge-wrap')).not.toBeNull();
   });
 
-  it('TC-GAUGE-02 : score null → aucun .gauge-wrap', () => {
+  it('TC-GAUGE-02 : score null → SVG gauge-svg présent avec em-dash (T-153)', () => {
     const container = makeContainer();
     renderScoreSection(container, null);
-    expect(container.querySelector('.gauge-wrap')).toBeNull();
+    const svg = container.querySelector('svg.gauge-svg');
+    expect(svg).not.toBeNull();
+    // Texte dans SVG : "—" (em-dash U+2014) au lieu d'un chiffre
+    const scoreText = svg?.querySelector('text');
+    expect(scoreText?.textContent).toBe('\u2014');
   });
 
-  it('TC-GAUGE-03 : score null → p.score-no-data-label avec texte non vide', () => {
+  it('TC-GAUGE-03 : score null → gauge-trend contient message "Premier score lundi" (T-153)', () => {
     const container = makeContainer();
     renderScoreSection(container, null);
-    const p = container.querySelector('p.score-no-data-label');
-    expect(p?.textContent).toBeTruthy();
+    const trendEl = container.querySelector('.gauge-trend');
+    expect(trendEl?.textContent).toBeTruthy();
+    // Le trend en état fresh install informe que le premier score sera calculé lundi
+    expect(trendEl?.textContent?.toLowerCase()).toMatch(/lundi|monday|score/);
+  });
+
+  it('TC-GAUGE-03b : score null → aucun div.score-no-data (T-153 supprime le fallback plat)', () => {
+    const container = makeContainer();
+    renderScoreSection(container, null);
+    expect(container.querySelector('.score-no-data')).toBeNull();
   });
 
   // ─── Structure gauge-wrap (maquette v3) ───
