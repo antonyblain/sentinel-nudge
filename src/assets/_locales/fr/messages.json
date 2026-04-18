@@ -942,5 +942,141 @@
   "options_theme_matrix": {
     "message": "Matrix",
     "description": "Option thème Matrix (Cyberpunk Neon)"
+  },
+  "popup_tagline": {
+    "message": "Score de cyber-hygiene",
+    "description": "Tagline dans le header de la popup"
+  },
+  "popup_modules_section_title": {
+    "message": "Modules actifs",
+    "description": "Titre de la section modules dans la popup"
+  },
+  "popup_modules_grid_aria": {
+    "message": "Grille des modules de protection",
+    "description": "Aria-label de la grille des modules"
+  },
+  "popup_nudges_today_label": {
+    "message": "Nudges aujourd'hui",
+    "description": "Libelle de la barre de progression du quota"
+  },
+  "popup_score_trend_up": {
+    "message": "+ $1 cette semaine",
+    "description": "Tendance score en hausse",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "popup_score_trend_down": {
+    "message": "- $1 cette semaine",
+    "description": "Tendance score en baisse",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popup_score_trend_stable": {
+    "message": "Stable cette semaine",
+    "description": "Tendance score stable"
+  },
+  "dashboard_kpi_score_label": {
+    "message": "Score global",
+    "description": "Label KPI score dashboard"
+  },
+  "dashboard_kpi_score_sub": {
+    "message": "sur 100",
+    "description": "Sous-libelle KPI score dashboard"
+  },
+  "dashboard_kpi_nudges_label": {
+    "message": "Nudges recus",
+    "description": "Label KPI nudges dashboard"
+  },
+  "dashboard_kpi_nudges_sub": {
+    "message": "cette semaine",
+    "description": "Sous-libelle KPI nudges dashboard"
+  },
+  "dashboard_kpi_streak_label": {
+    "message": "Serie active",
+    "description": "Label KPI serie dashboard"
+  },
+  "dashboard_kpi_streak_sub": {
+    "message": "jours consecutifs",
+    "description": "Sous-libelle KPI serie dashboard"
+  },
+  "dashboard_nudge_history_title": {
+    "message": "Historique des nudges",
+    "description": "Titre section historique nudges dashboard"
+  },
+  "dashboard_nudge_history_empty": {
+    "message": "Aucun nudge enregistre",
+    "description": "Message liste nudges vide"
+  },
+  "dashboard_nudge_tag_seen": {
+    "message": "Vu",
+    "description": "Tag nudge vu"
+  },
+  "dashboard_nudge_tag_dismissed": {
+    "message": "Ignore",
+    "description": "Tag nudge ignore"
+  },
+  "dashboard_whitelist_title": {
+    "message": "Sites de confiance M2",
+    "description": "Titre section whitelist dashboard"
+  },
+  "dashboard_whitelist_empty": {
+    "message": "Aucun site ajoute",
+    "description": "Message whitelist vide"
+  },
+  "dashboard_whitelist_add_label": {
+    "message": "Ajouter un domaine",
+    "description": "Label input ajout whitelist"
+  },
+  "dashboard_whitelist_add_btn": {
+    "message": "Ajouter",
+    "description": "Bouton ajouter whitelist"
+  },
+  "dashboard_whitelist_remove_btn": {
+    "message": "Supprimer",
+    "description": "Bouton supprimer entree whitelist"
+  },
+  "options_nav_modules": {
+    "message": "Modules",
+    "description": "Navigation options — Modules"
+  },
+  "options_nav_appearance": {
+    "message": "Apparence",
+    "description": "Navigation options — Apparence"
+  },
+  "options_nav_quota": {
+    "message": "Quota",
+    "description": "Navigation options — Quota"
+  },
+  "options_nav_language": {
+    "message": "Langue",
+    "description": "Navigation options — Langue"
+  },
+  "options_nav_data": {
+    "message": "Mes donnees",
+    "description": "Navigation options — Donnees"
+  },
+  "options_nav_about": {
+    "message": "A propos",
+    "description": "Navigation options — A propos"
+  },
+  "options_nav_accessibility": {
+    "message": "Accessibilite",
+    "description": "Navigation options — Accessibilite"
+  },
+  "onboarding_hero_tagline": {
+    "message": "Ameliorez vos habitudes de securite",
+    "description": "Tagline hero onboarding"
+  },
+  "onboarding_hero_desc": {
+    "message": "Micro-nudges bases sur la recherche comportementale. Tout traitement local, aucune telemetrie.",
+    "description": "Description hero onboarding"
   }
 }

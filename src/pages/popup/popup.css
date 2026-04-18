@@ -2,6 +2,7 @@
  * popup.css — Styles de la popup Sentinel Nudge
  * Tokens centralises dans tokens.css (importe via HTML)
  * Taille fixe : 320px x ~400px (MV3 popup)
+ * T-143 : refonte sur tokens v2 (3 themes : Aegis Light / Midnight Obsidian / Cyberpunk Neon)
  */
 
 /* Reset minimal */
@@ -24,7 +25,25 @@ body {
   min-height: 360px;
   max-height: 480px;
   overflow-y: auto;
-  padding: var(--sn-space-md);
+}
+
+/* Lien d'evitement (WCAG 2.4.1 A) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background-color: var(--sn-color-accent);
+  color: var(--sn-color-btn-fg);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  z-index: 9999;
+  text-decoration: none;
+  border-radius: 0 0 var(--sn-radius) 0;
+}
+
+.skip-link:focus {
+  top: 0;
 }
 
 /* Masquage visuel accessible (sr-only) — DAT §11.5 */
@@ -42,28 +61,39 @@ body {
 
 /* En-tête popup */
 header {
-  margin-bottom: var(--sn-space-md);
+  background-color: var(--sn-color-primary);
+  padding: var(--sn-space-sm) var(--sn-space-md);
   border-bottom: 1px solid var(--sn-color-border);
-  padding-bottom: var(--sn-space-sm);
 }
 
 .popup-header-inner {
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; — T-152: aligned left per maquette v3 */
   gap: var(--sn-space-sm);
 }
 
 .header-shield {
-  color: var(--sn-color-primary);
+  color: #ffffff;
   flex-shrink: 0;
 }
 
 .popup-title {
   font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-primary);
+  color: #ffffff;
   text-align: center;
+}
+
+[data-theme='matrix'] header {
+  background-color: var(--sn-color-surface);
+  border-bottom: 1px solid var(--sn-color-primary);
+  box-shadow: var(--sn-shadow-glow);
+}
+
+[data-theme='matrix'] .header-shield,
+[data-theme='matrix'] .popup-title {
+  color: var(--sn-color-primary);
 }
 
 /* Contenu principal */
@@ -71,13 +101,14 @@ header {
   display: flex;
   flex-direction: column;
   gap: var(--sn-space-md);
+  padding: var(--sn-space-md);
 }
 
 /* Section titre */
 .section-title {
   font-size: var(--sn-font-size-small);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: var(--sn-space-sm);
@@ -91,9 +122,124 @@ header {
   gap: var(--sn-space-xs);
 }
 
+.gauge-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-space-md);
+  width: 100%;
+}
+
+.gauge-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-xs);
+  flex: 1;
+}
+
+.gauge-score {
+  font-size: 32px;
+  font-weight: var(--sn-font-weight-extrabold);
+  line-height: 1;
+  color: var(--sn-gauge-good);
+}
+
+[data-theme='matrix'] .gauge-score {
+  font-family: var(--sn-font-mono);
+  text-shadow: var(--sn-shadow-glow);
+}
+
+.gauge-label {
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-fg);
+}
+
+.gauge-trend {
+  font-size: var(--sn-font-size-micro);
+  color: var(--sn-color-fg-muted);
+}
+
 .score-level {
   font-size: var(--sn-font-size-small);
   font-weight: var(--sn-font-weight-bold);
+}
+
+/* Grille modules (chips) */
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sn-space-xs);
+  margin-top: var(--sn-space-xs);
+}
+
+.module-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-space-xs);
+  padding: var(--sn-space-xs) var(--sn-space-sm);
+  background-color: var(--sn-color-surface-2);
+  border-radius: var(--sn-radius-sm);
+  font-size: var(--sn-font-size-micro);
+  font-weight: var(--sn-font-weight-medium);
+  color: var(--sn-color-fg-muted);
+}
+
+.module-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.module-chip-dot.active {
+  background-color: var(--sn-gauge-good);
+}
+
+.module-chip-dot.inactive {
+  background-color: var(--sn-color-border);
+}
+
+.module-chip-dot.warning {
+  background-color: var(--sn-gauge-mid);
+}
+
+/* Barre de quota */
+.quota-bar-wrap {
+  margin-top: var(--sn-space-sm);
+}
+
+.quota-track {
+  height: 6px;
+  background-color: var(--sn-gauge-track);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quota-fill {
+  height: 100%;
+  background-color: var(--sn-color-accent);
+  border-radius: 3px;
+  transition: width var(--sn-transition-fast);
+}
+
+/* Badge KPI tendance */
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--sn-space-xs);
+  border-radius: var(--sn-radius-sm);
+  font-size: var(--sn-font-size-micro);
+  font-weight: var(--sn-font-weight-bold);
+}
+
+.kpi-badge-up {
+  background-color: var(--sn-color-success-bg);
+  color: var(--sn-color-success);
+}
+
+.kpi-badge-down {
+  background-color: var(--sn-color-danger-bg);
+  color: var(--sn-color-danger);
 }
 
 /* État initial (pas encore de score) */
@@ -105,13 +251,13 @@ header {
 .score-no-data-label {
   font-size: var(--sn-font-size-h2);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   margin-bottom: var(--sn-space-xs);
 }
 
 .score-no-data-date {
   font-size: var(--sn-font-size-small);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
 }
 
 /* Section statut */
@@ -119,6 +265,7 @@ header {
   border: 1px solid var(--sn-color-border);
   border-radius: var(--sn-radius);
   padding: var(--sn-space-sm) var(--sn-space-md);
+  box-shadow: var(--sn-shadow-sm);
 }
 
 .status-row {
@@ -130,12 +277,12 @@ header {
 }
 
 .status-row + .status-row {
-  border-top: 1px solid var(--sn-color-surface);
+  border-top: 1px solid var(--sn-color-surface-2);
 }
 
 .status-label {
   font-size: var(--sn-font-size-small);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   display: flex;
   align-items: center;
   gap: var(--sn-space-xs);
@@ -159,7 +306,7 @@ header {
 
 .status-value-sub {
   font-size: var(--sn-font-size-micro);
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   white-space: nowrap;
 }
 
@@ -175,7 +322,7 @@ header {
   display: block;
   width: 100%;
   padding: var(--sn-space-sm) var(--sn-space-md);
-  min-height: 44px; /* WCAG 2.5.5 — cibles 44×44px */
+  min-height: var(--sn-min-target); /* WCAG 2.5.5 — cibles 44×44px */
   border: none;
   border-radius: var(--sn-radius);
   font-size: var(--sn-font-size-body);
@@ -183,8 +330,8 @@ header {
   cursor: pointer;
   text-align: center;
   transition:
-    background-color 150ms ease,
-    transform 100ms ease;
+    background-color var(--sn-transition-fast),
+    transform var(--sn-transition-fast);
 }
 
 .btn:focus-visible {
@@ -194,15 +341,19 @@ header {
 
 .btn-primary {
   background-color: var(--sn-color-accent);
-  color: var(--sn-color-btn-fg, #fff); /* TACHE-150 WCAG AA matrix */
+  color: var(--sn-color-btn-fg);
 }
 
 .btn-primary:hover {
   background-color: var(--sn-color-accent-hover);
 }
 
+[data-theme='matrix'] .btn-primary {
+  box-shadow: 0 0 12px rgba(255, 45, 120, 0.4);
+}
+
 .btn-secondary {
-  background-color: var(--sn-color-surface);
+  background-color: var(--sn-color-surface-2);
   color: var(--sn-color-fg);
   border: 1px solid var(--sn-color-border);
 }
@@ -216,7 +367,7 @@ header {
 .error-text {
   text-align: center;
   padding: var(--sn-space-lg) 0;
-  color: var(--sn-color-muted);
+  color: var(--sn-color-fg-muted);
   font-size: var(--sn-font-size-small);
 }
 
@@ -234,7 +385,7 @@ header {
   border: 1px solid var(--sn-color-warning);
   border-radius: var(--sn-radius);
   padding: var(--sn-space-sm) var(--sn-space-md);
-  margin-bottom: var(--sn-space-md);
+  margin: var(--sn-space-sm) var(--sn-space-md) 0;
   color: var(--sn-color-warning);
 }
 
@@ -327,12 +478,74 @@ header {
   outline-offset: 2px;
 }
 
-/* Respect des préférences de mouvement réduit — DAT §11.2 */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-  }
+/* ═══ REFONTE STRUCTURELLE T-152 — Nouveaux sélecteurs maquettes v3 ═══════ */
+
+/* Header : disposition icone + texte (titre + tagline) */
+.popup-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.popup-tagline {
+  font-size: var(--sn-font-size-micro);
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1;
+}
+
+[data-theme='dark'] .popup-tagline {
+  color: var(--sn-color-fg-muted);
+}
+
+[data-theme='matrix'] .popup-tagline {
+  color: var(--sn-color-fg-muted);
+  font-family: var(--sn-font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* Corps de la popup — remplace .popup-content dans la nouvelle structure */
+.popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-sm);
+  padding: var(--sn-space-md);
+}
+
+/* Titre de section petites majuscules (ex: "MODULES ACTIFS") */
+.card-title {
+  font-size: var(--sn-font-size-micro);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--sn-space-xs);
+}
+
+[data-theme='matrix'] .card-title {
+  font-family: var(--sn-font-mono);
+  letter-spacing: 0.1em;
+  color: var(--sn-color-primary);
+}
+
+/* Ligne label quota (libelle gauche + compteur droite) */
+.quota-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--sn-font-size-micro);
+  color: var(--sn-color-fg-muted);
+  margin-bottom: var(--sn-space-xs);
+}
+
+/* Boutons d'action — classe maquette v3 .popup-actions */
+.popup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-sm);
+  margin-top: var(--sn-space-xs);
+}
+
+/* Chip module : border explicite pour meilleur rendu (maquette v3) */
+.module-chip {
+  border: 1px solid var(--sn-color-border);
 }

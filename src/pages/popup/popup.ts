@@ -1,32 +1,34 @@
 /**
  * @file pages/popup/popup.ts
- * @description Script de la popup Sentinel Nudge.
+ * @description Script de la popup Sentinel Nudge — refonte structurelle T-152.
  *
- * La popup affiche :
- * - Le score M3 de la semaine courante (ou message "Premier score lundi" avant le premier calcul)
- * - L'état d'activation des modules (X/7 actifs)
- * - Le quota du jour (nudges restants)
- * - Un bouton "Voir le détail" qui ouvre le dashboard
- * - Un bouton "Paramètres" qui ouvre la page Options
+ * La popup affiche (structure matchant les maquettes v3) :
+ * - Header : icone bouclier SVG + titre "Sentinel Nudge" + tagline
+ * - Score gauge : SVG circulaire cote-a-cote avec valeur textuelle + label + trend
+ * - Section "MODULES ACTIFS" : grille 2 colonnes x 4 lignes de chips (dot + label)
+ * - Nudges aujourd'hui : libelle + compteur "used/quota" + barre de progression
+ * - Actions : bouton principal "Voir le tableau de bord" + bouton secondaire "Parametres"
+ * - Badge mode degrade (TACHE-062) si modules KO depuis plus d'1 heure
  *
  * Technique :
- * - Envoie {module: 'M3', action: 'get_state'} au SW pour récupérer le score courant
- * - Envoie {module: 'M3', action: 'get_quota'} pour récupérer le quota restant
- * - Lecture de la config depuis chrome.storage.local pour le nombre de modules actifs
+ * - Envoie {module: 'M3', action: 'get_state'} au SW pour recuperer le score courant
+ * - Lecture de la config depuis chrome.storage.local pour les modules actifs et le quota
  *
- * Accessibilité :
- * - Structure sémantique h1, sections, aria-labels
- * - Score exprimé via aria-label avec valeur textuelle
- * - Taille : 320px × ~400px (CSS fixe width)
+ * Accessibilite :
+ * - Structure semantique h1, sections, aria-labels
+ * - Score exprime via aria-label avec valeur textuelle
+ * - Grille modules avec role="list" + role="listitem"
+ * - Barre de progression avec role="meter" + aria-valuenow/min/max
+ * - Taille : 320px x ~480px (CSS fixe width)
+ * - Skip link WCAG 2.4.1 A (T-132)
  *
- * Sécurité :
+ * Securite :
  * - D-SEC-003 : Aucun innerHTML. Tout DOM via createElement/textContent/appendChild.
  *
- * Référence : DAT §3.1 (Popup), SFD §3.5, DAT §11.4 (design system)
+ * Reference : DAT §3.1 (Popup), SFD §3.5, DAT §11.4 (design system), Maquettes v3
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
-import { MODULE_IDS } from '@/shared/constants/modules';
 import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
 import {
   DIAGNOSTICS_M2_KEY,
@@ -38,9 +40,6 @@ import {
   DIAGNOSTICS_M17_KEY,
 } from '@/shared/types/diagnostics';
 
-/** Nombre total de modules v1 (7). Rattache a MODULE_IDS pour eviter la desync en v2. */
-const TOTAL_MODULES_V1 = MODULE_IDS.length;
-
 /** Score seuil vert (>= 70) */
 const SCORE_GREEN_THRESHOLD = 70;
 
@@ -50,14 +49,23 @@ const SCORE_ORANGE_THRESHOLD = 40;
 /** SVG path du bouclier affiche dans le header (Material Design "security", viewBox 24x24) */
 const ICON_HEADER_SHIELD = 'M12 2L4 5v6c0 5.25 3.5 10.15 8 11.35C16.5 21.15 20 16.25 20 11V5L12 2z';
 
-/** SVG path de l'icone Modules (grille 2x2, viewBox 24x24) */
-const ICON_STATUS_MODULES = 'M3 3h8v8H3zm0 10h8v8H3zm10-10h8v8h-8zm0 10h8v8h-8z';
-
-/** SVG path de l'icone Quota (horloge, viewBox 24x24) */
-const ICON_STATUS_QUOTA =
-  'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z';
 /** SVG path de l'icone d'avertissement (triangle attention, Material Design "warning", viewBox 24x24) */
 const ICON_WARNING = 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z';
+
+/**
+ * Descripteurs des 8 chips de la grille modules (4x2 maquette v3).
+ * Le dernier chip est un placeholder pour les modules futurs.
+ */
+const MODULE_CHIPS: Array<{ id: string; labelKey: string; fallback: string }> = [
+  { id: 'M2', labelKey: 'module_m2_name', fallback: 'M2 Phishing' },
+  { id: 'M3', labelKey: 'module_m3_name', fallback: 'M3 Score' },
+  { id: 'M5', labelKey: 'module_m5_name', fallback: 'M5 MAJ' },
+  { id: 'M6', labelKey: 'module_m6_name', fallback: 'M6 Quiz' },
+  { id: 'M7', labelKey: 'module_m7_name', fallback: 'M7 MDP' },
+  { id: 'M9', labelKey: 'module_m9_name', fallback: 'M9 2FA' },
+  { id: 'M17', labelKey: 'module_m17_name', fallback: 'M17 Session' },
+  { id: '', labelKey: '', fallback: '' }, // placeholder futur
+];
 
 /**
  * Seuil de degradation en millisecondes (1 heure).
@@ -68,7 +76,6 @@ const DEGRADED_THRESHOLD_MS = 60 * 60 * 1000; // 3 600 000 ms
 
 /**
  * Modules surveilles pour le badge degrade.
- * Chaque entree associe un label lisible a la cle de storage diagnostics.
  * Le champ `tsKey` identifie le champ timestamp pertinent selon le type de module :
  * - Modules avec initBoot (M2/M5/M6/M7) : `last_boot_ts`
  * - Module M3 (Option B) : `last_boot`
@@ -93,9 +100,6 @@ const MONITORED_MODULES: Array<{ label: string; storageKey: string; tsKey: strin
  * 2. `ready === false`
  * 3. Le dernier timestamp connu (tsKey) est anterieur de plus de DEGRADED_THRESHOLD_MS.
  *
- * Les modules sans diagnostics publies (storage absent) sont ignores :
- * l'absence de diagnostics indique un premier boot, pas un etat degrade.
- *
  * @param storageResult - Resultat brut de chrome.storage.local.get sur les cles diagnostics
  * @param now           - Timestamp courant en ms (parametrable pour les tests)
  * @returns Tableau de labels de modules degrades (ex: ['M2', 'M7'])
@@ -107,10 +111,10 @@ export function getDegradedModules(
   const degraded: string[] = [];
   for (const mod of MONITORED_MODULES) {
     const diag = storageResult[mod.storageKey] as Record<string, unknown> | undefined;
-    if (!diag) continue; // Absent = premier boot, pas degrade
-    if (diag['ready'] !== false) continue; // ready=true ou absent : OK
+    if (!diag) continue;
+    if (diag['ready'] !== false) continue;
     const ts = typeof diag[mod.tsKey] === 'number' ? (diag[mod.tsKey] as number) : 0;
-    if (ts === 0) continue; // Jamais boote : pas encore degrade (encore en cours d'init)
+    if (ts === 0) continue;
     if (now - ts > DEGRADED_THRESHOLD_MS) {
       degraded.push(mod.label);
     }
@@ -121,16 +125,9 @@ export function getDegradedModules(
 /**
  * Construit et insere le badge "mode degrade" dans le conteneur donne.
  *
- * Le badge affiche :
- * - Une icone SVG attention (couleur --sn-color-warning)
- * - Le libelle i18n `popup_degraded_mode_badge`
- * - La liste des modules concernes
- * - Un bouton "En savoir plus" qui ouvre une tooltip explicative
- * - La tooltip contient une explication + un bouton "Recharger l'extension"
- *
  * Accessibilite :
- * - role="alert" + aria-live="polite" sur le badge (annonce aux lecteurs d'ecran)
- * - Bouton "En savoir plus" accessible au clavier (focus + Enter)
+ * - role="alert" + aria-live="polite" sur le badge
+ * - Bouton "En savoir plus" accessible au clavier
  * - Tooltip avec bouton fermer accessible
  *
  * Securite :
@@ -147,11 +144,9 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
   badge.setAttribute('role', 'alert');
   badge.setAttribute('aria-live', 'polite');
 
-  // Ligne principale : icone + libelle
   const badgeHeader = document.createElement('div');
   badgeHeader.className = 'degraded-badge-header';
 
-  // Icone SVG warning (aria-hidden, couleur via CSS --sn-color-warning)
   const warnIcon = createInlineIcon(ICON_WARNING, 18);
   warnIcon.classList.add('degraded-badge-icon');
   badgeHeader.appendChild(warnIcon);
@@ -163,7 +158,6 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
 
   badge.appendChild(badgeHeader);
 
-  // Liste des modules degrades
   const modulesLine = document.createElement('p');
   modulesLine.className = 'degraded-badge-modules';
   const modulesList = degradedModules.join(', ');
@@ -172,7 +166,6 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
     `Modules affectes : ${modulesList}`;
   badge.appendChild(modulesLine);
 
-  // Bouton "En savoir plus" + tooltip
   const learnMoreBtn = document.createElement('button');
   learnMoreBtn.type = 'button';
   learnMoreBtn.className = 'degraded-badge-learn-more';
@@ -182,7 +175,6 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
   learnMoreBtn.setAttribute('aria-controls', 'degraded-tooltip');
   badge.appendChild(learnMoreBtn);
 
-  // Tooltip (masquee par defaut)
   const tooltip = document.createElement('div');
   tooltip.className = 'degraded-tooltip';
   tooltip.id = 'degraded-tooltip';
@@ -197,10 +189,9 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
   tooltipText.className = 'degraded-tooltip-text';
   tooltipText.textContent =
     browser.i18n.getMessage('popup_degraded_mode_tooltip') ||
-    "Un ou plusieurs modules n'ont pas demarre correctement depuis plus d'une heure. L'extension fonctionne en mode degrade.";
+    "Un ou plusieurs modules n'ont pas demarre correctement depuis plus d'une heure.";
   tooltip.appendChild(tooltipText);
 
-  // Bouton recharger
   const reloadBtn = document.createElement('button');
   reloadBtn.type = 'button';
   reloadBtn.className = 'degraded-tooltip-reload';
@@ -211,7 +202,6 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
   });
   tooltip.appendChild(reloadBtn);
 
-  // Bouton fermer tooltip
   const closeBtn = document.createElement('button');
   closeBtn.type = 'button';
   closeBtn.className = 'degraded-tooltip-close';
@@ -225,7 +215,6 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
 
   badge.appendChild(tooltip);
 
-  // Toggle tooltip au clic sur "En savoir plus"
   learnMoreBtn.addEventListener('click', () => {
     const isOpen = !tooltip.hidden;
     tooltip.hidden = isOpen;
@@ -237,8 +226,6 @@ export function renderDegradedBadge(container: HTMLElement, degradedModules: str
 
 /**
  * Cree un SVG inline decoratif aria-hidden.
- * La couleur est heritee du parent via currentColor (fill="currentColor"),
- * ce qui permet la coherence automatique avec le dark/light mode.
  *
  * @param pathData - Donnee du path SVG (viewBox 0 0 24 24)
  * @param size     - Taille en px (defaut 16)
@@ -260,13 +247,13 @@ function createInlineIcon(pathData: string, size: number = 16): SVGElement {
 }
 
 /**
- * Calcule la date du prochain lundi à partir d'aujourd'hui.
+ * Calcule la date du prochain lundi a partir d'aujourd'hui.
  *
  * @returns Date du prochain lundi au format lisible (ex: "lundi 14 avril")
  */
 function getNextMonday(): string {
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+  const dayOfWeek = today.getDay();
   const daysUntilMonday = dayOfWeek === 1 ? 7 : (8 - dayOfWeek) % 7;
   const nextMonday = new Date(today);
   nextMonday.setDate(today.getDate() + daysUntilMonday);
@@ -278,7 +265,7 @@ function getNextMonday(): string {
 }
 
 /**
- * Détermine la couleur CSS selon le score M3.
+ * Determine la couleur CSS selon le score M3.
  *
  * @param score - Score entre 0 et 100
  * @returns Couleur CSS (variable CSS token)
@@ -290,7 +277,7 @@ function scoreColor(score: number): string {
 }
 
 /**
- * Détermine le niveau textuel du score pour le lecteur d'écran.
+ * Determine le niveau textuel du score.
  *
  * @param score - Score entre 0 et 100
  * @returns Niveau textuel (Bon / Moyen / Faible)
@@ -303,23 +290,50 @@ function scoreLevelLabel(score: number): string {
 }
 
 /**
- * Construit et insère la section score M3 dans le conteneur donné.
- * Affiche soit le score avec jauge colorée, soit un message "Premier score lundi".
+ * Construit le libelle de tendance du score (delta vs semaine precedente).
  *
- * @param container - Élément parent où insérer la section
- * @param score     - Score entre 0 et 100, ou null si aucun score disponible
+ * @param previousScore - Score semaine precedente (null si premier score)
+ * @param currentScore  - Score courant
+ * @returns Libelle de tendance localise
  */
-function renderScoreSection(container: HTMLElement, score: number | null): void {
+function buildTrendLabel(previousScore: number | null, currentScore: number): string {
+  if (previousScore === null) {
+    return browser.i18n.getMessage('popup_score_trend_stable') || 'Stable cette semaine';
+  }
+  const delta = currentScore - previousScore;
+  if (delta > 0) {
+    return (
+      browser.i18n.getMessage('popup_score_trend_up', String(delta)) || `+ ${delta} cette semaine`
+    );
+  }
+  if (delta < 0) {
+    return (
+      browser.i18n.getMessage('popup_score_trend_down', String(Math.abs(delta))) ||
+      `- ${Math.abs(delta)} cette semaine`
+    );
+  }
+  return browser.i18n.getMessage('popup_score_trend_stable') || 'Stable cette semaine';
+}
+
+/**
+ * Construit et insere la section score M3 dans le conteneur donne.
+ *
+ * Structure maquette v3 :
+ * section > div.gauge-wrap > (svg.gauge-svg + div.gauge-info > (gauge-score + gauge-label + gauge-trend))
+ *
+ * @param container     - Element parent ou inserer la section
+ * @param score         - Score entre 0 et 100, ou null si aucun score disponible
+ * @param previousScore - Score semaine precedente (pour la tendance), ou null
+ */
+export function renderScoreSection(
+  container: HTMLElement,
+  score: number | null,
+  previousScore: number | null = null,
+): void {
   const section = document.createElement('section');
   section.setAttribute('aria-label', browser.i18n.getMessage('popup_score_label') || 'Score');
 
-  const heading = document.createElement('h2');
-  heading.className = 'section-title';
-  heading.textContent = browser.i18n.getMessage('popup_score_label') || 'Score de cyber-hygiène';
-  section.appendChild(heading);
-
   if (score === null) {
-    // État initial : avant le premier lundi
     const noDataDiv = document.createElement('div');
     noDataDiv.className = 'score-no-data';
 
@@ -334,31 +348,33 @@ function renderScoreSection(container: HTMLElement, score: number | null): void 
     const nextMondayStr = getNextMonday();
     nextDate.textContent =
       browser.i18n.getMessage('popup_score_first_monday', nextMondayStr) ||
-      `Votre premier score sera calculé le ${nextMondayStr}`;
+      `Votre premier score sera calcule le ${nextMondayStr}`;
     noDataDiv.appendChild(nextDate);
 
     section.appendChild(noDataDiv);
   } else {
-    // Jauge circulaire via SVG
-    const gaugeWrapper = document.createElement('div');
-    gaugeWrapper.className = 'score-gauge-wrapper';
+    // Disposition cote-a-cote : SVG + info score (maquette v3)
+    const gaugeWrap = document.createElement('div');
+    gaugeWrap.className = 'gauge-wrap';
 
+    // SVG circulaire
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'gauge-svg');
     svg.setAttribute('viewBox', '0 0 120 120');
     svg.setAttribute('width', '120');
     svg.setAttribute('height', '120');
     svg.setAttribute('role', 'img');
     const levelLabel = scoreLevelLabel(score);
-    svg.setAttribute('aria-label', `Score ${score}/100 — ${levelLabel}`);
+    svg.setAttribute('aria-label', `Score ${score}/100 \u2014 ${levelLabel}`);
 
-    // Cercle de fond
+    // Cercle de fond (track)
     const bgCircle = document.createElementNS(svgNS, 'circle');
     bgCircle.setAttribute('cx', '60');
     bgCircle.setAttribute('cy', '60');
     bgCircle.setAttribute('r', '50');
     bgCircle.setAttribute('fill', 'none');
-    bgCircle.setAttribute('stroke', 'var(--sn-color-border)');
+    bgCircle.setAttribute('stroke', 'var(--sn-gauge-track)');
     bgCircle.setAttribute('stroke-width', '12');
     svg.appendChild(bgCircle);
 
@@ -378,177 +394,226 @@ function renderScoreSection(container: HTMLElement, score: number | null): void 
     progressCircle.setAttribute('transform', 'rotate(-90 60 60)');
     svg.appendChild(progressCircle);
 
-    // Texte score numérique
+    // Texte score dans SVG (aria-hidden, visuel uniquement)
     const scoreText = document.createElementNS(svgNS, 'text');
     scoreText.setAttribute('x', '60');
     scoreText.setAttribute('y', '62');
     scoreText.setAttribute('text-anchor', 'middle');
     scoreText.setAttribute('dominant-baseline', 'middle');
     scoreText.setAttribute('font-size', '28');
-    scoreText.setAttribute('font-weight', '600');
+    scoreText.setAttribute('font-weight', '700');
     scoreText.setAttribute('fill', scoreColor(score));
     scoreText.setAttribute('aria-hidden', 'true');
     scoreText.textContent = String(score);
     svg.appendChild(scoreText);
 
-    // Texte /100
+    // Texte /100 dans SVG
     const maxText = document.createElementNS(svgNS, 'text');
     maxText.setAttribute('x', '60');
     maxText.setAttribute('y', '82');
     maxText.setAttribute('text-anchor', 'middle');
     maxText.setAttribute('font-size', '12');
-    maxText.setAttribute('fill', 'var(--sn-color-muted)');
+    maxText.setAttribute('fill', 'var(--sn-color-fg-muted)');
     maxText.setAttribute('aria-hidden', 'true');
     maxText.textContent = '/100';
     svg.appendChild(maxText);
 
-    gaugeWrapper.appendChild(svg);
+    gaugeWrap.appendChild(svg);
 
-    // Label niveau textuel
-    const levelEl = document.createElement('p');
-    levelEl.className = 'score-level';
-    levelEl.style.color = scoreColor(score);
-    levelEl.textContent = levelLabel;
-    levelEl.setAttribute('aria-hidden', 'true');
-    gaugeWrapper.appendChild(levelEl);
+    // Info score a droite (maquette v3)
+    const gaugeInfo = document.createElement('div');
+    gaugeInfo.className = 'gauge-info';
 
-    section.appendChild(gaugeWrapper);
+    // Grand score numerique textuel (aria-hidden : SVG porte le sens)
+    const gaugeScoreEl = document.createElement('div');
+    gaugeScoreEl.className = 'gauge-score';
+    gaugeScoreEl.style.color = scoreColor(score);
+    gaugeScoreEl.textContent = String(score);
+    gaugeScoreEl.setAttribute('aria-hidden', 'true');
+    gaugeInfo.appendChild(gaugeScoreEl);
+
+    // Label niveau
+    const gaugeLabelEl = document.createElement('div');
+    gaugeLabelEl.className = 'gauge-label';
+    gaugeLabelEl.style.color = scoreColor(score);
+    gaugeLabelEl.textContent = levelLabel;
+    gaugeLabelEl.setAttribute('aria-hidden', 'true');
+    gaugeInfo.appendChild(gaugeLabelEl);
+
+    // Tendance
+    const gaugeTrendEl = document.createElement('div');
+    gaugeTrendEl.className = 'gauge-trend';
+    gaugeTrendEl.textContent = buildTrendLabel(previousScore, score);
+    gaugeTrendEl.setAttribute('aria-hidden', 'true');
+    gaugeInfo.appendChild(gaugeTrendEl);
+
+    gaugeWrap.appendChild(gaugeInfo);
+    section.appendChild(gaugeWrap);
   }
 
   container.appendChild(section);
 }
 
 /**
- * Cree un label de statut avec icone SVG + texte (pattern KPI card).
+ * Construit et insere la grille des modules (8 chips 4x2) dans le conteneur.
  *
- * @param iconPath - SVG path de l'icone d'accompagnement (viewBox 24x24)
- * @param text     - Texte du label
- * @returns Element span.status-label
- */
-function createStatusLabel(iconPath: string, text: string): HTMLSpanElement {
-  const label = document.createElement('span');
-  label.className = 'status-label';
-  label.appendChild(createInlineIcon(iconPath));
-  const textEl = document.createElement('span');
-  textEl.textContent = text;
-  label.appendChild(textEl);
-  return label;
-}
-
-/**
- * Cree un groupe de valeur KPI : chiffre principal + complement optionnel.
+ * Chaque chip affiche :
+ * - Un point de statut colore (vert=actif, orange=degrade, gris=inactif)
+ * - Le label court du module
  *
- * @param mainValue - Valeur principale (chiffre ou symbole, proeminente)
- * @param subText   - Complement textuel optionnel (11px, muted)
- * @param warning   - Si true, valeur et complement colores en warning
- * @returns Element div.status-value-group
- */
-function createStatusValueGroup(
-  mainValue: string,
-  subText: string | null,
-  warning: boolean = false,
-): HTMLDivElement {
-  const group = document.createElement('div');
-  group.className = 'status-value-group';
-
-  const main = document.createElement('span');
-  main.className = 'status-value';
-  main.textContent = mainValue;
-  if (warning) main.style.color = 'var(--sn-color-warning)';
-  group.appendChild(main);
-
-  if (subText !== null) {
-    const sub = document.createElement('span');
-    sub.className = 'status-value-sub';
-    sub.textContent = subText;
-    if (warning) sub.style.color = 'var(--sn-color-warning)';
-    group.appendChild(sub);
-  }
-  return group;
-}
-
-/**
- * Construit la section statut modules et quota (pattern KPI card).
- * Chaque ligne contient : icone + label a gauche, valeur numerique + complement a droite.
+ * Accessibilite :
+ * - role="list" sur la grille, role="listitem" sur chaque chip
  *
  * @param container      - Element parent
- * @param activeCount    - Nombre de modules actifs
- * @param quotaRemaining - Nudges restants (null si illimite, nombre si limite)
- * @param quotaReached   - true si le quota du jour est atteint
+ * @param moduleStates   - Record<moduleId, boolean> depuis la config storage
+ * @param degradedLabels - Labels des modules degrades (ex: ['M2', 'M7'])
  */
-function renderStatusSection(
+export function renderModulesSection(
   container: HTMLElement,
-  activeCount: number,
-  quotaRemaining: number | null,
-  quotaReached: boolean,
+  moduleStates: Record<string, boolean>,
+  degradedLabels: string[],
 ): void {
-  const section = document.createElement('section');
-  section.setAttribute(
+  const sectionTitle = document.createElement('div');
+  sectionTitle.className = 'card-title';
+  sectionTitle.textContent =
+    browser.i18n.getMessage('popup_modules_section_title') || 'Modules actifs';
+  container.appendChild(sectionTitle);
+
+  const grid = document.createElement('div');
+  grid.className = 'modules-grid';
+  grid.setAttribute('role', 'list');
+  grid.setAttribute(
     'aria-label',
-    browser.i18n.getMessage('popup_status_aria_label') || 'Statut rapide',
-  );
-  section.className = 'status-section';
-
-  // Ligne Modules : KPI "N / 7" + complement si partiellement actifs
-  const modulesRow = document.createElement('div');
-  modulesRow.className = 'status-row';
-  modulesRow.appendChild(
-    createStatusLabel(
-      ICON_STATUS_MODULES,
-      browser.i18n.getMessage('popup_modules_label') || 'Modules actifs',
-    ),
-  );
-  const inactive = TOTAL_MODULES_V1 - activeCount;
-  const modulesSub = inactive > 0 ? `${inactive} inactif${inactive > 1 ? 's' : ''}` : null;
-  modulesRow.appendChild(
-    createStatusValueGroup(`${activeCount} / ${TOTAL_MODULES_V1}`, modulesSub),
-  );
-  section.appendChild(modulesRow);
-
-  // Ligne Quota : KPI chiffre + complement contextuel
-  const quotaRow = document.createElement('div');
-  quotaRow.className = 'status-row';
-  quotaRow.appendChild(
-    createStatusLabel(
-      ICON_STATUS_QUOTA,
-      browser.i18n.getMessage('popup_quota_label') || 'Quota du jour',
-    ),
+    browser.i18n.getMessage('popup_modules_grid_aria') || 'Grille des modules de protection',
   );
 
-  let mainValue: string;
-  let subText: string | null;
-  let warning = false;
-  if (quotaReached) {
-    mainValue = '0';
-    subText = browser.i18n.getMessage('popup_quota_reached_sub') || 'limite atteinte';
-    warning = true;
-  } else if (quotaRemaining === null) {
-    mainValue = '∞';
-    subText = browser.i18n.getMessage('popup_quota_unlimited_sub') || 'illimite';
-  } else {
-    mainValue = String(quotaRemaining);
-    subText = browser.i18n.getMessage('popup_quota_remaining_sub') || 'nudges restants';
+  for (const chip of MODULE_CHIPS) {
+    const chipEl = document.createElement('div');
+    chipEl.className = 'module-chip';
+    chipEl.setAttribute('role', 'listitem');
+
+    if (chip.id === '') {
+      // Placeholder : chip inactif futur
+      const dot = document.createElement('div');
+      dot.className = 'module-chip-dot inactive';
+      chipEl.appendChild(dot);
+      const label = document.createElement('span');
+      label.textContent = '\u2014';
+      chipEl.appendChild(label);
+    } else {
+      const isActive = moduleStates[chip.id] !== false;
+      const isDegraded = degradedLabels.includes(chip.id);
+
+      const dot = document.createElement('div');
+      if (isDegraded) {
+        dot.className = 'module-chip-dot warning';
+      } else if (isActive) {
+        dot.className = 'module-chip-dot active';
+      } else {
+        dot.className = 'module-chip-dot inactive';
+      }
+      chipEl.appendChild(dot);
+
+      const label = document.createElement('span');
+      const i18nLabel = browser.i18n.getMessage(chip.labelKey);
+      label.textContent = i18nLabel || chip.fallback;
+      chipEl.appendChild(label);
+    }
+
+    grid.appendChild(chipEl);
   }
-  quotaRow.appendChild(createStatusValueGroup(mainValue, subText, warning));
-  section.appendChild(quotaRow);
 
-  container.appendChild(section);
+  container.appendChild(grid);
 }
 
 /**
- * Construit la section des boutons d'action (dashboard + paramètres).
+ * Construit et insere la barre de progression du quota de nudges.
  *
- * @param container - Élément parent
+ * Accessibilite :
+ * - .quota-track a role="meter" + aria-valuenow/min/max/valuetext
+ *
+ * @param container      - Element parent
+ * @param quotaUsed      - Nudges deja envoyes aujourd'hui
+ * @param quotaLimit     - Limite du quota (null = illimite)
+ * @param quotaReached   - true si le quota du jour est atteint
+ */
+export function renderQuotaBar(
+  container: HTMLElement,
+  quotaUsed: number,
+  quotaLimit: number | null,
+  quotaReached: boolean,
+): void {
+  const wrap = document.createElement('div');
+  wrap.className = 'quota-bar-wrap';
+
+  const labelRow = document.createElement('div');
+  labelRow.className = 'quota-label';
+
+  const labelLeft = document.createElement('span');
+  labelLeft.textContent =
+    browser.i18n.getMessage('popup_nudges_today_label') || "Nudges aujourd'hui";
+  labelRow.appendChild(labelLeft);
+
+  const labelRight = document.createElement('span');
+  if (quotaLimit === null) {
+    labelRight.textContent = browser.i18n.getMessage('popup_quota_unlimited_sub') || 'illimite';
+  } else {
+    labelRight.textContent = `${quotaUsed} / ${quotaLimit}`;
+  }
+  labelRow.appendChild(labelRight);
+
+  wrap.appendChild(labelRow);
+
+  const fillPct =
+    quotaLimit !== null ? Math.min(100, Math.round((quotaUsed / quotaLimit) * 100)) : 0;
+
+  const track = document.createElement('div');
+  track.className = 'quota-track';
+  track.setAttribute('role', 'meter');
+  track.setAttribute('aria-valuenow', String(quotaUsed));
+  track.setAttribute('aria-valuemin', '0');
+  track.setAttribute('aria-valuemax', String(quotaLimit ?? 0));
+  track.setAttribute(
+    'aria-valuetext',
+    quotaLimit !== null ? `${quotaUsed} sur ${quotaLimit}` : 'illimite',
+  );
+  track.setAttribute(
+    'aria-label',
+    browser.i18n.getMessage('popup_nudges_today_label') || "Nudges aujourd'hui",
+  );
+
+  const fill = document.createElement('div');
+  fill.className = 'quota-fill';
+  if (quotaReached) {
+    fill.style.width = '100%';
+    fill.style.backgroundColor = 'var(--sn-color-warning)';
+  } else if (quotaLimit === null) {
+    fill.style.width = '0%';
+  } else {
+    fill.style.width = `${fillPct}%`;
+  }
+
+  track.appendChild(fill);
+  wrap.appendChild(track);
+
+  container.appendChild(wrap);
+}
+
+/**
+ * Construit la section des boutons d'action.
+ * Structure maquette v3 : div.popup-actions avec btn-primary + btn-secondary.
+ *
+ * @param container - Element parent
  */
 function renderActionsSection(container: HTMLElement): void {
   const actionsDiv = document.createElement('div');
-  actionsDiv.className = 'actions';
+  actionsDiv.className = 'popup-actions';
 
-  // Bouton Dashboard
   const btnDashboard = document.createElement('button');
   btnDashboard.type = 'button';
   btnDashboard.className = 'btn btn-primary';
-  btnDashboard.textContent = browser.i18n.getMessage('popup_btn_dashboard') || 'Voir le détail';
+  btnDashboard.textContent =
+    browser.i18n.getMessage('popup_btn_dashboard') || 'Voir le tableau de bord';
   btnDashboard.addEventListener('click', () => {
     const dashboardUrl = browser.runtime.id
       ? `chrome-extension://${browser.runtime.id}/pages/dashboard/dashboard.html`
@@ -559,11 +624,10 @@ function renderActionsSection(container: HTMLElement): void {
   });
   actionsDiv.appendChild(btnDashboard);
 
-  // Bouton Paramètres
   const btnSettings = document.createElement('button');
   btnSettings.type = 'button';
   btnSettings.className = 'btn btn-secondary';
-  btnSettings.textContent = browser.i18n.getMessage('popup_btn_settings') || 'Paramètres';
+  btnSettings.textContent = browser.i18n.getMessage('popup_btn_settings') || 'Parametres';
   btnSettings.addEventListener('click', () => {
     const optionsUrl = browser.runtime.id
       ? `chrome-extension://${browser.runtime.id}/pages/options/options.html`
@@ -578,13 +642,13 @@ function renderActionsSection(container: HTMLElement): void {
 }
 
 /**
- * Point d'entrée principal : initialise la popup.
+ * Point d'entree principal : initialise la popup.
  *
- * Séquence :
- * 1. Afficher un état de chargement
- * 2. Envoyer un message au SW pour récupérer le score M3 courant et le quota
- * 3. Lire la config (modules actifs) depuis chrome.storage.local
- * 4. Rendre l'UI complète
+ * Sequence :
+ * 1. Afficher un etat de chargement
+ * 2. Envoyer un message au SW pour recuperer le score M3 courant + historique trend
+ * 3. Lire la config depuis chrome.storage.local
+ * 4. Rendre l'UI complète (structure maquettes v3)
  *
  * @returns Promise<void>
  */
@@ -592,32 +656,43 @@ async function initPopup(): Promise<void> {
   const root = document.getElementById('popup-root');
   if (!root) return;
 
-  // En-tête : icone bouclier + titre sur la meme ligne (branding)
+  // En-tete : icone bouclier + titre + tagline (maquette v3)
   const header = document.createElement('header');
+
   const headerInner = document.createElement('div');
   headerInner.className = 'popup-header-inner';
 
-  const headerIcon = createInlineIcon(ICON_HEADER_SHIELD, 24);
+  const headerIcon = createInlineIcon(ICON_HEADER_SHIELD, 20);
   headerIcon.classList.add('header-shield');
+  headerIcon.setAttribute('aria-hidden', 'true');
   headerInner.appendChild(headerIcon);
+
+  const headerText = document.createElement('div');
+  headerText.className = 'popup-header-text';
 
   const h1 = document.createElement('h1');
   h1.className = 'popup-title';
   h1.textContent = browser.i18n.getMessage('popup_title') || 'Sentinel Nudge';
-  headerInner.appendChild(h1);
+  headerText.appendChild(h1);
 
+  const tagline = document.createElement('p');
+  tagline.className = 'popup-tagline';
+  tagline.textContent = browser.i18n.getMessage('popup_tagline') || 'Score de cyber-hygiene';
+  headerText.appendChild(tagline);
+
+  headerInner.appendChild(headerText);
   header.appendChild(headerInner);
   root.appendChild(header);
 
-  // État de chargement
+  // Etat de chargement
   const loadingEl = document.createElement('p');
   loadingEl.className = 'loading-text';
   loadingEl.setAttribute('aria-live', 'polite');
-  loadingEl.textContent = browser.i18n.getMessage('popup_loading') || 'Chargement…';
+  loadingEl.textContent = browser.i18n.getMessage('popup_loading') || 'Chargement\u2026';
   root.appendChild(loadingEl);
 
   try {
-    // Récupération du score M3 via le SW
+    // Score M3 courant via SW
     const scoreResponse = (await browser.runtime.sendMessage({
       module: 'M3',
       action: 'get_state',
@@ -625,8 +700,31 @@ async function initPopup(): Promise<void> {
       timestamp: Date.now(),
     })) as Record<string, unknown> | null;
 
-    // Récupération de la config (modules actifs + quota)
-    // Read config + quota + diagnostics for all monitored modules (TACHE-062)
+    // Historique scores pour le trend (semaine precedente)
+    let previousScore: number | null = null;
+    try {
+      const histResponse = (await browser.runtime.sendMessage({
+        module: 'M3',
+        action: 'get_scores_history',
+        payload: { limit: 2 },
+        timestamp: Date.now(),
+      })) as Record<string, unknown> | null;
+      if (
+        histResponse?.['success'] === true &&
+        Array.isArray((histResponse['data'] as Record<string, unknown>)?.['scores'])
+      ) {
+        const scores = (histResponse['data'] as Record<string, unknown>)['scores'] as Array<{
+          total_score: number;
+        }>;
+        if (scores.length >= 2) {
+          previousScore = scores[1].total_score;
+        }
+      }
+    } catch {
+      // Degradation gracieuse : pas de trend
+    }
+
+    // Config + quota + diagnostics
     const diagnosticsKeys = MONITORED_MODULES.map((m) => m.storageKey);
     const storageData = await browser.storage.local.get([
       'config',
@@ -637,10 +735,7 @@ async function initPopup(): Promise<void> {
       | { modules: Record<string, boolean>; quota_limit: number | null }
       | undefined;
 
-    // Calcul du nombre de modules actifs
-    const activeCount = config?.modules ? Object.values(config.modules).filter(Boolean).length : 0;
-
-    // Calcul du quota restant
+    const moduleStates: Record<string, boolean> = config?.modules ?? {};
     const quotaLimit = config?.quota_limit ?? 3;
     const quotaState = storageData['quota_state'] as { date: string; count: number } | undefined;
     const quotaUsed = quotaState?.count ?? 0;
@@ -648,7 +743,7 @@ async function initPopup(): Promise<void> {
     const quotaRemaining = isUnlimited ? null : Math.max(0, quotaLimit - quotaUsed);
     const quotaReached = !isUnlimited && quotaRemaining === 0;
 
-    // Extraction du score depuis la réponse du SW
+    // Extraction du score courant
     let currentScore: number | null = null;
     if (
       scoreResponse &&
@@ -659,41 +754,47 @@ async function initPopup(): Promise<void> {
       currentScore = (scoreResponse['data'] as Record<string, unknown>)['score'] as number;
     }
 
-    // Effacer l'état de chargement
+    // Modules degrades (TACHE-062)
+    const degradedModules = getDegradedModules(storageData);
+
     root.removeChild(loadingEl);
 
-    // Rendu des sections
-    const mainContent = document.createElement('div');
-    mainContent.className = 'popup-content';
+    // Corps de la popup (div.popup-body — maquette v3)
+    const popupBody = document.createElement('div');
+    popupBody.className = 'popup-body';
 
-    renderScoreSection(mainContent, currentScore);
+    // 1. Score gauge (SVG + gauge-info cote-a-cote)
+    renderScoreSection(popupBody, currentScore, previousScore);
 
-    // Badge mode degrade (TACHE-062) : apres le score, avant le statut
-    const degradedModules = getDegradedModules(storageData);
-    renderDegradedBadge(mainContent, degradedModules);
+    // 2. Badge mode degrade (apres score, avant modules)
+    renderDegradedBadge(popupBody, degradedModules);
 
-    renderStatusSection(mainContent, activeCount, quotaRemaining, quotaReached);
-    renderActionsSection(mainContent);
+    // 3. Grille modules chips (4x2)
+    renderModulesSection(popupBody, moduleStates, degradedModules);
 
-    root.appendChild(mainContent);
+    // 4. Barre quota
+    renderQuotaBar(popupBody, quotaUsed, isUnlimited ? null : quotaLimit, quotaReached);
+
+    // 5. Boutons d'action
+    renderActionsSection(popupBody);
+
+    root.appendChild(popupBody);
   } catch (err: unknown) {
-    // Afficher un message d'erreur sans exposer les détails techniques
     root.removeChild(loadingEl);
 
     const errorEl = document.createElement('p');
     errorEl.className = 'error-text';
     errorEl.setAttribute('role', 'alert');
     errorEl.textContent =
-      browser.i18n.getMessage('popup_error') || 'Impossible de récupérer les données';
+      browser.i18n.getMessage('popup_error') || 'Impossible de recuperer les donnees';
     root.appendChild(errorEl);
 
-    // Log structuré (ne jamais exposer de données personnelles)
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
     console.warn(
       JSON.stringify({
         timestamp: new Date().toISOString(),
         level: 'warn',
-        message: 'Popup: échec récupération état SW',
+        message: 'Popup: echec recuperation etat SW',
         context: { error: message },
       }),
     );
@@ -702,7 +803,6 @@ async function initPopup(): Promise<void> {
 
 // Attendre le chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
-  // Appliquer le thème AVANT le rendu pour éviter le FOUC (TACHE-148)
   void initTheme();
   watchThemeChanges();
   initPopup().catch((err: unknown) => {
