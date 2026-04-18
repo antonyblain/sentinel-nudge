@@ -33,6 +33,11 @@ import { StorageService } from '@/background/storage-service';
 import { browser } from '@/shared/browser/browser-adapter';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+import { createLogger } from '@/shared/utils/logger';
+import { classifyError } from '@/shared/utils/classify-error';
+
+/** Logger scopé M2Handler — mitigation R-M7-08 / TACHE-104 */
+const logger = createLogger('M2Handler');
 
 /** Clé chrome.storage.local pour les domaines déjà nudgés dans la session courante (M2) */
 const M2_SESSION_KEY = 'm2_session_domains';
@@ -147,8 +152,8 @@ async function handleRiskDetected(
       data: { signals, domain_hash: domainHash },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M2Handler] Erreur risk_detected: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_risk_detected', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -213,8 +218,8 @@ async function handleOverlayAction(
 
     return { success: true, action: 'skip' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M2Handler] Erreur overlay_action: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_overlay_action', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -232,8 +237,8 @@ async function handleOpenExplanation(): Promise<NudgeResponse> {
     });
     return { success: true, action: 'skip' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M2Handler] Erreur open_explanation: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_open_explanation', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }

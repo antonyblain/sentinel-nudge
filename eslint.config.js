@@ -115,6 +115,20 @@ export default [
           message:
             'TACHE-083 / R-M7-08 : ne pas passer location.href à console.* — utiliser Logger.hostnameOf(url) ou logger.*(..., { hostname: Logger.hostnameOf(url) }). Voir src/shared/utils/logger.ts',
         },
+        {
+          // Interdit : const message = err.message (pattern indirect de fuite via variable)
+          // TACHE-104 : 12 sites SW handlers utilisaient ce pattern.
+          selector:
+            "VariableDeclarator[id.name='message'] > MemberExpression[property.name='message']",
+          message:
+            'TACHE-083+104 / R-M7-08 : const message = err.message capture un message brut susceptible de contenir des donnees utilisateur — utiliser classifyError(err) dans logger.*(..., { error_code: classifyError(err) }). Voir src/shared/utils/classify-error.ts',
+        },
+        {
+          // Interdit : console.log() direct dans src/ — doit passer par la factory logger
+          selector: "CallExpression[callee.object.name='console'][callee.property.name='log']",
+          message:
+            'TACHE-083 / R-M7-08 : console.log() direct interdit dans src/ — utiliser createLogger(scope).info/warn/error(). Voir src/shared/utils/logger.ts',
+        },
       ],
     },
   },

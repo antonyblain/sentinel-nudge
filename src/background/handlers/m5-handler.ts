@@ -33,6 +33,11 @@ import { StorageService } from '@/background/storage-service';
 import { browser } from '@/shared/browser/browser-adapter';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+import { createLogger } from '@/shared/utils/logger';
+import { classifyError } from '@/shared/utils/classify-error';
+
+/** Logger scopé M5Handler — mitigation R-M7-08 / TACHE-104 */
+const logger = createLogger('M5Handler');
 
 /** Délai de grâce entre deux nudges M5 (48h en ms) */
 const NUDGE_GRACE_PERIOD_MS = 48 * 60 * 60 * 1000;
@@ -170,7 +175,10 @@ async function handleCheckUpdate(
       updateStatus = result.status;
     } catch {
       // API non disponible (navigateur modifié) — dégradation gracieuse (SFD §2.3.4)
-      console.warn('[M5Handler] requestUpdateCheck() non disponible — M5 désactivé');
+      // TACHE-104 / R-M7-08 : logger.warn remplace console.warn direct (INV-SEC-02 étendu)
+      logger.warn('requestUpdateCheck() non disponible — M5 désactivé', {
+        hint: 'api_unavailable',
+      });
       await setUpToDateState(false);
       return { success: true, action: 'skip', reason: 'api_unavailable' };
     }
@@ -241,8 +249,8 @@ async function handleCheckUpdate(
 
     return { success: true, action: 'show' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M5Handler] Erreur check_update: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_check_update', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -300,8 +308,8 @@ async function handleToastAction(
 
     return { success: true, action: 'skip' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M5Handler] Erreur toast_action: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_toast_action', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }

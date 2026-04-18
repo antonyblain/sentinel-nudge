@@ -34,6 +34,11 @@ import { StorageService } from '@/background/storage-service';
 import { browser } from '@/shared/browser/browser-adapter';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+import { createLogger } from '@/shared/utils/logger';
+import { classifyError } from '@/shared/utils/classify-error';
+
+/** Logger scopé M6Handler — mitigation R-M7-08 / TACHE-104 */
+const logger = createLogger('M6Handler');
 import {
   PENDING_M6_QUIZ_KEY,
   PENDING_M6_QUIZ_TTL_MS,
@@ -220,18 +225,20 @@ async function loadCorpus(): Promise<CorpusQuestion[]> {
     const url = browser.runtime.getURL('assets/data/quiz-corpus.json');
     const response = await fetch(url);
     if (!response.ok) {
-      console.error(`[M6Handler] Corpus inaccessible: HTTP ${response.status}`);
+      // TACHE-104 / R-M7-08 : logger.warn remplace console.error (INV-SEC-02 étendu)
+      logger.warn('Corpus inaccessible', { hint: `http_${response.status}` });
       return [];
     }
     const data = (await response.json()) as { questions?: CorpusQuestion[] };
     if (!Array.isArray(data.questions)) {
-      console.error('[M6Handler] Format du corpus invalide');
+      // TACHE-104 / R-M7-08 : logger.warn remplace console.error (INV-SEC-02 étendu)
+      logger.warn('Format du corpus invalide', { hint: 'invalid_format' });
       return [];
     }
     return data.questions;
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M6Handler] Erreur chargement corpus: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_chargement_corpus', { error_code: classifyError(err) });
     return [];
   }
 }
@@ -475,7 +482,8 @@ async function handleCheckQuiz(
     // Charger le corpus
     const corpus = await loadCorpus();
     if (corpus.length === 0) {
-      console.warn('[M6Handler] Corpus vide ou inaccessible — M6 désactivé');
+      // TACHE-104 / R-M7-08 : logger.warn remplace console.warn (INV-SEC-02 étendu)
+      logger.warn('Corpus vide ou inaccessible — M6 désactivé', { hint: 'corpus_empty' });
       return { success: true, action: 'skip', reason: 'corpus_unavailable' };
     }
 
@@ -500,7 +508,8 @@ async function handleCheckQuiz(
     );
 
     if (selectedRaw.length === 0) {
-      console.warn('[M6Handler] Aucune question disponible dans le corpus');
+      // TACHE-104 / R-M7-08 : logger.warn remplace console.warn (INV-SEC-02 étendu)
+      logger.warn('Aucune question disponible dans le corpus', { hint: 'no_questions' });
       return { success: true, action: 'skip', reason: 'no_questions_available' };
     }
 
@@ -528,8 +537,8 @@ async function handleCheckQuiz(
 
     return { success: true, action: 'show' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M6Handler] Erreur check_quiz: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_check_quiz', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -594,8 +603,8 @@ async function handleQuizCompleted(
 
     return { success: true, action: 'skip' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M6Handler] Erreur quiz_completed: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_quiz_completed', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
@@ -642,8 +651,8 @@ async function handleToastAction(
 
     return { success: true, action: 'skip' };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(`[M6Handler] Erreur toast_action: ${message}`);
+    // TACHE-104 / R-M7-08 : classifyError remplace err.message (INV-SEC-02 étendu)
+    logger.error('erreur_toast_action', { error_code: classifyError(err) });
     return { success: false, action: 'error', reason: 'internal_error' };
   }
 }
