@@ -427,40 +427,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Dark/matrix : danger-bg translucide -> contraste insuffisant WCAG AA
-   #fff sur #991b1b = 6.5:1 PASS  |  #fff sur #9b1239 = 5.2:1 PASS */
-@media (prefers-color-scheme: dark) {
-  .btn-danger {
-    background-color: #991b1b;
-    color: #ffffff;
-    border-color: #991b1b;
-  }
-
-  .btn-danger:hover {
-    background-color: #7f1d1d;
-  }
-}
-
-[data-theme='dark'] .btn-danger {
-  background-color: #991b1b;
-  color: #ffffff;
-  border-color: #991b1b;
-}
-
-[data-theme='dark'] .btn-danger:hover {
-  background-color: #7f1d1d;
-}
-
-[data-theme='matrix'] .btn-danger {
-  background-color: #9b1239;
-  color: #ffffff;
-  border-color: #9b1239;
-}
-
-[data-theme='matrix'] .btn-danger:hover {
-  background-color: #881337;
-}
-
 /* Statut operations donnees */
 .data-status {
   margin-top: var(--sn-space-sm);
