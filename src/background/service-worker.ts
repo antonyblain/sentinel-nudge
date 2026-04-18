@@ -21,8 +21,9 @@
  * Au premier install, onInstalled(reason='install') et l'IIFE module-level
  * s'exécutent en concurrence. Sans garde, l'IIFE voit la clé absente et
  * régénère une deuxième clé — deux incidents fantômes boot_fail + key_regenerated.
- * Solution : flag `installation_in_progress` dans chrome.storage.local posé
- * au début de onFirstInstall(), levé en finally. L'IIFE skip si le flag est présent.
+ * Solution : flag `installation_in_progress` (timestamp ms) dans chrome.storage.local posé
+ * au début de onFirstInstall(), levé en finally. L'IIFE skip si le flag est présent et récent.
+ * Fallback safety : flag > 60s (orphelin après crash) → log warn `install_flag_stale` + nettoyage.
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
@@ -87,6 +88,18 @@ const swLogger = createLogger('ServiceWorker');
  * Référence : ADR-002 §Exceptions (E-CLI-01), TACHE-091
  */
 const PENDING_M7_LEGACY_TTL_MS = 10 * 60 * 1_000; // 10 minutes
+
+/**
+ * TTL du flag  (TACHE-079 / R-M7-09).
+ *
+ * Si le flag est présent depuis plus de 60 secondes, onFirstInstall() a probablement
+ * crashé avant son finally → flag orphelin. L'IIFE le considère comme stale et procède
+ * au boot normal, en loggant un warn .
+ *
+ * Valeur : 60 secondes — largement supérieure au temps d'exécution nominal de
+ * onFirstInstall() (~2-5s), inférieure à tout délai de session utilisateur.
+ */
+const INSTALL_FLAG_STALE_MS = 60 * 1_000; // 60 secondes
 
 // ---------------------------------------------------------------------------
 // Dispatcher d'alarmes
@@ -393,7 +406,9 @@ async function onFirstInstall(): Promise<void> {
   // Étape 0 — Flag anti-race (TACHE-079 / R-M7-09)
   // Posé avant toute opération async. L'IIFE module-level vérifie ce flag
   // et s'arrête immédiatement si présent, évitant la double génération de clé AES.
-  await browser.storage.local.set({ installation_in_progress: true });
+  // Stocker un timestamp (epoch ms) plutôt que true pour détecter les flags orphelins > 60s
+  // (TACHE-079 fallback safety TC-03 / R-M7-09)
+  await browser.storage.local.set({ installation_in_progress: Date.now() });
 
   try {
     // Génération du sel d'installation unique (D-SEC-001)
@@ -543,7 +558,8 @@ messageRouter.listen();
 //
 // Séquence (mini-DAT TACHE-061 §2.1 / §5.1 — TACHE-085/086/087/088) :
 //   0. Vérifier `installation_in_progress` (TACHE-079) :
-//      si présent → onFirstInstall() est en cours → skip (return early)
+//      si présent + récent → skip (onFirstInstall en cours)
+//      si présent + stale (> 60s) → log warn install_flag_stale + nettoyer + continuer
 //   1. HeartbeatService.onBootStart()   — incrémente boot_count, last_boot_ts=now, ready=false
 //   2. storageService.initDB()           — ouvre/migre la base IDB (v2 inclut m7_incidents)
 //   3. incidentService.initService(db)  — flush du buffer pré-init (ARB-061-02)
@@ -573,10 +589,32 @@ void (async () => {
   // initializeServices() en fin de séquence, garantissant le boot complet.
   // ---------------------------------------------------------------------------
   const installCheck = await browser.storage.local.get(['installation_in_progress']);
-  if (installCheck['installation_in_progress']) {
-    // R-M7-08 / TACHE-083 : log structuré via logger (pas de console.info direct)
-    swLogger.info('SW init: installation_in_progress — IIFE boot skipped (TACHE-079)');
-    return;
+  const installFlagValue = installCheck['installation_in_progress'];
+  if (installFlagValue) {
+    // Fallback safety (TACHE-079 TC-03) : si le flag est un timestamp number
+    // vieux de plus de INSTALL_FLAG_STALE_MS (60s), onFirstInstall() a crashé avant
+    // son finally — flag orphelin. Procéder au boot normal avec log warn.
+    const isTimestamp = typeof installFlagValue === 'number';
+    const isStale =
+      isTimestamp && Date.now() - (installFlagValue as number) > INSTALL_FLAG_STALE_MS;
+
+    if (isStale) {
+      // Flag orphelin : nettoyer et continuer le boot
+      // R-M7-08 / TACHE-083 : log structuré via logger (pas de console.warn direct)
+      swLogger.warn('SW init: install flag stale (> 60s) — flag nettoyé, boot normal (TACHE-079)', {
+        hint: 'install_flag_stale',
+        flag_age_ms: Date.now() - (installFlagValue as number),
+      });
+      await browser.storage.local.remove('installation_in_progress');
+      // Pas de return : continuer le boot normalement
+    } else {
+      // Flag présent et récent : onFirstInstall() est en cours → skip
+      // R-M7-08 / TACHE-083 : log structuré via logger (pas de console.info direct)
+      swLogger.info('SW init: installation_in_progress — IIFE boot skipped (TACHE-079)', {
+        hint: 'install_in_progress',
+      });
+      return;
+    }
   }
 
   const bootStart = performance.now();
