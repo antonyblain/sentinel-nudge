@@ -357,6 +357,18 @@
     "message": "Premier score lundi",
     "description": "Message affiché avant le premier calcul de score"
   },
+  "popup_score_pending_label": {
+    "message": "En cours",
+    "description": "Label sous la gauge quand aucun score n'a encore été calculé (T-153)"
+  },
+  "popup_score_pending_trend": {
+    "message": "Premier score lundi",
+    "description": "Trend sous la gauge quand aucun score n'a été calculé — sans date pour éviter doublon (T-153)"
+  },
+  "popup_score_pending_aria": {
+    "message": "Score en cours de calcul",
+    "description": "Aria-label gauge quand aucun score (T-153)"
+  },
   "popup_score_first_monday": {
     "message": "Votre premier score sera calculé le $1",
     "description": "Message avec date du premier lundi",
@@ -420,7 +432,7 @@
     "description": "Aria-label de la section statut de la popup"
   },
   "popup_btn_dashboard": {
-    "message": "Voir le détail",
+    "message": "Voir le tableau de bord",
     "description": "Bouton d'accès au dashboard depuis la popup"
   },
   "popup_btn_settings": {
@@ -704,56 +716,56 @@
     "description": "Erreur profil manquant"
   },
   "module_m2_name": {
-    "message": "Sites suspects",
-    "description": "Nom du module M2"
+    "message": "Sites douteux",
+    "description": "Nom court du module M2 pour les chips (feedback Commanditaire 2026-04-19)"
   },
   "module_m2_desc": {
     "message": "Alerte lors de la saisie d'un mot de passe sur un site potentiellement dangereux (HTTP, typosquatting, certificat auto-signé).",
     "description": "Description du module M2"
   },
   "module_m3_name": {
-    "message": "Score de cyber-hygiène",
-    "description": "Nom du module M3"
+    "message": "Score",
+    "description": "Nom court du module M3 pour les chips"
   },
   "module_m3_desc": {
     "message": "Calcule votre score de cyber-hygiène chaque lundi et met à jour le badge de l'extension.",
     "description": "Description du module M3"
   },
   "module_m5_name": {
-    "message": "Mise à jour navigateur",
-    "description": "Nom du module M5"
+    "message": "Mise à jour",
+    "description": "Nom court du module M5 pour les chips"
   },
   "module_m5_desc": {
     "message": "Vous rappelle de mettre à jour votre navigateur lorsqu'une mise à jour est disponible.",
     "description": "Description du module M5"
   },
   "module_m6_name": {
-    "message": "Quiz phishing",
-    "description": "Nom du module M6"
+    "message": "Quiz",
+    "description": "Nom court du module M6 pour les chips"
   },
   "module_m6_desc": {
     "message": "Mini-quiz périodique pour reconnaître les tentatives de phishing. Utilise la répétition espacée.",
     "description": "Description du module M6"
   },
   "module_m7_name": {
-    "message": "Réutilisation de mots de passe",
-    "description": "Nom du module M7"
+    "message": "MDP réutilisés",
+    "description": "Nom court du module M7 pour les chips"
   },
   "module_m7_desc": {
     "message": "Détecte si vous réutilisez le même mot de passe sur plusieurs sites. Requiert consentement explicite.",
     "description": "Description du module M7"
   },
   "module_m9_name": {
-    "message": "Force des mots de passe",
-    "description": "Nom du module M9"
+    "message": "Force MDP",
+    "description": "Nom court du module M9 pour les chips"
   },
   "module_m9_desc": {
     "message": "Affiche un indicateur de force lors de la création d'un mot de passe avec des suggestions d'amélioration.",
     "description": "Description du module M9"
   },
   "module_m17_name": {
-    "message": "Données sensibles presse-papiers",
-    "description": "Nom du module M17"
+    "message": "Presse-papiers",
+    "description": "Nom court du module M17 pour les chips"
   },
   "module_m17_desc": {
     "message": "Alerte si vous collez un numéro de carte bancaire, un IBAN ou une clé API dans un formulaire.",

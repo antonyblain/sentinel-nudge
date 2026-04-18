@@ -357,6 +357,18 @@
     "message": "First score on Monday",
     "description": "Message before first score calculation"
   },
+  "popup_score_pending_label": {
+    "message": "Pending",
+    "description": "Gauge label when no score yet (T-153)"
+  },
+  "popup_score_pending_trend": {
+    "message": "First score on Monday",
+    "description": "Gauge trend when no score yet — no date to avoid duplicate (T-153)"
+  },
+  "popup_score_pending_aria": {
+    "message": "Score being calculated",
+    "description": "Gauge aria-label when no score (T-153)"
+  },
   "popup_score_first_monday": {
     "message": "Your first score will be calculated on $1",
     "description": "Message with date of first Monday",
@@ -420,7 +432,7 @@
     "description": "Aria-label of the popup status section"
   },
   "popup_btn_dashboard": {
-    "message": "View details",
+    "message": "Open dashboard",
     "description": "Dashboard button in popup"
   },
   "popup_btn_settings": {
@@ -704,56 +716,56 @@
     "description": "Missing profile error"
   },
   "module_m2_name": {
-    "message": "Suspicious sites",
-    "description": "M2 module name"
+    "message": "Risky sites",
+    "description": "M2 short module name for chips"
   },
   "module_m2_desc": {
     "message": "Alerts when entering a password on a potentially dangerous site (HTTP, typosquatting, self-signed certificate).",
     "description": "M2 module description"
   },
   "module_m3_name": {
-    "message": "Cyber-hygiene score",
-    "description": "M3 module name"
+    "message": "Score",
+    "description": "M3 short module name for chips"
   },
   "module_m3_desc": {
     "message": "Calculates your cyber-hygiene score every Monday and updates the extension badge.",
     "description": "M3 module description"
   },
   "module_m5_name": {
-    "message": "Browser update",
-    "description": "M5 module name"
+    "message": "Update",
+    "description": "M5 short module name for chips"
   },
   "module_m5_desc": {
     "message": "Reminds you to update your browser when an update is available.",
     "description": "M5 module description"
   },
   "module_m6_name": {
-    "message": "Phishing quiz",
-    "description": "M6 module name"
+    "message": "Quiz",
+    "description": "M6 short module name for chips"
   },
   "module_m6_desc": {
     "message": "Periodic mini-quiz to recognize phishing attempts. Uses spaced repetition.",
     "description": "M6 module description"
   },
   "module_m7_name": {
-    "message": "Password reuse",
-    "description": "M7 module name"
+    "message": "Reused pwds",
+    "description": "M7 short module name for chips"
   },
   "module_m7_desc": {
     "message": "Detects if you reuse the same password across multiple sites. Requires explicit consent.",
     "description": "M7 module description"
   },
   "module_m9_name": {
-    "message": "Password strength",
-    "description": "M9 module name"
+    "message": "Pwd strength",
+    "description": "M9 short module name for chips"
   },
   "module_m9_desc": {
     "message": "Shows a strength indicator when creating a password with improvement suggestions.",
     "description": "M9 module description"
   },
   "module_m17_name": {
-    "message": "Clipboard sensitive data",
-    "description": "M17 module name"
+    "message": "Clipboard",
+    "description": "M17 short module name for chips"
   },
   "module_m17_desc": {
     "message": "Alerts if you paste a credit card number, IBAN, or API key into a form.",
