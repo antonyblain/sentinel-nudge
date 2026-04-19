@@ -173,7 +173,7 @@ Le plan est structure en 9 chapitres operationnels :
 **Reference** : mini-DAT TACHE-068 §2 Cas A + scenarios GG-01 + TACHE-124
 **Criticite** : P0
 **Provider teste** : Google (`accounts.google.com`)
-**Lien matrice** : `docs/p5-recette/matrice-compatibilite-providers-m7.md` §3
+**Lien matrice** : `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md` §3
 
 **Pre-condition** :
 - Naviguer sur `https://accounts.google.com/` (page de connexion)
@@ -214,7 +214,7 @@ Le plan est structure en 9 chapitres operationnels :
 **Reference** : mini-DAT TACHE-068 §2 Cas B + scenarios MS-01
 **Criticite** : P0
 **Provider teste** : Microsoft (`login.microsoftonline.com` → `login.live.com`)
-**Lien matrice** : `docs/p5-recette/matrice-compatibilite-providers-m7.md` §3
+**Lien matrice** : `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md` §3
 
 **Pre-condition** :
 - Naviguer sur `https://login.microsoftonline.com/common/login`
@@ -317,7 +317,7 @@ Le plan est structure en 9 chapitres operationnels :
 
 ---
 
-**Mise a jour matrice apres ce chapitre** : remplir les colonnes Google et Microsoft dans `docs/p5-recette/matrice-compatibilite-providers-m7.md` §3 avec statut, date, version extension.
+**Mise a jour matrice apres ce chapitre** : remplir les colonnes Google et Microsoft dans `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md` §3 avec statut, date, version extension.
 
 ---
 
@@ -325,7 +325,7 @@ Le plan est structure en 9 chapitres operationnels :
 
 **Tache origine** : TACHE-069
 **Scenarios detailles** : `docs/p5-tests/p5-uc02-password-managers-scenarios-v1.0.md`
-**Lien matrice** : `docs/p5-recette/matrice-compatibilite-providers-m7.md` §4
+**Lien matrice** : `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md` §4
 **Statut actuel matrice** : KeePassXC, Bitwarden, Vaultwarden valides 2026-04-17 (PR #11). Chrome PM : comportement connu (isTrusted=false sur autofill silencieux).
 
 **Pre-requis du chapitre** :
@@ -449,7 +449,7 @@ Le plan est structure en 9 chapitres operationnels :
 
 ---
 
-**Mise a jour matrice apres ce chapitre** : mettre a jour `docs/p5-recette/matrice-compatibilite-providers-m7.md` §4 pour Chrome PM et Bitwarden.
+**Mise a jour matrice apres ce chapitre** : mettre a jour `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md` §4 pour Chrome PM et Bitwarden.
 
 ---
 
@@ -1085,14 +1085,14 @@ console.log('pending_m17_toast:', pending_m17_toast);
 
 ## 15. Chapitre Recette providers M7
 
-**Livrable vivant de reference** : `docs/p5-recette/matrice-compatibilite-providers-m7.md`
+**Livrable vivant de reference** : `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md`
 
 Ce chapitre ne duplique pas les scenarios de la matrice. Il donne les instructions pour la mettre a jour.
 
 **A chaque passage de recette :**
 
 1. Executer les scenarios des chapitres 4, 5 et noter les resultats
-2. Ouvrir `docs/p5-recette/matrice-compatibilite-providers-m7.md`
+2. Ouvrir `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md`
 3. Mettre a jour les lignes correspondantes :
    - **§3 Providers IdP** : Google et Microsoft — passer de `🔬` a `✅` ou `❌` selon les resultats TC-M7-UC01-01 et TC-M7-UC01-02
    - **§4 Providers Password Managers** : Chrome PM et Bitwarden — mettre a jour si statut change
@@ -1315,7 +1315,7 @@ Impact :
 2. Creer le ticket dans BACKLOG.md avec type BUG et priorite Must
 3. Informer le responsable du projet avant toute autre action
 4. Ne pas pousser en production tant que le correctif n'est pas valide en recette
-5. Si la faille a un impact securite : declencher le runbook `docs/securite/runbook-reponse-incident.md`
+5. Si la faille a un impact securite : declencher le runbook `docs/securite/runbook-reponse-incident-v1.0.md`
 
 **P1 — A corriger avant release** :
 1. Terminer le scenario en cours
@@ -1331,7 +1331,7 @@ Impact :
 
 Pour tout defaut ayant un impact sur la securite (fuite de donnees, contournement de la protection, salt ou cle expose) :
 
-Referencer : `docs/securite/runbook-reponse-incident.md`
+Referencer : `docs/securite/runbook-reponse-incident-v1.0.md`
 
 Les seuils de declenchement du runbook :
 - Toute fuite de `installation_salt` ou `encryption_key_material` en clair
@@ -1376,7 +1376,7 @@ Apres chaque bug corrige en recette manuelle :
 
 | Document | Chemin | Usage |
 |----------|--------|-------|
-| Matrice providers M7 | `docs/p5-recette/matrice-compatibilite-providers-m7.md` | Mettre a jour apres recette UC-01/UC-02 |
+| Matrice providers M7 | `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md` | Mettre a jour apres recette UC-01/UC-02 |
 | Mini-DAT UC-01 | `docs/p5-decisions/p5-minidat-tache-068-uc01-login-multi-etape-v1.1.md` | Details techniques login multi-etape |
 | Scenarios UC-02 detail | `docs/p5-tests/p5-uc02-password-managers-scenarios-v1.0.md` | 24 scenarios PM detailles |
 | Mini-DAT UC-03 iframes | `docs/p5-decisions/p5-minidat-tache-070-uc03-iframes-v1.0.md` | Details techniques iframes same-origin |
@@ -1384,5 +1384,5 @@ Apres chaque bug corrige en recette manuelle :
 | Scenarios UC-06 detail | `docs/p5-tests/p5-uc06-inputs-dynamiques-scenarios-v1.0.md` | Fixtures React/Vue requis |
 | Guide DevTools original | `docs/p4-conception/p4prime-tests-manuels-modules-asynchrones-v1.0.md` | M3/M5/M6/M7 commandes avancees |
 | Post-mortem M7 | `docs/gouvernance/gouvernance-pv-postmortem-m7-v1.0.md` | 15 UC identifes et priorises |
-| Runbook incident | `docs/securite/runbook-reponse-incident.md` | Procedure si defaut securite P0 |
+| Runbook incident | `docs/securite/runbook-reponse-incident-v1.0.md` | Procedure si defaut securite P0 |
 | BACKLOG | `.claude/BACKLOG.md` | Creer les defauts trouves |

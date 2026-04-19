@@ -292,7 +292,7 @@ Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'a
 - **Revue de code obligatoire** avant chaque merge (comité revue code formalisé).
 - **Tests automatisés** (Vitest + Playwright) exécutés en intégration continue à chaque *pull request*.
 - **SBOM** (Software Bill of Materials) généré à chaque release.
-- **Runbook de réponse à incident** formalisé (10 étapes, classification P0-P3) — cf. `docs/securite/runbook-reponse-incident.md`.
+- **Runbook de réponse à incident** formalisé (10 étapes, classification P0-P3) — cf. `docs/securite/runbook-reponse-incident-v1.0.md`.
 - **Référentiel ISO 27001** formalisé — cf. `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles tracés post-T-166).
 - **Procédure d'escalade DPO en 6 étapes (E1-E6)** pour tout incident touchant la fonctionnalité « Alerte mots de passe réutilisés » (cf. AIPD v1.3 §6.6).
 
@@ -322,7 +322,7 @@ L'extension ne reconnaît et ne recommande que des **gestionnaires de mots de pa
 
 ### 11.3 Authentification unique (SSO) multi-hostname
 
-Certains systèmes d'authentification unique (notamment Microsoft) redirigent l'utilisateur entre plusieurs noms de domaine distincts pendant le flux de connexion. La détection « Alerte mots de passe réutilisés » peut, dans certains cas, ne pas capturer la saisie sur tous les hostnames intermédiaires. Ce point est documenté dans la matrice de compatibilité providers (`docs/p5-recette/matrice-compatibilite-providers-m7.md`) et fait l'objet d'un suivi spécifique.
+Certains systèmes d'authentification unique (notamment Microsoft) redirigent l'utilisateur entre plusieurs noms de domaine distincts pendant le flux de connexion. La détection « Alerte mots de passe réutilisés » peut, dans certains cas, ne pas capturer la saisie sur tous les hostnames intermédiaires. Ce point est documenté dans la matrice de compatibilité providers (`docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md`) et fait l'objet d'un suivi spécifique.
 
 ### 11.4 Synchronisation du profil navigateur
 
@@ -356,7 +356,7 @@ Pour tout signalement confidentiel d'une vulnérabilité susceptible d'affecter 
 Chaque signalement lié aux données personnelles déclenche :
 
 1. Une saisine du DPO de la Fabrique pour évaluation de conformité RGPD.
-2. Une évaluation selon le runbook de réponse à incident (`docs/securite/runbook-reponse-incident.md`), avec classification P0-P3.
+2. Une évaluation selon le runbook de réponse à incident (`docs/securite/runbook-reponse-incident-v1.0.md`), avec classification P0-P3.
 3. Le cas échéant, une mise à jour de la présente politique et une communication publique via le dépôt GitHub.
 
 ---
@@ -418,7 +418,7 @@ Le statut particulier de l'éditeur (particulier, sans entreprise, sans accès a
 - **DAT Sentinel Nudge v1.4** — `docs/p3-architecture/p3-dat-v1.4.md`
 - **Cahier des charges v1.1** — `docs/p1-besoin/p1-cahier-des-charges-v1.1.md`
 - **Référentiel ISO 27001 v1.2** — `docs/securite/referentiel-iso27001-v1.2.md`
-- **Runbook réponse à incident** — `docs/securite/runbook-reponse-incident.md`
+- **Runbook réponse à incident** — `docs/securite/runbook-reponse-incident-v1.0.md`
 - **Registre des traitements Art. 30** — `docs/rgpd/registre-des-traitements-v1.0.md` (à bumper en v1.1 par T-155 pour aligner les durées `weekly_scores`/`quiz_sessions` à 52 semaines et ajouter les intents `pending_*`)
 - **SECURITY.md** — `SECURITY.md` (racine du dépôt)
 - **GitHub Privacy Statement** — https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement (qualification §2.4)

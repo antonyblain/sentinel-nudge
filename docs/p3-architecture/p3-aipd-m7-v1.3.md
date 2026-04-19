@@ -21,7 +21,7 @@
 - `docs/rgpd/politique-de-confidentialite-v1.2.md` — §4.1 (Protection contre les sites frauduleux), §4.5 (Alerte mots de passe réutilisés), §8.1 (Particularités export Art. 20), §10.4 (Registre des incidents)
 - `docs/rgpd/registre-des-traitements-v1.0.md` — RT-M2, RT-M7, RT-PARAM (Art. 30 RGPD) — à bumper en v1.1 (T-155)
 - `docs/p5-decisions/p5-minidat-tache-061-heartbeat-m7-v1.1.md` — §11.3 registre d'incidents IDB circulaire
-- `docs/securite/runbook-reponse-incident.md` — §3.2 règle de montée automatique « tout incident M7 = P0 », §6.5 Template notification utilisateurs
+- `docs/securite/runbook-reponse-incident-v1.0.md` — §3.2 règle de montée automatique « tout incident M7 = P0 », §6.5 Template notification utilisateurs
 - RISQUES.md — R-001, R-003, R-007, **R-M7-08** (fuite informationnelle via console)
 
 **Note terminologique (v1.2/v1.3) :** ce document est destiné aux autorités de contrôle et au DPO. Il conserve les codes module techniques internes (M2, M3, M5, M6, M7, M9, M17) dans le détail technique pour la traçabilité avec le DAT, le SFD et le code source. En revanche, **les titres de section et l'introduction** utilisent les formulations user-friendly alignées avec la politique de confidentialité v1.2 (« Alerte mots de passe réutilisés », « Protection contre les sites frauduleux », etc.). Table de correspondance en annexe A.
@@ -494,7 +494,7 @@ Cette AIPD doit etre revisee dans les cas suivants :
 
 ### 6.6 Articulation avec le runbook réponse à incident — Procédure d'escalade DPO en 6 étapes E1-E6 (v1.3)
 
-**Contexte (intégration note T-115 résorbée) :** le runbook réponse à incident v1.0 (`docs/securite/runbook-reponse-incident.md`) impose deux dispositions structurantes pour les incidents touchant la fonctionnalité « Alerte mots de passe réutilisés » :
+**Contexte (intégration note T-115 résorbée) :** le runbook réponse à incident v1.0 (`docs/securite/runbook-reponse-incident-v1.0.md`) impose deux dispositions structurantes pour les incidents touchant la fonctionnalité « Alerte mots de passe réutilisés » :
 
 - **Step 2 — Saisine DPO systématique** : règle de montée automatique « tout incident M7 = P0 » (runbook §3.2). Tout incident affectant le périmètre M7 (corruption canary, dérive heartbeat, exception handler, modification non planifiée des stores `password_hashes` / `m7_canary` / `m7_incidents`) déclenche une saisine DPO sans délai.
 - **Step 7 — Validation DPO obligatoire avant notification utilisateurs** : le Template 6.5 du runbook (notification in-app aux utilisateurs) ne peut pas être publié sans visa DPO daté dans le journal d'incident.
@@ -578,5 +578,5 @@ _Conforme a l'article 35 du RGPD et aux lignes directrices du CEPD (WP248 rev.01
 _Conforme au guide AIPD de la CNIL (PIA, version 2018)_
 _Alignée avec le registre des traitements Art. 30 v1.0 (docs/rgpd/registre-des-traitements-v1.0.md) — bump v1.1 attendu (T-155) pour aligner durées weekly_scores/quiz_sessions et corriger RT-M9_
 _Alignée avec la politique de confidentialité v1.2 (docs/rgpd/politique-de-confidentialite-v1.2.md)_
-_Alignée avec le runbook réponse à incident v1.0 (docs/securite/runbook-reponse-incident.md) §3.2 et §6.5 via §6.6 de la présente AIPD_
+_Alignée avec le runbook réponse à incident v1.0 (docs/securite/runbook-reponse-incident-v1.0.md) §3.2 et §6.5 via §6.6 de la présente AIPD_
 _Notes additives DPO T-074 et T-115 résorbées dans cette v1.3 — règle Commanditaire 19/04 anti-démultiplication des documents_
