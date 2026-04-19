@@ -4,31 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mise à jour navigateur : pourquoi c'est important — Sentinel Nudge</title>
+    <!-- T-134 : import centralisé des design tokens v2 (suppression duplication locale) -->
+    <link rel="stylesheet" href="../../assets/styles/tokens.css" />
     <style>
-      :root {
-        --sn-color-bg: #ffffff;
-        --sn-color-fg: #111827;
-        --sn-color-accent: #2563eb;
-        --sn-color-muted: #6b7280;
-        --sn-color-border: #e5e7eb;
-        --sn-font-size-body: 1rem;
-        --sn-font-size-small: 0.875rem;
-        --sn-line-height: 1.6;
-        --sn-radius: 8px;
-        --sn-space-sm: 0.5rem;
-        --sn-space-md: 1rem;
-        --sn-space-lg: 1.5rem;
-        --sn-space-xl: 2rem;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --sn-color-bg: #1f2937;
-          --sn-color-fg: #f9fafb;
-          --sn-color-accent: #60a5fa;
-          --sn-color-border: #374151;
-          --sn-color-muted: #9ca3af;
-        }
-      }
       @media (prefers-reduced-motion: reduce) {
         * {
           animation: none !important;
@@ -41,10 +19,7 @@
         box-sizing: border-box;
       }
       body {
-        font-family:
-          system-ui,
-          -apple-system,
-          sans-serif;
+        font-family: var(--sn-font-body, system-ui, -apple-system, sans-serif);
         font-size: var(--sn-font-size-body);
         line-height: var(--sn-line-height);
         color: var(--sn-color-fg);
@@ -91,6 +66,13 @@
         border-left: 4px solid var(--sn-color-accent);
         padding-left: var(--sn-space-sm);
       }
+      /* T-135 : style du titre de tip-box (h3 sémantique, rendu visuel équivalent à l'ancien <strong>) */
+      h3.tip-box-title {
+        font-weight: bold;
+        font-size: var(--sn-font-size-body);
+        margin: 0 0 var(--sn-space-sm);
+        line-height: var(--sn-line-height);
+      }
       p {
         margin: 0 0 var(--sn-space-md);
       }
@@ -103,17 +85,11 @@
         margin-bottom: var(--sn-space-sm);
       }
       .tip-box {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
+        background: var(--sn-color-info-bg, #eff6ff);
+        border: 1px solid var(--sn-color-info-border, #bfdbfe);
         border-radius: var(--sn-radius);
         padding: var(--sn-space-md);
         margin-bottom: var(--sn-space-md);
-      }
-      @media (prefers-color-scheme: dark) {
-        .tip-box {
-          background: #1e3a5f;
-          border-color: #2563eb;
-        }
       }
       .ref-list {
         list-style: none;
@@ -213,8 +189,10 @@
 
       <section aria-labelledby="section-advice">
         <h2 id="section-advice">Conseils pratiques</h2>
-        <div class="tip-box">
-          <strong>Pour mettre à jour Chrome :</strong>
+        <!-- T-136 : role="note" pour annonce lecteur d'écran -->
+        <div class="tip-box" role="note">
+          <!-- T-135 : <strong> → <h3 class="tip-box-title"> pour navigation par headings -->
+          <h3 class="tip-box-title">Pour mettre à jour Chrome :</h3>
           <ul>
             <li>
               Cliquez sur les trois points en haut à droite → Aide → À propos de Google Chrome.
