@@ -24,40 +24,26 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
 // Mock de chrome — défini AVANT tout import du module testé
 // ---------------------------------------------------------------------------
 
-const mockStorageLocalGet = vi
-  .fn()
-  .mockImplementation((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-    callback({});
-  });
-const mockStorageLocalSet = vi
-  .fn()
-  .mockImplementation((_items: Record<string, unknown>, callback?: () => void) => {
-    callback?.();
-  });
+// T-189 : storage.local délégué au wrapper createMockChromeStorage() (P-018)
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: mockStorageLocalGet,
-      set: mockStorageLocalSet,
-      remove: vi.fn().mockImplementation((_keys: string[], callback?: () => void) => callback?.()),
-      clear: vi.fn().mockImplementation((callback?: () => void) => callback?.()),
-    },
+    local: storage,
     onChanged: {
       addListener: vi.fn(),
     },
   },
   runtime: {
-    sendMessage: vi
-      .fn()
-      .mockImplementation((_msg: unknown, callback?: (r: unknown) => void) => {
-        callback?.(null);
-      }),
+    sendMessage: vi.fn().mockImplementation((_msg: unknown, callback?: (r: unknown) => void) => {
+      callback?.(null);
+    }),
     lastError: undefined,
     getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`),
     getManifest: vi.fn().mockReturnValue({}),
@@ -140,10 +126,12 @@ describe('F-UC01-01 (TACHE-101) — observeDynamicForms : détection nœud racin
   let disconnectSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    // Réinitialiser le Set entre les tests
+    // Réinitialiser le Set et le storage entre les tests
     _snPasswordInputs.clear();
     document.body.innerHTML = '';
     capturedCallback = null;
+    resetStorage();
+    vi.clearAllMocks();
 
     // Mock de MutationObserver pour capturer le callback sans dépendre de l'implémentation jsdom
     observeSpy = vi.fn();
