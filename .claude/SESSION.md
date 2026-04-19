@@ -2,21 +2,34 @@
 
 ## Fil rouge (narration courte)
 
-**Où on en est (session 2026-04-19 soir — cycle parallélisation agents Fabrique, ~19h00-20h45).** Session reprise sur consigne Commanditaire « parallélise plusieurs tâches, il faut qu'on avance de façon importante ». **5 agents Fabrique lancés en séquence × 2 vagues sur zones disjointes** (LL-022 respecté — 2 agents simultanés max), tous livrés CI 6/6 dès la première tentative (aucune régression, aucune itération auto-correction).
+**Où on en est (session 2026-04-19 soir — cycle parallélisation agents Fabrique, ~19h00-21h10).** Session reprise sur consigne Commanditaire « parallélise plusieurs tâches, il faut qu'on avance de façon importante » puis prolongée en autonomie (Commanditaire au match de foot) jusqu'à ~95% budget session. **8 agents Fabrique lancés en 3 vagues successives sur zones disjointes** (LL-022 respecté — 2 agents simultanés max), **tous livrés CI 6/6 dès la première tentative** (aucune régression, aucune itération auto-correction).
 
-**Tâches livrées (5 agents + 1 orchestrateur + 2 hotfix)** :
+**Tâches livrées (8 agents + 1 orchestrateur + 2 hotfix)** :
+
+*Vague 1 (4 agents)* :
 - **T-059** 12 scénarios TC-M7-01 à TC-M7-12 (32 tests unitaires + intégration) — PR #123
 - **T-060** Wrapper mock `chrome.storage.local` JSON-strict + simulation quota + SW lifecycle (55 tests, 310L) — PR #124
 - **T-064** Filtre `autocomplete="new-password"` M7 (UC-07/UC-08, 15 tests + correctif TC-UC01-04-B) — PR #125
-- **T-078** Instrumenter `storage_write_fail` aux 4 sites critiques (SW boot x2, m7-handler pending_m7_toast, heartbeat-service write) + 6 tests — PR #126 **mergée**
-- **T-063** Protocole recette manuelle v1.0 (601L, 17 scénarios G/W/T UC-01 à UC-06, gabarit PV) — PR #127
-- **T-167** SFD v1.2 stub produit directement par orchestrateur (addendum §9 UC+ARB+ADR, cf. LL-032) — PR #120
-- **Hotfix prettier** `.prettierignore` pour exclure `.claude/*.md` — PR #122 **mergée**
-- **Fix LESSONS_LEARNED** restauration format compact + .prettierignore embarqué sur branche T-167
+- **T-078** Instrumenter `storage_write_fail` aux 4 sites critiques (SW boot ×2, m7-handler pending_m7_toast, heartbeat-service write) + 6 tests — PR #126 **mergée**
 
-**9 PR mergées dans la fenêtre soir** : #91 T-028, #94 revue Fabrique, #104 PDCA, #117 cycle final, #118 codeql-action v4, #121 clôture soir, #122 hotfix prettier, #80 T-120 SBOM anchore, #126 T-078.
+*Vague 2 (1 agent)* :
+- **T-063** Protocole recette manuelle v1.0 (601L, 17 scénarios G/W/T UC-01 à UC-06, gabarit PV signé) — PR #127 **mergée**
 
-**6 PR en auto-merge GitHub** : #127, #125, #124, #123, #120, #119 (dev-deps Dependabot) — séquencement automatique en cours.
+*Vague 3 (3 agents, session autonome foot)* :
+- **T-076** Test d'intégration boot-sequence canary_reinit (CM-EOP1 OBS-01, 6 tests 639L, fake-indexeddb) — PR #129 **mergée**
+- **T-082** 5 scénarios SM-01/02/04/05/07 TC-M7 (15 tests, 677L, complément T-059) — PR #130 **mergée**
+- **T-096** Renforcer tests isTrusted (NB-01 beforeEach + NB-03 helper `findCallByKey`, 17 tests 14→17) — PR #131
+
+*Orchestrateur direct* :
+- **T-167** SFD v1.2 stub (addendum §9 UC+ARB+ADR, cf. LL-032) — PR #120 **mergée**
+
+*Hotfix* :
+- **Prettier** `.prettierignore` pour exclure `.claude/*.md` — PR #122 **mergée**
+- **Fix LESSONS_LEARNED** restauration format compact + `.prettierignore` embarqué sur branche T-167
+
+**14 PR mergées dans la fenêtre soir** : #91 T-028, #94 revue Fabrique, #104 PDCA, #117 cycle final, #121 clôture 1er cycle, #80 T-120 SBOM anchore, #118 codeql-action v4, #122 hotfix prettier, #119 dev-deps Dependabot, #126 T-078, #127 T-063, #120 T-167, #129 T-076, #130 T-082.
+
+**5 PR en auto-merge GitHub** (séquencement automatique) : #131 T-096, #128 (ce bilan session), #125 T-064, #124 T-060, #123 T-059.
 
 **Leçons capitalisées (2 nouvelles)** :
 - **LL-032** (déjà capitalisée après-midi) : Ne pas déléguer à l'Analyste métier les bumps documentaires >1000L — orchestrateur produit stubs + découpage PR incrémentales.
@@ -32,11 +45,11 @@
 
 ## 🔜 Point de reprise prochaine session
 
-1. **Vérifier les 6 PR soir bien mergées** (#127, #125, #124, #123, #120, #119). Si bloquées, relancer `gh pr update-branch` séquentiel.
-2. **Should restants prio** (BACKLOG) : T-082 (5 scénarios enrichissement T-059 : SM-01/02/04/05/07), T-066 (CS `all_frames: true` iframes same-origin), T-076 (test CM-EOP1 canary_reinit intégration), T-096 (renforcer tests isTrusted), T-097 (TC-UC05-05-SPA dépend T-101).
+1. **Vérifier les 5 PR restantes bien mergées** (#131 T-096, #128 session, #125 T-064, #124 T-060, #123 T-059). Si bloquées, relancer `gh pr update-branch` séquentiel.
+2. **Should/Could restants prio BACKLOG** : T-066 (CS `all_frames: true` iframes same-origin — **nécessite arbitrage Archi sécu sur surface d'attaque**), T-097 (TC-UC05-05-SPA), T-102 (mini-DAT T-070 bump v1.1), T-103 (refactor MessageRouter injection constructeur), T-064 (filtre autocomplete, déjà livré mais couverture E2E à compléter).
 3. **Enrichissement SFD §2.M7** par PR incrémentale (intégration ARB-061-01/02/03 dans corps du SFD, §9 → §2 — cf. LL-032 roadmap).
-4. **Migration tests existants** vers wrapper `mock-chrome-storage` (T-060 livré) — couvre P-018 régression à détecter dans les tests legacy.
-5. **Protocole recette formelle** (T-063 livré) à exécuter sur les 6 UC pour v1 — recette manuelle complète avec PV signé.
+4. **Migration tests existants** vers wrapper `mock-chrome-storage` (T-060 livré) — couvre P-018 régression à détecter dans les tests legacy. Migration progressive par fichier.
+5. **Protocole recette formelle T-063** à exécuter sur les 6 UC pour v1 — recette manuelle complète avec PV signé (action Commanditaire : valider calendrier recette).
 
 ---
 
