@@ -213,7 +213,7 @@ body {
 .privacy-title {
   font-size: var(--sn-font-size-body);
   font-weight: var(--sn-font-weight-bold);
-  color: var(--sn-color-accent);
+  color: var(--sn-color-accent-text);
   margin-bottom: var(--sn-space-sm);
 }
 
@@ -426,7 +426,7 @@ body {
 
 /* Lien GitHub dans la section open source */
 .github-link {
-  color: var(--sn-color-accent);
+  color: var(--sn-color-accent-text);
   text-decoration: underline;
 }
 
