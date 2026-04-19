@@ -26,12 +26,12 @@ Il consolide l'ensemble des scenarios de recette eparpilles dans les documents s
 
 - `docs/p4-conception/p4prime-tests-manuels-modules-asynchrones-v1.0.md` (guide DevTools M3/M5/M6/M7)
 - `docs/gouvernance/gouvernance-pv-postmortem-m7-v1.0.md` §4 (UC-01 a UC-15)
-- `docs/p4-conception/p5-minidat-tache-068-uc01-login-multi-etape-v1.1.md` §12 (TC-UC01-01 a 05)
+- `docs/p5-decisions/p5-minidat-tache-068-uc01-login-multi-etape-v1.1.md` §12 (TC-UC01-01 a 05)
 - `docs/p5-tests/p5-uc01-login-multietape-scenarios-v1.0.md` (scenarios GG-01 a MS-03)
 - `docs/p5-tests/p5-uc02-password-managers-scenarios-v1.0.md` (scenarios S-UC02-*)
 - `docs/p5-tests/p5-uc06-inputs-dynamiques-scenarios-v1.0.md` (scenarios S-UC06-*)
-- `docs/p4-conception/p5-minidat-tache-072-toggle-show-hide-v1.1.md` (UC-05)
-- `docs/p4-conception/p5-minidat-tache-070-uc03-iframes-v1.0.md` (UC-03)
+- `docs/p5-decisions/p5-minidat-tache-072-toggle-show-hide-v1.1.md` (UC-05)
+- `docs/p5-decisions/p5-minidat-tache-070-uc03-iframes-v1.0.md` (UC-03)
 
 Ce document ne duplique pas le contenu detaille de ces sources : il **reference** les cas d'usage, condense les criteres de passage et fournil les commandes DevTools necessaires.
 
@@ -155,7 +155,7 @@ Le plan est structure en 9 chapitres operationnels :
 ## 4. Chapitre UC-01 — Login multi-etape
 
 **Tache origine** : TACHE-068
-**Mini-DAT de reference** : `docs/p4-conception/p5-minidat-tache-068-uc01-login-multi-etape-v1.1.md`
+**Mini-DAT de reference** : `docs/p5-decisions/p5-minidat-tache-068-uc01-login-multi-etape-v1.1.md`
 **Scenarios detailles** : `docs/p5-tests/p5-uc01-login-multietape-scenarios-v1.0.md`
 
 **Pre-requis du chapitre** :
@@ -456,7 +456,7 @@ Le plan est structure en 9 chapitres operationnels :
 ## 6. Chapitre UC-03 — Iframes same-origin
 
 **Tache origine** : TACHE-070
-**Mini-DAT de reference** : `docs/p4-conception/p5-minidat-tache-070-uc03-iframes-v1.0.md`
+**Mini-DAT de reference** : `docs/p5-decisions/p5-minidat-tache-070-uc03-iframes-v1.0.md`
 **Dependance code** : `all_frames: true` dans `manifest.json` (implemente dans la tache TACHE-070)
 
 **Pre-requis du chapitre** :
@@ -514,7 +514,7 @@ Le plan est structure en 9 chapitres operationnels :
 ## 7. Chapitre UC-05 — Toggle show/hide
 
 **Tache origine** : TACHE-072
-**Mini-DAT de reference** : `docs/p4-conception/p5-minidat-tache-072-toggle-show-hide-v1.1.md`
+**Mini-DAT de reference** : `docs/p5-decisions/p5-minidat-tache-072-toggle-show-hide-v1.1.md`
 **Principe cle** : tout input ayant presente `type="password"` a un instant donne reste dans le perimetre de detection M7 jusqu'a destruction du DOM (INV de cycle de vie TACHE-072 §1.2)
 
 **Pre-requis du chapitre** :
@@ -1377,10 +1377,10 @@ Apres chaque bug corrige en recette manuelle :
 | Document | Chemin | Usage |
 |----------|--------|-------|
 | Matrice providers M7 | `docs/p5-recette/matrice-compatibilite-providers-m7.md` | Mettre a jour apres recette UC-01/UC-02 |
-| Mini-DAT UC-01 | `docs/p4-conception/p5-minidat-tache-068-uc01-login-multi-etape-v1.1.md` | Details techniques login multi-etape |
+| Mini-DAT UC-01 | `docs/p5-decisions/p5-minidat-tache-068-uc01-login-multi-etape-v1.1.md` | Details techniques login multi-etape |
 | Scenarios UC-02 detail | `docs/p5-tests/p5-uc02-password-managers-scenarios-v1.0.md` | 24 scenarios PM detailles |
-| Mini-DAT UC-03 iframes | `docs/p4-conception/p5-minidat-tache-070-uc03-iframes-v1.0.md` | Details techniques iframes same-origin |
-| Mini-DAT UC-05 toggle | `docs/p4-conception/p5-minidat-tache-072-toggle-show-hide-v1.1.md` | Details MutationObserver type |
+| Mini-DAT UC-03 iframes | `docs/p5-decisions/p5-minidat-tache-070-uc03-iframes-v1.0.md` | Details techniques iframes same-origin |
+| Mini-DAT UC-05 toggle | `docs/p5-decisions/p5-minidat-tache-072-toggle-show-hide-v1.1.md` | Details MutationObserver type |
 | Scenarios UC-06 detail | `docs/p5-tests/p5-uc06-inputs-dynamiques-scenarios-v1.0.md` | Fixtures React/Vue requis |
 | Guide DevTools original | `docs/p4-conception/p4prime-tests-manuels-modules-asynchrones-v1.0.md` | M3/M5/M6/M7 commandes avancees |
 | Post-mortem M7 | `docs/gouvernance/gouvernance-pv-postmortem-m7-v1.0.md` | 15 UC identifes et priorises |
