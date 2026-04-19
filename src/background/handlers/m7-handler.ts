@@ -235,15 +235,39 @@ export function verifyExpiresAt(toast: PendingM7Toast): boolean {
  * Écrit un pending_m7_toast en nouveau format (expires_at — R-CLI-03).
  *
  * TACHE-091 : toujours écrire en nouveau format, jamais avec `timestamp`.
+ * TACHE-078 / OBS-04 : instrumentation storage_write_fail si incidentService fourni.
+ * Pattern log-only : l'échec est loggué sans re-throw (le toast manquant est tolérable —
+ * handlePasswordSubmitted retourne déjà { action: 'show' } et le content script
+ * affichera un toast dès que possible via le prochain cycle de boot).
  *
- * @param domainHash - Hash SHA-256 salé du domaine de détection (jamais l'URL)
+ * @param domainHash      - Hash SHA-256 salé du domaine de détection (jamais l'URL)
+ * @param incidentService - Service d'incidents (optionnel — si fourni, échec storage loggué)
  */
-async function writePendingM7Toast(domainHash: string): Promise<void> {
+async function writePendingM7Toast(
+  domainHash: string,
+  incidentService?: IncidentService,
+): Promise<void> {
   const payload: PendingM7Toast = {
     domain_hash: domainHash,
     expires_at: Date.now() + PENDING_M7_TOAST_TTL_MS,
   };
-  await browser.storage.local.set({ [PENDING_M7_TOAST_KEY]: payload });
+  // OBS-04 / TACHE-078 : instrumentation storage_write_fail — pattern log-only (toast manquant tolérable)
+  try {
+    await browser.storage.local.set({ [PENDING_M7_TOAST_KEY]: payload });
+  } catch (writeErr: unknown) {
+    logger.error('writePendingM7Toast: échec écriture storage', {
+      error_name: Logger.errorName(writeErr),
+    });
+    if (incidentService) {
+      await incidentService.log('storage_write_fail', 'error', {
+        type: 'storage_write_fail',
+        module: 'm7',
+        site: 'pending_m7_toast',
+        hint: (writeErr instanceof Error ? writeErr.message : String(writeErr)).slice(0, 100),
+      });
+    }
+    // Ne pas re-throw : un toast manquant ne brise pas le flow principal (log-only pattern).
+  }
 }
 
 /**
@@ -461,7 +485,7 @@ async function handlePasswordSubmitted(
     // (redirection après login). Le content script affiche le toast au
     // chargement de la page suivante via un listener storage.onChanged.
     // TACHE-091 (R-CLI-03) : expires_at, jamais timestamp.
-    await writePendingM7Toast(domainHash);
+    await writePendingM7Toast(domainHash, incidentService);
 
     return {
       success: true,
