@@ -2,10 +2,11 @@
 
 **Projet :** Sentinel Nudge
 **Fonctionnalité couverte :** Alerte mots de passe réutilisés (référence interne : M7 — Nudge d'adoption gestionnaire de mots de passe)
-**Version :** 1.2
+**Version :** 1.3
 **Date de production v1.0 :** 2026-04-11
 **Date de mise a jour v1.1 :** 2026-04-18
 **Date de mise a jour v1.2 :** 2026-04-19
+**Date de mise a jour v1.3 :** 2026-04-19
 **Auteur :** DPO (Fabrique)
 **Niveau de sensibilite :** Expose
 **Base reglementaire :** Article 35 du RGPD (Reglement UE 2016/679)
@@ -13,15 +14,17 @@
 
 **Documents de reference :**
 
-- `p3-dat-v1.3.md` — sections 8.1, 8.2, 8.3, 9.4 (anciennement `p3-dat-v1.1.md`, renommé lors du bump v1.3 — TACHE-071 UC-04)
+- `p3-dat-v1.4.md` — sections 8.1, 8.2, 8.3, 9.4 (anciennement `p3-dat-v1.1.md` puis `p3-dat-v1.3.md`, renommé lors du bump v1.4 — TACHE-071 UC-04 + intégrations P4)
 - `p2-sfd-v1.1.md` — section 2.5
 - `p1-cahier-des-charges-v1.1.md` — sections correspondant à la fonctionnalité « Alerte mots de passe réutilisés », 3.1 (Privacy by Design)
 - `gouvernance-pv-securite-p2-v1.0.md`
-- `docs/rgpd/politique-de-confidentialite-v1.1.md` — §4.1 (Protection contre les sites frauduleux) et §4.5 (Alerte mots de passe réutilisés)
-- `docs/rgpd/registre-des-traitements-v1.0.md` — RT-M2, RT-M7, RT-PARAM (Art. 30 RGPD)
+- `docs/rgpd/politique-de-confidentialite-v1.2.md` — §4.1 (Protection contre les sites frauduleux), §4.5 (Alerte mots de passe réutilisés), §8.1 (Particularités export Art. 20), §10.4 (Registre des incidents)
+- `docs/rgpd/registre-des-traitements-v1.0.md` — RT-M2, RT-M7, RT-PARAM (Art. 30 RGPD) — à bumper en v1.1 (T-155)
+- `docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md` — §11.3 registre d'incidents IDB circulaire
+- `docs/securite/runbook-reponse-incident.md` — §3.2 règle de montée automatique « tout incident M7 = P0 », §6.5 Template notification utilisateurs
 - RISQUES.md — R-001, R-003, R-007, **R-M7-08** (fuite informationnelle via console)
 
-**Note terminologique (v1.2) :** ce document est destiné aux autorités de contrôle et au DPO. Il conserve les codes module techniques internes (M2, M3, M5, M6, M7, M9, M17) dans le détail technique pour la traçabilité avec le DAT, le SFD et le code source. En revanche, **les titres de section et l'introduction** utilisent les formulations user-friendly alignées avec la politique de confidentialité v1.1 (« Alerte mots de passe réutilisés », « Protection contre les sites frauduleux », etc.). Table de correspondance en annexe A.
+**Note terminologique (v1.2/v1.3) :** ce document est destiné aux autorités de contrôle et au DPO. Il conserve les codes module techniques internes (M2, M3, M5, M6, M7, M9, M17) dans le détail technique pour la traçabilité avec le DAT, le SFD et le code source. En revanche, **les titres de section et l'introduction** utilisent les formulations user-friendly alignées avec la politique de confidentialité v1.2 (« Alerte mots de passe réutilisés », « Protection contre les sites frauduleux », etc.). Table de correspondance en annexe A.
 
 ---
 
@@ -31,9 +34,10 @@
 |---------|------|-------------|--------|
 | v1.0 | 2026-04-11 | AIPD initiale (10 sections, 5 risques R1-R5, 314 lignes) | DPO Fabrique |
 | v1.1 | 2026-04-18 | Enrichissement dual TACHE-040 + TACHE-084 : (1) §1.3 complete avec `chrome.storage.local` comme lieu de stockage de la whitelist « Protection contre les sites frauduleux » (alignement avec RT-M2 et politique §4.1) ; (2) nouvelle section §1.8 « Inventaire des logs console et champs loggés » exhaustive sur service-worker.ts et m7-handler.ts (validation OBS-03, cohérence R-M7-08, traçabilité TACHE-083) ; (3) mise à jour §6.4 « Déclencheurs de révision » pour tracer cette mise à jour | DPO Fabrique |
-| **v1.2** | **2026-04-19** | **Alignement terminologique user-friendly (feedback Commanditaire) :** suppression du terme « micro-nudges » (non compréhensible pour l'usager) remplacé par « conseils contextuels », « rappels ciblés » et « nudges » selon le contexte ; titres de sections alignés sur les formulations user-friendly de la politique v1.1 ; codes module techniques (M2, M7, etc.) conservés dans le corps des sections pour traçabilité DAT/SFD/code. Aucune modification de fond : bases légales Art. 6.1.a inchangée, durées 90j/100 FIFO inchangées, risques R1-R5 inchangés, mesures techniques inchangées, avis formel DPO inchangé. | DPO Fabrique |
+| v1.2 | 2026-04-19 | Alignement terminologique user-friendly (feedback Commanditaire) : suppression du terme « micro-nudges » (non compréhensible pour l'usager) remplacé par « conseils contextuels », « rappels ciblés » et « nudges » selon le contexte ; titres de sections alignés sur les formulations user-friendly de la politique v1.1 ; codes module techniques (M2, M7, etc.) conservés dans le corps des sections pour traçabilité DAT/SFD/code. Aucune modification de fond. | DPO Fabrique |
+| **v1.3** | **2026-04-19** | **Intégration des notes DPO T-074 et T-115 + corrections OBS-04 / E-CROSS référent qualité :** (1) **§1.3** ajout de la ligne `m7_incidents` (registre d'incidents M7) avec **TTL absolue 365 jours** + FIFO 500 (R-074-02, implémentation tracée TACHE-159) et **garantie d'absence de `domain_hash` brut dans `context`** (R-074-01, TACHE-158) ; (2) **§2.4 nouvelle** « Exclusion du registre d'incidents de l'export Art. 20 » (R-074-03, TACHE-160) ; (3) **§4.1** ajout des mesures techniques `m7_incidents` (TTL + FIFO + minimisation contexte) et **mention CodeQL SAST automatisé OWASP Top 10 + CWE Top 25** (T-187 / TACHE-108 livrée, 0 finding au 19/04/2026) ; (4) **§6.2** conditions enrichies « interdiction de logger un `domain_hash` brut sans revue DPO » et « TTL 365 j absolue à respecter » ; (5) **§6.5 réécrite** « Validation TACHE-074 — avis FAVORABLE post-levée des 3 réserves R-074-01/02/03 » (remplace la pré-validation conceptuelle v1.2) ; (6) **§6.6 nouvelle** « Articulation avec le runbook réponse à incident — procédure d'escalade DPO en 6 étapes E1-E6 » intégrant intégralement la note T-115 ; (7) référence DAT bumpée en v1.4 (anomalie OBS-04 référent qualité). Aucune modification du fond AIPD : bases légales Art. 6.1.a inchangée, durées 90j/100 FIFO M7 inchangées, risques R1-R5 inchangés, mesures de protection inchangées, avis formel DPO inchangé. **Cette v1.3 résorbe les notes additives séparées T-074 et T-115 conformément à la règle Commanditaire 19/04 anti-démultiplication des documents.** | DPO Fabrique |
 
-**Conventions de nommage documentaire :** conformément à la règle FICHIERS.md du plugin, les modifications de cette AIPD restent une version mineure (v1.1 → v1.2) car il s'agit d'un alignement rédactionnel sans révision sur le fond des risques, de la base légale ou des mesures.
+**Conventions de nommage documentaire :** conformément à la règle FICHIERS.md du plugin, les modifications de cette AIPD restent une version mineure (v1.2 → v1.3) car il s'agit d'une intégration documentaire formalisant des avis DPO existants, sans révision sur le fond des risques, de la base légale ou des mesures techniques d'origine.
 
 ---
 
@@ -62,6 +66,8 @@ Le consentement est revocable a tout moment via la page de parametres de l'exten
 
 **v1.1 — MAJ TACHE-040 :** la colonne « Stockage » explicite désormais les lieux de stockage pour chaque donnée, et introduit la whitelist de la fonctionnalité « Protection contre les sites frauduleux » (M2 — hashs FNV-1a de domaines) comme donnée stockée dans `chrome.storage.local` **en complément** d'IndexedDB. Cette mise à jour aligne la présente AIPD sur le registre Art. 30 RGPD (RT-M2, RT-PARAM) et sur la politique de confidentialité §4.1.
 
+**v1.3 — MAJ TACHE-159 / R-074-02 :** ajout de la ligne `m7_incidents` (registre d'incidents M7 introduit par TACHE-061) avec borne FIFO 500 et **TTL absolue 365 jours**. La discipline de minimisation du champ `context` (R-074-01, TACHE-158) interdit explicitement le stockage de tout `domain_hash` brut, fragment de `password_hash`, `installation_salt` ou URL complète dans ce store.
+
 | Donnee                                                  | Nature                  | Stockage                                                               | Duree de conservation          |
 | ------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------- | ------------------------------ |
 | `password_value` (mot de passe en clair)                | Donnee sensible         | **Jamais stocke** — efface en memoire < 5 ms apres hachage (D-SEC-001) | 0 seconde                      |
@@ -72,6 +78,7 @@ Le consentement est revocable a tout moment via la page de parametres de l'exten
 | `count` (nombre de detections)                          | Metadonnee              | IndexedDB, en clair                                                    | 90 jours                       |
 | `installation_salt` (16 bytes, 128 bits)                | Cle de salage           | chrome.storage.local                                                   | Duree de vie de l'installation |
 | **`whitelist` Protection contre les sites frauduleux / M2 (hashs FNV-1a de domaines de confiance)** (v1.1) | Preference utilisateur (hash non reversible) | **`chrome.storage.local` (cache session) + IndexedDB (store `whitelist`)** | **Jusqu'a suppression explicite par l'utilisateur** |
+| **`m7_incidents` (registre d'incidents M7 — métadonnées techniques de diagnostic)** (v1.3) | Metadonnee technique non personnelle | **IndexedDB store `m7_incidents`, FIFO bornée à 500 entrées, severity-prioritized purge (INV-SEC-04)** | **365 jours absolus** (TTL R-074-02) **OU 500 entrées FIFO**, le plus restrictif des deux. Purge journalière `onPurgeDaily`. |
 
 **Précisions (v1.1) sur la whitelist « Protection contre les sites frauduleux » (M2) :**
 
@@ -79,6 +86,14 @@ Le consentement est revocable a tout moment via la page de parametres de l'exten
 - **Nature cryptographique** : hash FNV-1a 32 bits non réversible. FNV-1a est un hash d'indexation rapide, **non cryptographiquement sûr** contre une attaque par dictionnaire, mais acceptable ici car (a) les domaines visités ne sont jamais associés à un identifiant utilisateur, (b) l'espace des domaines populaires est fini et l'information révélée serait de toute façon déductible par un attaquant ayant accès au profil navigateur (voir R2 existant dans cette AIPD, R3 pour le modèle de menace profil).
 - **Lien avec « Alerte mots de passe réutilisés » (M7)** : la whitelist M2 est **non liée à M7 fonctionnellement** mais elle partage le stockage `chrome.storage.local` avec la clé AES et le sel d'installation M7. Un attaquant compromettant le stockage local accède donc aux deux périmètres. Ce point est tracé dans R3 (Accès via profil Chrome) et dans la politique §10.3.
 - **Référence registre Art. 30** : cette donnée est documentée dans **RT-M2** (`docs/rgpd/registre-des-traitements-v1.0.md` §3.1) et dans **RT-PARAM** (§3.8) pour la partie préférences. La présente AIPD la mentionne ici pour **traçabilité du périmètre `chrome.storage.local`** vu par l'attaquant (complétude du modèle de menace), pas parce qu'elle relèverait du traitement « Alerte mots de passe réutilisés » au sens fonctionnel.
+
+**Précisions (v1.3) sur le registre `m7_incidents` :**
+
+- **Qualification RGPD** : le registre `m7_incidents` n'est **pas un traitement de données personnelles autonome** (cf. analyse §2.4 de la note DPO T-074 résorbée dans cette v1.3). Les champs `id`, `ts`, `type`, `severity`, `context` sont des métadonnées techniques de diagnostic. Il est néanmoins documenté ici comme **mesure technique liée au traitement RT-M7** (registre Art. 30) et tracé dans la présente AIPD pour transparence et alignement avec le runbook réponse à incident (§6.6).
+- **Discipline de minimisation Art. 5.1.c (R-074-01, TACHE-158)** : le champ `context` est typé par une **union discriminée** `IncidentContext` (CM-ID2 du mini-DAT TACHE-061 v1.1) qui n'autorise que les champs `hint` (texte court enum), `boot_count` (entier), `reason` (enum), `code_path` (chemin de fichier sans valeur), `error_name` (nom de classe d'erreur). **Tout ajout d'un champ pseudonymisé (`domain_hash`, fragment de `password_hash`, `installation_salt`) ou tout champ susceptible d'être corrélé à une activité utilisateur observable doit faire l'objet d'une revue formelle DPO préalable**, avec mise à jour de la présente section. Une règle ESLint AST (TACHE-083 / TACHE-104) bloque la capture directe de `err.message` dans tout site logger ou `IncidentService.log()`.
+- **Discipline de limitation de la conservation Art. 5.1.e (R-074-02, TACHE-159)** : la borne FIFO 500 est complétée par une **purge par âge** : tout incident dont `ts < Date.now() - 365 jours` est purgé sans condition de severity, lors de la purge journalière `onPurgeDaily`. La méthode `IncidentService.purgeOldEntries(maxAgeDays = 365)` est appelée à chaque cycle. Le test TC-M7-30 vérifie le bon fonctionnement (insertion d'un incident antidaté → purge confirmée).
+- **Effacement utilisateur Art. 17** : le bouton « Supprimer toutes mes données » de la page Options exécute `indexedDB.deleteDatabase('sentinel-nudge-db')` qui inclut le store `m7_incidents` par construction. Bouton granulaire « Vider mon registre d'incidents » prévu en R-074-REC-02.
+- **Exclusion de l'export Art. 20** : voir §2.4 ci-dessous.
 
 ### 1.4 Responsable de traitement
 
@@ -144,7 +159,7 @@ Sentinel Nudge est un outil mis a disposition de l'utilisateur. L'editeur fourni
 | `err.message` | Peut contenir path, clé, valeur utilisateur | R-M7-08 mitigation / TACHE-083 |
 | `String(err)` | Idem `err.message` | TACHE-083 règle ESLint AST cible |
 | `hostname` brut | Serait un domaine visité (PII indirecte) | R-M7-08 / INV-SEC-02 |
-| `domain_hash` brut | Bien que pseudonymisé, reste de trop faible utilité en log | Minimisation Art. 5.1.c |
+| `domain_hash` brut | Bien que pseudonymisé, reste de trop faible utilité en log **et formellement interdit dans `m7_incidents.context` (R-074-01, TACHE-158)** | Minimisation Art. 5.1.c |
 | `password_hash` | Donnée sensible AIPD §1.3 | INV-SEC-01 |
 | `installation_salt` | Compromet l'utilité cryptographique si exposé | D-SEC-001 |
 | `URL complète` (`_sender.tab?.url`) | PII directe | **OBS-03 correctif appliqué** |
@@ -164,7 +179,7 @@ Sentinel Nudge est un outil mis a disposition de l'utilisateur. L'editeur fourni
 
 - **RT-M7** (registre des traitements v1.0 §3.5, correspondant à la fonctionnalité « Alerte mots de passe réutilisés ») — aucune mention de logs dans les « données traitées » car les logs ne sont **pas des données traitées au sens RGPD** (pas de finalité métier, éphémères dans la console navigateur, non persistés au-delà du cycle de vie du service worker). La présente §1.8 documente néanmoins le périmètre pour transparence et alignement avec R-M7-08.
 - **RT-PARAM** (§3.8) — aucune interaction.
-- **Registre d'incidents IndexedDB** (store `m7_incidents` introduit par TACHE-061) — **hors périmètre §1.8** car il s'agit d'un registre persistant et structuré, déjà documenté dans RT-M7 (mesure organisationnelle) et dans le mini-DAT TACHE-061 v1.1 §11.3 (soumis au DPO via TACHE-074, voir §6.5 ci-dessous).
+- **Registre d'incidents IndexedDB** (store `m7_incidents` introduit par TACHE-061) — désormais traité au §1.3 v1.3 (ligne dédiée) avec TTL 365 j et discipline de minimisation `IncidentContext` typée (R-074-01/02).
 
 ---
 
@@ -187,15 +202,31 @@ Le principe de minimisation (article 5.1.c du RGPD) est strictement respecte :
 - **Identifiant utilisateur** : aucun (pas d'UUID, pas de fingerprinting, pas de cookie — ENF-PBD-06).
 - **Chiffrement au repos** : le hash du mot de passe est chiffre AES-256-GCM dans IndexedDB (ENF-PBD-04).
 - **(v1.1) Logs minimisés** : la factory `logger.ts` interdit le logging de `err.message`, `hostname`, `domain_hash`, `password_hash` et toute URL complète (cf. §1.8). Le nom de classe d'erreur (`Logger.errorName`) est la seule information d'erreur loggée.
+- **(v1.3) Registre d'incidents minimisé** : le champ `context` du store `m7_incidents` est typé `IncidentContext` (union discriminée) et n'autorise que des métadonnées techniques agrégées. **Tout `domain_hash` brut, fragment de `password_hash`, `installation_salt` ou URL complète y est formellement interdit (R-074-01, TACHE-158)**.
 
 ### 2.3 Limitation de la conservation
 
-- **Duree maximale** : 90 jours glissants.
-- **Volume maximal** : 100 entrees (FIFO — First In, First Out).
+- **Duree maximale `password_hashes`** : 90 jours glissants.
+- **Volume maximal `password_hashes`** : 100 entrees (FIFO — First In, First Out).
 - **Purge automatique** : alarme hebdomadaire (lundi 09h) declenchee par le service worker. Suppression des enregistrements dont `first_seen < now - 90 jours`, puis suppression des plus anciens si le seuil de 100 est depasse.
 - **Purge manuelle** : bouton "Supprimer toutes mes donnees" dans la page Options qui execute `indexedDB.deleteDatabase('sentinel-nudge-db')` et `chrome.storage.local.clear()`.
+- **(v1.3) Registre d'incidents `m7_incidents`** : double borne **FIFO 500 entrées** (INV-03 du mini-DAT TACHE-061 v1.1) **+ TTL absolue 365 jours** (R-074-02, TACHE-159). La purge par âge est appelée par `IncidentService.purgeOldEntries(365)` lors de chaque cycle `onPurgeDaily`. La règle de priorité severity (INV-SEC-04) cible d'abord les incidents `info`, puis `warn`, puis `error`, mais ne dispense pas de la TTL absolue — un incident `error` antérieur à 365 jours est purgé sans condition. Test TC-M7-30 vérifie ce comportement.
 
-### 2.4 Information des personnes concernees
+### 2.4 Exclusion du registre d'incidents de l'export de portabilité Art. 20 (v1.3 — R-074-03 / TACHE-160)
+
+L'export de portabilité (Art. 20 RGPD) exclut désormais **deux catégories de données** par défaut :
+
+1. **Empreintes brutes de mots de passe (`password_hashes`)** — exclues depuis l'origine (AIPD v1.0 §2.4 historique). Justification : éviter qu'un attaquant exfiltrant le fichier d'export puisse mener une attaque par dictionnaire sur les hashes.
+
+2. **Registre d'incidents (`m7_incidents`)** — **exclu par défaut depuis v1.3**. Justification : le registre est un journal forensique de diagnostic technique destiné au mainteneur, **pas une donnée personnelle métier de l'utilisateur**. Sa qualification RGPD (cf. §1.3 v1.3) confirme qu'il ne relève pas de l'Art. 20 par défaut. La portabilité exporte les données utilisateur métier (préférences, scores hebdo, dates de quiz, événements de nudge agrégés), pas les journaux techniques.
+
+**Option utilisateur explicite** : pour respecter l'esprit de transparence radicale du projet et permettre un cas d'usage légitime (l'utilisateur souhaite partager son journal avec le mainteneur pour aider au diagnostic d'un bug), la page Options de l'export propose une case à cocher dédiée « Inclure mon journal de diagnostic », **désactivée par défaut**, accompagnée d'un avertissement (« contient des informations techniques sur le fonctionnement de votre extension »).
+
+**Implémentation** : modification de `export-handler.ts` pour exclure le store `m7_incidents` du périmètre par défaut, ajout d'un paramètre `include_m7_incidents: boolean = false` dans le payload de la requête `get_full_export`. Tracé en TACHE-160.
+
+**Cohérence politique de confidentialité** : ce point est désormais explicitement documenté dans la politique v1.2 §8.1 « Particularités de l'export de portabilité (Art. 20) ».
+
+### 2.5 Information des personnes concernees
 
 - **Onboarding** : explication en langage clair du fonctionnement de la fonctionnalité « Alerte mots de passe réutilisés » lors de l'etape 4 de l'onboarding.
 - **Page de politique de confidentialite** : accessible depuis l'onboarding et la page de parametres (ENF-PBD-08).
@@ -284,6 +315,7 @@ Le principe de minimisation (article 5.1.c du RGPD) est strictement respecte :
 - Purge automatique a 90 jours
 - Pas d'identifiant persistant
 - Export de portabilite excluant les hashes de mots de passe (seules les metadonnees agregees sont exportees)
+- **(v1.3) Export de portabilité excluant aussi le registre d'incidents `m7_incidents` par défaut** (R-074-03 / TACHE-160) — réduit encore la surface de profilage exposable
 
 ### R5 — Perte de controle des donnees (defaut de consentement ou d'effacement)
 
@@ -299,8 +331,8 @@ Le principe de minimisation (article 5.1.c du RGPD) est strictement respecte :
 
 - Consentement opt-in explicite a l'onboarding (etape 4)
 - Desactivation de la fonctionnalité « Alerte mots de passe réutilisés » a tout moment via les parametres
-- Bouton "Supprimer toutes mes donnees" (article 17 — droit a l'effacement)
-- Bouton "Exporter mes donnees" (article 20 — droit a la portabilite) avec exclusion des hashes bruts
+- Bouton "Supprimer toutes mes donnees" (article 17 — droit a l'effacement) — efface aussi `m7_incidents` par construction (`deleteDatabase`)
+- Bouton "Exporter mes donnees" (article 20 — droit a la portabilite) avec exclusion des hashes bruts et du registre `m7_incidents` par défaut
 - Code source ouvert (GPL v3) permettant l'audit
 
 ---
@@ -314,14 +346,20 @@ Le principe de minimisation (article 5.1.c du RGPD) est strictement respecte :
 | Sel local 128 bits unique par installation                           | D-SEC-001       | R1, R2           |
 | Chiffrement AES-256-GCM au repos des hashes                          | NC-DPO-01       | R1, R2, R3       |
 | Nullification mot de passe en clair < 5 ms                           | D-SEC-001       | R1               |
-| FIFO 100 entrees maximum                                             | SFD M7          | R1, R2, R4       |
-| Purge automatique 90 jours                                           | DAT section 8.3 | R1, R2, R4       |
+| FIFO 100 entrees maximum (`password_hashes`)                         | SFD M7          | R1, R2, R4       |
+| Purge automatique 90 jours (`password_hashes`)                       | DAT section 8.3 | R1, R2, R4       |
 | Index de pre-filtration `tag` (4 bytes) sans exposer le hash complet | DAT section 8.1 | R1               |
 | Aucun appel reseau sortant                                           | ENF-PBD-01      | R1, R2, R3, R4   |
 | CSP stricte (script-src 'self')                                      | D-SEC-003       | R3               |
 | Exclusion des hashes bruts de l'export de portabilite                | DAT section 8.3 | R1               |
 | **(v1.1) Factory `logger.ts` avec minimisation systématique** | TACHE-083 / R-M7-08 | **R-M7-08 (fuite console)** |
 | **(v1.1) `Logger.errorName` substitué à `err.message`** | TACHE-083 / AIPD §1.8 | **R-M7-08** |
+| **(v1.3) Registre `m7_incidents` borné FIFO 500 + TTL absolue 365 jours** | TACHE-159 / R-074-02 | R4, R5 (limitation conservation) |
+| **(v1.3) Discipline de minimisation `IncidentContext` typée — interdiction `domain_hash` brut** | TACHE-158 / R-074-01 | R-M7-08, R2 |
+| **(v1.3) Exclusion `m7_incidents` de l'export Art. 20 par défaut** | TACHE-160 / R-074-03 | R4 |
+| **(v1.3) Analyse statique SAST automatisée CodeQL — OWASP Top 10 + CWE Top 25** | T-187 / TACHE-108 livrée | R1, R3, R-M7-08 (détection précoce vulnérabilités code) |
+
+**Note v1.3 sur CodeQL (T-187 / TACHE-108)** : depuis la livraison de TACHE-108 (workflow `.github/workflows/codeql.yml`), le code source de l'extension est scanné en continu par GitHub CodeQL avec le ruleset combiné **OWASP Top 10 (web)** et **CWE Top 25**. Exécution à chaque push sur `main`/`develop`, à chaque PR, et selon une cadence hebdomadaire. **État au 19/04/2026 : 0 finding** sur l'ensemble du code de l'extension, en particulier sur le périmètre M7 (`src/background/handlers/m7-handler.ts`, `src/background/services/m7-*.ts`, `src/shared/utils/logger.ts`). Cette mesure est complémentaire des contrôles ISO 27001 A.8.28 (Secure coding) et A.8.8 (Vulnerability management) déjà documentés au référentiel sécurité.
 
 ### 4.2 Mesures organisationnelles
 
@@ -334,6 +372,8 @@ Le principe de minimisation (article 5.1.c du RGPD) est strictement respecte :
 | Revue de code obligatoire (comite de revue code)          | Gouvernance    | R1, R3             |
 | **(v1.1) Revue trimestrielle inventaire logs par DPO — périmètre « Alerte mots de passe réutilisés »** | AIPD §1.8 R-REC-AIPD-04 | **R-M7-08** |
 | **(v1.1) Règle ESLint AST anti `err.message` (partielle, TACHE-083/104)** | TACHE-083/104 | **R-M7-08** |
+| **(v1.3) Procédure d'escalade DPO en 6 étapes (E1-E6)** | AIPD §6.6 / runbook §3.2 | R5, gestion crise |
+| **(v1.3) Saisine DPO automatique « tout incident M7 = P0 »** | runbook §3.2 / AIPD §6.6 | R5, gestion crise |
 
 ### 4.3 Mesures juridiques
 
@@ -362,13 +402,15 @@ Le principe de minimisation (article 5.1.c du RGPD) est strictement respecte :
 
 | Risque                                 | Vraisemblance residuelle | Gravite residuelle | Niveau residuel | Acceptabilite                                                                                                          |
 | -------------------------------------- | ------------------------ | ------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| R1 — Reidentification par dictionnaire | Limitee                  | Importante         | Modere          | **Acceptable** — sel 128 bits + chiffrement AES-256-GCM + FIFO 100 rendent l'attaque couteuse et limitee dans le temps |
-| R2 — Correlation des domaines          | Limitee                  | Limitee            | Faible          | **Acceptable** — sel 128 bits + purge 90 jours + domaines sans URL completes                                           |
+| R1 — Reidentification par dictionnaire | Limitee                  | Importante         | Modere          | **Acceptable** — sel 128 bits + chiffrement AES-256-GCM + FIFO 100 + CodeQL SAST 0 finding rendent l'attaque couteuse et limitee dans le temps |
+| R2 — Correlation des domaines          | Limitee                  | Limitee            | Faible          | **Acceptable** — sel 128 bits + purge 90 jours + domaines sans URL completes + interdiction `domain_hash` dans `m7_incidents.context` |
 | R3 — Acces via profil Chrome           | Limitee                  | Importante         | Modere          | **Acceptable** — risque inherent au modele de securite Chrome, hors perimetre de l'extension. Documente.               |
-| R4 — Profilage habitudes               | Negligeable              | Limitee            | Faible          | **Acceptable** — donnees locales, chiffrees, non transmises, purgees automatiquement                                   |
-| R5 — Perte de controle                 | Negligeable              | Importante         | Faible          | **Acceptable** — consentement opt-in, effacement 1 clic, code ouvert, tests automatises                                |
+| R4 — Profilage habitudes               | Negligeable              | Limitee            | Faible          | **Acceptable** — donnees locales, chiffrees, non transmises, purgees automatiquement, exclusion `m7_incidents` de l'export |
+| R5 — Perte de controle                 | Negligeable              | Importante         | Faible          | **Acceptable** — consentement opt-in, effacement 1 clic, code ouvert, tests automatises, **procédure escalade DPO E1-E6** |
 
 **Note v1.1 :** le risque R-M7-08 (fuite informationnelle via console), identifié lors du comité de revue code TACHE-061, n'est **pas un risque AIPD au sens strict** (il n'affecte pas directement les droits des personnes concernées dans un scénario de fonctionnement nominal, car les logs ne sortent pas du navigateur). Il est néanmoins **tracé comme risque sécurité** dans RISQUES.md et **mitigé au niveau code** via TACHE-083 (factory `logger.ts`) et documenté dans §1.8 de la présente AIPD. Aucune ligne supplémentaire dans la matrice §5.1 car son niveau résiduel post-mitigation est **négligeable/négligeable** (hors canevas).
+
+**Note v1.3 :** la mitigation R-M7-08 est désormais étendue au registre `m7_incidents` via la discipline `IncidentContext` typée (R-074-01 / TACHE-158). La règle ESLint AST anti `err.message` (TACHE-104) couvre désormais le scope service-worker ; le scope content scripts (TACHE-105) reste en R-REC-AIPD-02.
 
 ---
 
@@ -384,16 +426,21 @@ Le niveau de risque residuel global est **faible a modere**, ce qui est acceptab
 
 **Avis v1.2 :** l'alignement terminologique user-friendly (suppression de « micro-nudges », titres de section reformulés pour l'usager) **ne modifie en aucune manière** l'avis formel. L'AIPD reste un document technique destiné aux autorités et au DPO, mais sa cohérence avec la politique de confidentialité publique v1.1 est désormais explicite. Les codes module internes (M2, M7, etc.) sont préservés dans le détail technique pour traçabilité DAT/SFD/code source.
 
+**Avis v1.3 :** l'intégration des notes T-074 et T-115 (résorbées dans la présente version conformément à la règle Commanditaire 19/04 anti-démultiplication des documents), assortie de la traçabilité des implémentations TACHE-158 (R-074-01), TACHE-159 (R-074-02) et TACHE-160 (R-074-03), **lève les trois réserves bloquantes** émises en pré-validation et **fait passer l'avis de FAVORABLE SOUS RÉSERVES à FAVORABLE SANS RÉSERVE** sur le périmètre du registre d'incidents `m7_incidents`. La procédure d'escalade DPO E1-E6 (intégrée en §6.6) est désormais **opposable** et complète l'arsenal organisationnel en cas de violation de données affectant la fonctionnalité « Alerte mots de passe réutilisés ». La mention CodeQL SAST (T-187 / TACHE-108 livrée, 0 finding au 19/04/2026) renforce la mesure technique A.8.28 (Secure coding) du référentiel ISO 27001.
+
 ### 6.2 Conditions
 
 Le traitement est autorise sous les conditions suivantes :
 
 1. **Consentement opt-in obligatoire** : la fonctionnalité « Alerte mots de passe réutilisés » ne doit jamais s'activer sans le consentement explicite de l'utilisateur a l'etape 4 de l'onboarding. Ce point doit etre verifie par un test automatise.
 2. **Nullification du mot de passe en clair** : la variable contenant le mot de passe doit etre nullifiee en moins de 5 ms apres le calcul du hash. Ce point doit etre verifie par un test automatise.
-3. **Purge effective** : le mecanisme FIFO 100 + purge 90 jours doit etre teste en integration pour garantir qu'aucun hash ne persiste au-dela de la duree prevue.
+3. **Purge effective `password_hashes`** : le mecanisme FIFO 100 + purge 90 jours doit etre teste en integration pour garantir qu'aucun hash ne persiste au-dela de la duree prevue.
 4. **Exclusion des hashes de l'export** : l'export de portabilite ne doit contenir que les metadonnees agregees (nombre, dates), jamais les hashes bruts.
 5. **(v1.1)** **Minimisation des logs console** : aucun `console.*` direct ne doit être réintroduit dans `src/background/service-worker.ts` ou `src/background/handlers/m7-handler.ts`. Tout logging doit passer par la factory `logger.ts` et n'inclure que les champs listés au §1.8. Ce point doit être vérifié par un test statique (ESLint AST + snapshot, cf. R-REC-AIPD-01/03).
 6. **(v1.1)** **Interdiction de logger `_sender.tab?.url`** : seul `_sender.tab?.id` est autorisé dans les logs d'accueil de message. Anti-régression OBS-03.
+7. **(v1.3)** **Interdiction `domain_hash` brut dans `m7_incidents.context` (R-074-01)** : le typage `IncidentContext` (union discriminée, CM-ID2 mini-DAT TACHE-061) doit demeurer la signature obligatoire de `IncidentService.log()`. Tout ajout d'un nouveau type d'incident impliquant un champ pseudonymisé ou corrélable doit faire l'objet d'une **revue formelle DPO préalable** avec mise à jour de la présente AIPD §1.3 et §1.8. Règle permanente inscrite à `LESSONS_LEARNED.md`.
+8. **(v1.3)** **TTL 365 jours absolue sur `m7_incidents` (R-074-02)** : la méthode `IncidentService.purgeOldEntries(maxAgeDays = 365)` doit être appelée à chaque cycle `onPurgeDaily`, sans dérogation pour la severity. Test TC-M7-30 doit rester vert en CI.
+9. **(v1.3)** **Exclusion `m7_incidents` de l'export Art. 20 par défaut (R-074-03)** : `export-handler.ts` doit exclure `m7_incidents` du périmètre par défaut. L'option utilisateur explicite « Inclure mon journal de diagnostic » doit demeurer désactivée par défaut, accompagnée d'un avertissement clair.
 
 ### 6.3 Recommandations complementaires
 
@@ -403,6 +450,9 @@ Le traitement est autorise sous les conditions suivantes :
 4. **Test d'intrusion** : inclure un test specifique de resistance du hash sale aux attaques par dictionnaire dans le plan de tests de securite.
 5. **(v1.1)** **Finaliser la règle ESLint AST (TACHE-104)** — sélecteur sur `VariableDeclarator > MemberExpression[property.name='message']` pour bloquer les 12 sites handlers résiduels. Impact : extension de la mitigation R-M7-08 aux fonctionnalités « Protection contre les sites frauduleux » (M2), « Score de cyber-hygiène » (M3), « Rappel de mise à jour du navigateur » (M5), « Exercices de sensibilisation au phishing » (M6), « Alerte copie de données sensibles » (M17) (complétude périmètre SW).
 6. **(v1.1)** **Étendre l'inventaire aux content scripts (TACHE-105)** — ~26 sites `console.*` recensés ; priorité inférieure mais à planifier avant la publication Chrome Web Store.
+7. **(v1.3)** **Bouton « Vider mon registre d'incidents » (R-074-REC-02)** — exposer une action granulaire dans la page Options pour l'effacement Art. 17 du seul `m7_incidents` sans toucher aux préférences ni aux scores.
+8. **(v1.3)** **Bouton « Voir mon registre d'incidents » (R-074-REC-03)** — page de visualisation lecture seule du registre dans la page Options (transparence radicale).
+9. **(v1.3)** **Tabletop annuel — scénario `m7_incidents` corrompu (R-074-REC-05)** — ajouter au tabletop d'octobre 2026 (P1 supply chain prévu) un volet : « comment exploiter / interpréter le registre `m7_incidents` lors d'un incident M7 réel ? ».
 
 ### 6.4 Mise a jour de la presente AIPD
 
@@ -417,28 +467,81 @@ Cette AIPD doit etre revisee dans les cas suivants :
 - **(v1.1)** Ajout d'un nouveau site logger dans `service-worker.ts` ou `m7-handler.ts` avec un champ non listé au §1.8 (nouvelle MAJ requise de l'inventaire)
 - **(v1.1)** Réintroduction d'un `console.*` direct (régression TACHE-083) — MAJ obligatoire
 - **(v1.1)** Modification du mécanisme de stockage de la whitelist « Protection contre les sites frauduleux » (sortie de `chrome.storage.local` ou d'IndexedDB) — MAJ du §1.3
+- **(v1.3)** Ajout d'un nouveau type d'incident dans `M7IncidentType` impliquant un champ pseudonymisé ou corrélable — revue DPO préalable obligatoire
+- **(v1.3)** Modification de la TTL `m7_incidents` (durée différente de 365 jours ou borne FIFO différente de 500) — MAJ §1.3 / §2.3
+- **(v1.3)** Ajout du registre `m7_incidents` au périmètre par défaut de l'export Art. 20 — révision majeure §2.4
+- **(v1.3)** Détection d'un finding CodeQL critique non corrigé sous 30 jours — révision §4.1 et passage devant le comité sécurité
 
-### 6.5 Cohérence avec TACHE-074 et mini-DAT TACHE-061 (v1.1)
+### 6.5 Validation TACHE-074 — avis FAVORABLE post-levée des 3 réserves R-074-01/02/03 (v1.3)
 
-**Contexte :** TACHE-074 demande la transmission du mini-DAT TACHE-061 v1.1 (§11.3 — registre d'incidents IndexedDB circulaire) au DPO pour validation de compatibilité avec la présente AIPD. Bien que TACHE-074 soit une tâche distincte de TACHE-040 et TACHE-084, elle partage le périmètre « instrumentation de la fonctionnalité Alerte mots de passe réutilisés » introduit par TACHE-061.
+**Contexte historique :** TACHE-074 (note DPO du 19/04/2026, désormais résorbée dans cette v1.3) demandait la transmission du mini-DAT TACHE-061 v1.1 (§11.3 — registre d'incidents IndexedDB circulaire) au DPO pour validation de compatibilité avec l'AIPD M7 v1.2. Le DPO avait émis un avis **FAVORABLE SOUS RÉSERVES**, conditionné à la levée de trois réserves bloquantes :
 
-**Avis du DPO sur le registre d'incidents (pré-validation TACHE-074) :** le mini-DAT TACHE-061 décrit un registre d'incidents local (store IDB `m7_incidents`, circulaire, minimisé) dont la structure est **compatible avec la présente AIPD v1.1/v1.2** sous réserve que :
+1. **R-074-01** : engagement formel d'absence de `domain_hash` brut dans `context` (JSDoc + LESSONS_LEARNED).
+2. **R-074-02** : TTL absolue par âge complémentaire (365 jours) en sus de la borne FIFO 500.
+3. **R-074-03** : exclusion explicite du registre de l'export de portabilité Art. 20 par défaut (option utilisateur sur demande).
 
-1. Les types d'incidents stockés (`boot_fail`, `key_regenerated`, `canary_reinit`, etc.) ne contiennent **pas** les champs interdits listés au §1.8 (`err.message`, `hostname` brut, `domain_hash` brut, `password_hash`, `installation_salt`, URL complète, contenu input utilisateur).
-2. Le champ `context` de chaque incident respecte la même discipline de minimisation que les logs console (enum, compteurs, `error_name`, `hint` textuel court).
-3. Le registre est **purgé** (circulaire, TTL maximum documenté) et **exclus de l'export de portabilité Art. 20** par défaut — sauf option explicite utilisateur pour diagnostic.
-4. La page Options expose un bouton « Voir mon registre d'incidents » (transparence) et « Vider mon registre d'incidents » (effacement local).
+**Validation v1.3 — avis FAVORABLE SANS RÉSERVE** : les trois réserves sont désormais levées par les implémentations suivantes :
 
-**Validation formelle TACHE-074** : sera documentée dans une note additive à cette AIPD dès réception du mini-DAT TACHE-061 v1.1 par le DPO (hors scope de cette v1.1/v1.2, cf. TACHE-074 « À faire »). La présente section 6.5 constitue une **pré-validation conceptuelle** sur la base des extraits mini-DAT consultés.
+| Réserve | Implémentation | Tâche associée | Trace AIPD v1.3 |
+|---|---|---|---|
+| R-074-01 — interdiction `domain_hash` brut | Typage `IncidentContext` union discriminée + JSDoc `IncidentService.log()` + règle permanente LESSONS_LEARNED | **TACHE-158** | §1.3 (note v1.3), §2.2, §6.2 condition 7 |
+| R-074-02 — TTL absolue 365 j | `IncidentService.purgeOldEntries(365)` appelée par `onPurgeDaily` + test TC-M7-30 | **TACHE-159** | §1.3 (ligne `m7_incidents`), §2.3, §6.2 condition 8 |
+| R-074-03 — exclusion export Art. 20 | `export-handler.ts` exclut `m7_incidents` par défaut + option `include_m7_incidents` désactivée par défaut | **TACHE-160** | §2.4 nouvelle, §6.2 condition 9 |
+
+**Recommandations R-074-REC-01 à 05** : intégrées en §6.3 ci-dessus (recommandations 7, 8, 9) ou en §4.2 (R-074-REC-04 bump AIPD v1.3 = présente version livrée).
+
+**Conséquence pour le périmètre M7** : la mise en production de la fonctionnalité « Alerte mots de passe réutilisés » peut être autorisée sans réserve résiduelle DPO sur le périmètre `m7_incidents`. Les conditions §6.2 (notamment 7, 8, 9 nouvelles) doivent être maintenues en CI sous peine de régression de l'avis.
+
+### 6.6 Articulation avec le runbook réponse à incident — Procédure d'escalade DPO en 6 étapes E1-E6 (v1.3)
+
+**Contexte (intégration note T-115 résorbée) :** le runbook réponse à incident v1.0 (`docs/securite/runbook-reponse-incident.md`) impose deux dispositions structurantes pour les incidents touchant la fonctionnalité « Alerte mots de passe réutilisés » :
+
+- **Step 2 — Saisine DPO systématique** : règle de montée automatique « tout incident M7 = P0 » (runbook §3.2). Tout incident affectant le périmètre M7 (corruption canary, dérive heartbeat, exception handler, modification non planifiée des stores `password_hashes` / `m7_canary` / `m7_incidents`) déclenche une saisine DPO sans délai.
+- **Step 7 — Validation DPO obligatoire avant notification utilisateurs** : le Template 6.5 du runbook (notification in-app aux utilisateurs) ne peut pas être publié sans visa DPO daté dans le journal d'incident.
+
+**Cohérence RGPD acquise** : le DPO a confirmé en T-115 (note résorbée dans cette v1.3) que ces deux dispositions sont **pleinement cohérentes** avec le cadre RGPD du projet. Aucune disposition de l'AIPD M7 v1.2 ne contredit ces étapes ; elles renforcent au contraire la posture de l'AIPD §6.1 (avis formel de conformité conditionné à la maîtrise du risque R3 « accès via profil Chrome ») : un incident M7 réel relève précisément du scénario R3 et mérite la sévérité maximale par défaut.
+
+**Procédure formelle d'escalade DPO en 6 étapes (E1-E6)** — intégrée à la présente AIPD v1.3 :
+
+| Étape | Déclencheur | Action obligatoire | Délai | Responsable |
+|---|---|---|---|---|
+| **E1 — Notification automatique DPO** | Incident classé P0 par règle automatique « tout incident M7 = P0 » (runbook §3.2) | Invocation immédiate du DPO Fabrique par l'Incident Manager via Claude Code, écrite et tracée dans le journal d'incident | **Dans les 24 h ouvrées** suivant Step 2 | Incident Manager |
+| **E2 — Avis DPO sur qualification RGPD** | Réception de la notification E1 | Le DPO produit un avis écrit dans le journal d'incident : (a) qualification de violation au sens Art. 4(12) RGPD (oui/non/à investiguer), (b) recommandation Art. 33 (notification CNIL oui/non + délai), (c) recommandation Art. 34 (notification personnes concernées oui/non + canal) | **Dans les 48 h ouvrées** suivant E1 | DPO |
+| **E3 — Décision Art. 33 (CNIL)** | Avis E2 reçu | Le responsable de traitement (utilisateur final pour le traitement local ; éditeur pour les vulnérabilités introduites par le code) prend la décision sur avis DPO. La notification CNIL, si due, doit être faite dans les **72 h** à compter de la prise de connaissance | Sous 72 h Art. 33 | Responsable de traitement |
+| **E4 — Décision Art. 34 (personnes)** | Avis E2 reçu, décision E3 prise | Validation DPO **obligatoire** du Template 6.5 du runbook (notification utilisateurs) avant toute publication. Aucune notification ne peut être diffusée (in-app, README, blog) sans visa DPO daté dans le journal d'incident | Avant Step 9 (release publiée) | DPO |
+| **E5 — Documentation au registre violations** | Step 9 complétée | Inscription de l'incident au §8 du registre Art. 30 (table « Registre des violations ») avec ID VIOL-XXX, date, nature, données impactées, mesures, statuts notifications | Sous 7 jours après Step 9 | DPO |
+| **E6 — Capitalisation post-mortem** | Step 10 du runbook | Le DPO co-relit le post-mortem `gouvernance-pv-postmortem-sec-YYYYMMDD-vX.X.md` (section 4 « Impact », section 8 « Capitalisation ») et propose les enrichissements RGPD (mise à jour AIPD M7, registre Art. 30, politique confidentialité) | Sous 14-30 j après Step 9 | DPO + Incident Manager |
+
+**Tracabilité dans le journal d'incident** : chaque étape E1 à E6 produit **une entrée datée et signée DPO** dans le journal d'incident (`docs/securite/incidents/YYYYMMDD-advisory-GHSA-XXXX.md`). Format type :
+
+```markdown
+### [DPO] YYYY-MM-DD HH:MM — E2 Avis qualification RGPD
+- Qualification violation Art. 4(12) : OUI / NON / À INVESTIGUER
+- Recommandation Art. 33 : <oui/non> — délai restant : XXh
+- Recommandation Art. 34 : <oui/non> — canal proposé : <Template 6.5 / autre>
+- Justification : <2-3 lignes factuelles>
+- Visa DPO : DPO Fabrique
+```
+
+**Condition d'auto-saisine** : en l'absence de signalement explicite par l'Incident Manager (cas pathologique : oubli, sous-estimation), le DPO **s'auto-saisit** dès qu'il prend connaissance d'un évènement répondant à l'un des critères suivants :
+
+- Incident classé P0 ou P1 dans le journal d'incident projet.
+- Modification non planifiée du store `password_hashes`, `m7_canary` ou `m7_incidents`.
+- Mention publique (README, advisory, communauté) d'un comportement anormal du module M7.
+
+L'auto-saisine est tracée par une entrée E1 dans le journal d'incident avec mention explicite « Saisine DPO à l'initiative du DPO (auto-saisine) ».
+
+**Articulation Art. 33 / Art. 34** : le registre Art. 30 §8 (« Registre des violations ») mentionne explicitement Art. 33 (notification CNIL < 72h) et Art. 34 (notification personnes concernées si risque élevé). La validation DPO de E4 conditionne la communication aux utilisateurs ; la décision E3 (notification CNIL) reste de la responsabilité du responsable de traitement (qualification triple : utilisateur final pour le traitement local, éditeur pour les vulnérabilités code) sur avis DPO E2. Cette articulation est à maintenir dans tout bump runbook v1.x ou registre Art. 30 v1.x.
 
 ---
 
-## 7. Diagramme de flux de données personnelles (intégration v1.1)
+## 7. Diagramme de flux de données personnelles (intégration v1.1 / mise à jour v1.3)
 
-Le diagramme de flux de données personnelles reste celui de l'AIPD v1.0 (voir section dédiée dans le DAT v1.3 §8.1). **La mise à jour v1.1 n'introduit pas de nouveau flux** — elle documente explicitement :
+Le diagramme de flux de données personnelles reste celui de l'AIPD v1.0 (voir section dédiée dans le DAT v1.4 §8.1). **La mise à jour v1.3 n'introduit pas de nouveau flux** — elle documente explicitement :
 
 - Le flux whitelist « Protection contre les sites frauduleux » déjà existant (chrome.storage.local ↔ IndexedDB ↔ content script) comme partageant le périmètre `chrome.storage.local` avec la fonctionnalité « Alerte mots de passe réutilisés » (clé AES, sel) — §1.3 v1.1
 - Les flux de logs Service Worker et « Alerte mots de passe réutilisés » vers la console navigateur (non persistés, non transmis réseau) — §1.8
+- Le flux du registre d'incidents `m7_incidents` (write-only depuis service-worker / m7-handler / m7-services vers IDB store, read-only depuis page Options pour transparence — §1.3 v1.3, exclu de l'export Art. 20 par défaut — §2.4 v1.3)
 
 Aucun flux réseau, aucun flux vers un tiers, aucun flux hors UE.
 
@@ -446,30 +549,34 @@ Aucun flux réseau, aucun flux vers un tiers, aucun flux hors UE.
 
 **Risque R-007 (RISQUES.md) :** Cette AIPD repond a l'exigence documentee dans R-007 (score 8, statut Ouvert). Le statut peut etre passe a "Resolu" apres validation par le referent qualite et le Commanditaire.
 
-**Risque R-M7-08 (RISQUES.md) :** La section §1.8 de la v1.1 documente l'inventaire exhaustif des logs console du périmètre « Alerte mots de passe réutilisés » demandé par le comité de revue code TACHE-061 §11. La mitigation technique (TACHE-083, factory `logger.ts`) est **effective** pour les 13 sites identifiés dans `service-worker.ts` et `m7-handler.ts`. Le scope résiduel (TACHE-104 règle ESLint + TACHE-105 content scripts) est **hors périmètre « Alerte mots de passe réutilisés »** mais tracé dans les recommandations complémentaires.
+**Risque R-M7-08 (RISQUES.md) :** La section §1.8 de la v1.1 documente l'inventaire exhaustif des logs console du périmètre « Alerte mots de passe réutilisés » demandé par le comité de revue code TACHE-061 §11. La mitigation technique (TACHE-083, factory `logger.ts`) est **effective** pour les 13 sites identifiés dans `service-worker.ts` et `m7-handler.ts`. La v1.3 étend la mitigation au registre `m7_incidents` via la discipline `IncidentContext` typée (R-074-01 / TACHE-158). Le scope résiduel (TACHE-105 content scripts) est **hors périmètre « Alerte mots de passe réutilisés »** mais tracé dans les recommandations complémentaires.
 
 ---
 
-## Annexe A — Table de correspondance code module / titre user-friendly (v1.2)
+## Annexe A — Table de correspondance code module / titre user-friendly (v1.2 / mise à jour v1.3)
 
-Pour traçabilité entre la présente AIPD (document interne, destiné aux autorités et au DPO) et la politique de confidentialité v1.1 (document public, destiné aux utilisateurs) :
+Pour traçabilité entre la présente AIPD (document interne, destiné aux autorités et au DPO) et la politique de confidentialité v1.2 (document public, destiné aux utilisateurs) :
 
-| Code module (interne, DAT/SFD/code) | Titre user-friendly (politique v1.1 + titres de sections AIPD v1.2) |
+| Code module (interne, DAT/SFD/code) | Titre user-friendly (politique v1.2 + titres de sections AIPD v1.3) |
 |---|---|
 | M2 (Typosquatting + HSTS) | Protection contre les sites frauduleux |
 | M3 (Score hebdomadaire) | Score de cyber-hygiène |
 | M5 (Mise à jour navigateur) | Rappel de mise à jour du navigateur |
 | M6 (Quiz phishing) | Exercices de sensibilisation au phishing |
 | **M7 (Réutilisation mots de passe)** | **Alerte mots de passe réutilisés** (objet de la présente AIPD) |
-| M9 (Certificats invalides / MITM) | Alerte connexion non sécurisée |
+| **M9 (Évaluation force mot de passe — zxcvbn-ts)** | **Détection de mots de passe faibles** (correction v1.3 — précédemment libellé « Alerte connexion non sécurisée » par confusion avec un module hypothétique de détection MITM, désormais aligné sur la définition canonique du code source `src/shared/types/modules.ts` et de la politique v1.2 §3) |
 | M17 (Presse-papiers sensible) | Alerte copie de données sensibles |
 
-Les titres de section de la présente AIPD v1.2 utilisent la formulation user-friendly avec le code module en parenthèse (ex. `### 1.3 Données traitées — Alerte mots de passe réutilisés (M7)`), conformément au feedback Commanditaire du 2026-04-19.
+**Note v1.3 — Correction Annexe A** : la correspondance « M9 = Alerte connexion non sécurisée » mentionnée dans l'AIPD v1.2 était **erronée** — il s'agissait d'un libellé hypothétique de module de détection MITM/certificats invalides, qui ne correspond pas à la définition canonique de M9 dans le code source (`ModuleId = 'M2' | 'M3' | 'M5' | 'M6' | 'M7' | 'M9' | 'M17'`, où M9 = évaluation force mot de passe via zxcvbn-ts). La correction v1.3 aligne l'annexe A sur le code et sur la politique v1.2 §3 (qui liste 7 fonctionnalités sans module hypothétique MITM). Le registre des traitements v1.0 (RT-M9 « Détection certificat invalide / MITM ») contient la même erreur historique, à corriger lors du bump v1.1 du registre (T-155).
+
+Les titres de section de la présente AIPD v1.3 utilisent la formulation user-friendly avec le code module en parenthèse (ex. `### 1.3 Données traitées — Alerte mots de passe réutilisés (M7)`), conformément au feedback Commanditaire du 2026-04-19.
 
 ---
 
-_AIPD produite par le DPO — Fabrique — v1.0 2026-04-11, v1.1 2026-04-18, v1.2 2026-04-19_
+_AIPD produite par le DPO — Fabrique — v1.0 2026-04-11, v1.1 2026-04-18, v1.2 2026-04-19, v1.3 2026-04-19_
 _Conforme a l'article 35 du RGPD et aux lignes directrices du CEPD (WP248 rev.01)_
 _Conforme au guide AIPD de la CNIL (PIA, version 2018)_
-_Alignée avec le registre des traitements Art. 30 v1.0 (docs/rgpd/registre-des-traitements-v1.0.md)_
-_Alignée avec la politique de confidentialité v1.1 (docs/rgpd/politique-de-confidentialite-v1.1.md)_
+_Alignée avec le registre des traitements Art. 30 v1.0 (docs/rgpd/registre-des-traitements-v1.0.md) — bump v1.1 attendu (T-155) pour aligner durées weekly_scores/quiz_sessions et corriger RT-M9_
+_Alignée avec la politique de confidentialité v1.2 (docs/rgpd/politique-de-confidentialite-v1.2.md)_
+_Alignée avec le runbook réponse à incident v1.0 (docs/securite/runbook-reponse-incident.md) §3.2 et §6.5 via §6.6 de la présente AIPD_
+_Notes additives DPO T-074 et T-115 résorbées dans cette v1.3 — règle Commanditaire 19/04 anti-démultiplication des documents_
