@@ -51,6 +51,9 @@
   --sn-color-accent-hover: #245a87;
   --sn-color-accent-muted: #4da8da; /* Alias v1 */
   --sn-color-accent-light: #dbeeff;
+  /* Token semantique pour TEXTE accent sur fond (vs --sn-color-accent qui sert de fond bouton).
+     En clair, alias de accent (5.2:1 OK). En dark, decouple pour rester AA-safe sur bg sombre. */
+  --sn-color-accent-text: var(--sn-color-accent);
   /* Boutons primaires — texte adapte au fond (TACHE-150 WCAG AA) */
   --sn-color-btn-fg: #fff; /* Blanc sur fond colore (clair/sombre) */
 
@@ -153,6 +156,9 @@
     --sn-color-accent: #2563eb;
     --sn-color-accent-hover: #1d4ed8;
     --sn-color-btn-fg: #fff;
+    /* Texte accent sur fond dark : decouple de --sn-color-accent (qui sert de fond bouton)
+       pour rester AA-safe sur surfaces sombres (#1a1a1f, #0f1625) — fix axe-core options/onboarding dark */
+    --sn-color-accent-text: #60a5fa;
 
     --sn-color-success: #22c55e;
     --sn-color-success-bg: rgba(34, 197, 94, 0.12);
@@ -294,9 +300,9 @@
   --sn-color-accent-hover: #ff5599;
   --sn-color-accent-muted: #b048ff; /* Violet néon */
   --sn-color-accent-light: rgba(255, 45, 120, 0.12);
-  /* TODO T-157 arbitrage Commanditaire : blanc préféré mais 3.62:1 < AA normal text.
-     Pour l'instant noir AA safe (5.6:1) — à rediscuter. */
-  --sn-color-btn-fg: #0a0a14;
+  /* T-157 Option C Commanditaire : btn-primary matrix est outline cyan (color: primary, bg: transparent).
+     --sn-color-btn-fg conservé pour d'autres usages (skip-link, boutons hors btn-primary). */
+  --sn-color-btn-fg: #0a0a14; /* Noir sur fond coloré — 5.6:1 sur magenta — AA ✓ */
 
   --sn-color-success: #00ff87; /* Vert néon */
   --sn-color-success-bg: rgba(0, 255, 135, 0.1);
