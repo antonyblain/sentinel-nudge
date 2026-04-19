@@ -48,7 +48,7 @@ jobs:
       # Le langage "javascript-typescript" regroupe JS et TS en une seule analyse.
       # Le ruleset "security-and-quality" couvre OWASP Top 10 + CWE Top 25 + qualité.
       - name: Initialisation CodeQL
-        uses: github/codeql-action/init@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a  # v3.35.2
+        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           languages: javascript-typescript
           queries: security-and-quality
@@ -57,12 +57,12 @@ jobs:
       # autobuild produit de meilleurs résultats que l'analyse des sources brutes.
       # CodeQL détectera les patterns après transformation du compilateur.
       - name: Build automatique CodeQL (autobuild)
-        uses: github/codeql-action/autobuild@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a  # v3.35.2
+        uses: github/codeql-action/autobuild@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
 
       # Exécute l'analyse et publie les résultats SARIF dans l'onglet Security.
       # En mode observe-only : non bloquant sur les branch protections (T-187).
       # Triage des findings à planifier en tâche dédiée (ISO 27001 A.8.29).
       - name: Analyse CodeQL
-        uses: github/codeql-action/analyze@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a  # v3.35.2
+        uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           category: /language:javascript-typescript
