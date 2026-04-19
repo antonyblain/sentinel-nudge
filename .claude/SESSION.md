@@ -2,6 +2,41 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (session 2026-04-19 après-midi — finalisation Must revue Fabrique).** 🎯 Reprise post-clôture cycle 4 du matin avec attaque massive des Must restants (T-161/162/165+169/166/167/170/180/188/155 + Should T-RQ-007 partielle). **11 PR mergées sur l'après-midi** + 6 PR cycle convergence finale.
+
+**Tâches livrées après-midi 19/04** :
+- **T-161** DAT v1.4 → v1.5 (6 corrections : SFD ref, Annexe B WAR, CRITICAL_MODULES, ADR-002 M7 expires_at, badge dégradé, CodeQL) — PR #108 mergée après rebase
+- **T-162** Checklist a11y v1.0 → v1.1 + scope étendu UI internes (fusion T-168) — PR #109
+- **T-165 + T-169** Politique RGPD v1.2 + AIPD M7 v1.3 (intégration notes T-074/T-115 anti-démultiplication) — PR #110
+- **T-166** Référentiel ISO 27001 v1.1 → v1.2 (8→12 contrôles, score audit 42→~83/100 Niveau A) — PR #111 (rebase conflit résolu)
+- **T-170** Mini-DAT P5 → docs/p5-decisions/ (5 git mv + 3 sed refs) — PR #112
+- **T-180** Dispositif archivage NVDA + axe-core RGAA 4.1 P7 — PR #113
+- **T-188** Migration logger CS + pages UI (29 occurrences `console.*` migrées + ESLint rule étendue) — PR #114
+- **T-155** Registre traitements v1.1 enrichi (6 désalignements résorbés, R-074-REC-01 traitée) — PR #115 (retry après LL-031 confusion git)
+- **T-RQ-007 partielle** Normaliser noms `docs/securite/*` + matrice providers (résorbe A-05) — PR #116
+- **2 conflits PR rebase** : #91 T-028 + #108 T-161 (sed referentiel obsolete)
+
+**Triptyque RGPD aligné 4/4** : politique v1.2 ↔ AIPD v1.3 ↔ ISO v1.2 ↔ registre v1.1+ enrichi.
+
+**❌ T-167 SFD v1.2 — REPORTÉ à prochaine session** : 4 tentatives échouées sur le bump SFD :
+1. 1ère tentative tuée par BSOD Windows Commanditaire
+2. 2e tentative arrêt silencieux à 59s sans Write (en réalité phase Read très lente)
+3. 3e tentative idem (3+ heures sans Write)
+4. 4e tentative ultra-minimaliste killée à 28s alors qu'elle s'apprêtait à Write
+**Diagnostic** : agent Analyste métier ne crashe pas, mais sa phase de synthèse cognitive sur ce bump (1733 lignes SFD v1.1 + lecture mini-DAT + post-mortem) prend des heures avant de basculer en Write. **Capitalisable en LL-032** : limiter les briefs Analyste sur gros bumps à des stubs minimalistes + multiples PR séparées pour l'enrichissement.
+
+**Mémoire enrichie** : `feedback_confiance_controle.md` ajouté — principe Commanditaire « confiance n'exclut pas contrôle » : après toute modif (gh api PATCH, edit config, merge), relire/vérifier explicitement l'état effectif via commande inverse. Appliqué systématiquement à T-112 et toutes les actions critiques de la session.
+
+---
+
+## 🔜 Point de reprise prochaine session
+1. **T-167 SFD v1.2** : faire moi-même (orchestrateur) le stub minimal — pas d'agent Analyste sur ce bump (cf. LL-032 à capitaliser)
+2. **6 PR cycle convergence** restantes (#80/91/93/94/96/104) — vérifier convergence puis cleanup
+3. **Should restants** : T-179 couverture popup/password-detector, T-175 E2E UC-01 à 05, T-176 12 scénarios TC-M7, T-177 mock chrome.storage JSON-strict
+4. **Capitaliser LL-032** : pattern lenteur Analyste sur gros bumps + recommandation stubs minimalistes
+
+---
+
 **Où on en est (session 2026-04-19 matinée — parallélisation maximale + repo PUBLIC).** 🚀 **Session intensive enchaînée sans temps mort I-011** sous direction Commanditaire « parallélise + dis-moi ce que toi tu fais en parallèle ». **Bilan provisoire ~10:30** :
 
 **Tâches terminées matinée 2026-04-19** :
