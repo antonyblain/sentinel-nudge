@@ -19,12 +19,54 @@
 
 **Innovation méthodologique LL-022/023/024 reconfirmée** : 4 agents Fabrique en parallélisation simultanée (Dev T-157 + Archi logiciel T-041 + DPO T-074/115/155 + DevSecOps T-120) puis 2 nouveaux (Dev T-134/135/136 + Archi sécu T-028) sur zones strictement disjointes. Aucun conflit de merge. Cycle hotfix axe-core inséré sans interrompre les agents.
 
-**État courant (~10:30)** :
-- 3 PR ouvertes en attente CI verte (post update-branch) : #80 T-120, #82 DPO, #83 Dependabot actions
-- 2 nouveaux agents en background : Dev T-134/135/136 (pages statiques a11y) + Archi sécu T-028 (web_accessible_resources resserrement)
-- Aucun worktree mort. CI verte sur develop tip.
+**État courant (clôture session ~11:00, contexte 85% — arrêt propre I-011)** :
 
-**Actions Commanditaire restantes** : recette manuelle Google+MS (TACHE-068) toujours, T-130 (d) doc secrets-cws.md différée.
+**PR mergées matinée 19/04** : #81 T-157+hotfix axe, #82 DPO, #83/#84 Dependabot, #87 T-041, #92 T-134/135/136 (6 PR techniques mergées).
+
+**5 PR ouvertes en auto-merge actif** (cycle update-branch en cours, GitHub gère) :
+- #80 T-120 SBOM Anchore SHA-pinned
+- #91 T-028 web_accessible_resources resserré (R-MIN-002 résolu)
+- #93 hotfix dependabot.yml — ignore majors stricts (vitest/eslint/typescript ajoutés)
+- #94 docs(gouvernance): revue Fabrique 2026-04-19 — 9 rôles + synthèse consolidée
+- #95 chore(docs): T-160 suppression versions obsolètes (DAT v1.3, AIPD v1.0/v1.1, politique v1.0 — A-01+A-02 résorbés)
+
+**2 PR Dependabot fermées** : #86 vite/vitest majors, #89 8 dev-deps majors (breaking, planifiés en migrations dédiées T-160+).
+
+**Revue Fabrique 9 rôles complétée** : 9 rapports + synthèse consolidée dans `docs/gouvernance/revues-fabrique-2026-04-19/`. Score audit GitHub estimé **42/100 → ~83/100 Niveau A** (DevSecOps). Plan d'action consolidé après révision Commanditaire « pas de démultiplication docs » : **9 Must + 12 Should + 4 Could + 4 à clore**.
+
+**4 arbitrages Commanditaire validés (OK × 4)** : (1) `docs/p5-decisions/` créer, (2) SFD v1.2 Must avant P7, (3) E2E UC-01-05 Should v1 → Must v1.1, (4) CodeQL Should immédiat.
+
+**1 agent en background** (à laisser finir) :
+- DevSecOps **T-187 CodeQL SAST workflow CI** (lancé ~10:55, durée estimée 30-60 min) — `feature/p6-tache-187-codeql-sast` quand finie
+
+**Mémoire enrichie session** :
+- `feedback_confiance_controle.md` (principe « confiance n'exclut pas contrôle »)
+- `feedback_evolution_vs_creation_doc.md` (préférer évolution doc existant à création — règle Commanditaire)
+
+---
+
+## 🔜 Point de reprise (prochaine session)
+
+**Contrôles à faire au démarrage** :
+1. `gh pr list --state open` — vérifier les 5 PR auto-merge ont bien convergé (#80, #91, #93, #94, #95). Si bloquées, relancer cycle `update-branch`.
+2. `git worktree list` — cleanup worktree T-187 si terminé (`worktree-agent-a358567b`).
+3. Récupérer notification agent T-187 + merger PR CodeQL si CI verte.
+
+**Plan d'action consolidé à exécuter** (issu revue Fabrique 19/04, Must restants après T-160) :
+- **T-161** Bumper DAT v1.4 → v1.5 (Annexe B WAR + CRITICAL_MODULES + ref SFD v1.1 + intégration ADR-003-008 + section badge dégradé T-062 + maj ADR-002 pour T-091)
+- **T-162** Bumper checklist a11y v1.0 → v1.1 (T-132/T-133 résolus + audit manuel popup/dashboard/options/onboarding fusionné T-168)
+- **T-163** Capitaliser LL-029 absente (saut LL-028→LL-030 dans LESSONS_LEARNED.md)
+- **T-164** Tracer 3 réserves DPO bloquantes MEP au BACKLOG (R-074-01/02/03)
+- **T-165** Bumper politique RGPD v1.1 → v1.2 (M9 ajouté + résorption 3 désynchros durées conservation)
+- **T-166** Bumper référentiel ISO 27001 v1.1 → v1.2 (T-028 A.5.15+A.8.4, T-118 A.8.30, T-120 A.8.10, T-074/115 procédure E1-E6, T-187 A.8.29 CodeQL, cadence revue npm audit fusionnée T-174)
+- **T-167** Bumper SFD v1.1 → v1.2 (UC-01 à UC-15 + 3 ARB structurants — Must avant P7)
+- **T-169** Bumper AIPD M7 v1.2 → v1.3 (TTL 365j m7_incidents + intégration contenu notes T-074/T-115 dans corps AIPD + suppression fichiers `note-dpo-*.md` séparés)
+
+**12 Should + 4 Could** à exécuter ensuite — détails dans `docs/gouvernance/revues-fabrique-2026-04-19/00-synthese-consolidee.md`.
+
+**Actions Commanditaire restantes** :
+- Recette manuelle Google+MS (TACHE-068)
+- T-130 (d) doc secrets-cws.md différée jusqu'à roadmap CWS
 
 ---
 
