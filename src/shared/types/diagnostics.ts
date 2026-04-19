@@ -11,6 +11,7 @@
  * - TACHE-089 (diagnostics.m9, Option B — handler read-only, pas d'initBoot)
  * - TACHE-090 (pending_m17_toast cross-lifecycle, R-CLI-01 à 07 ADR-002)
  * - TACHE-091 (migration pending_m7_toast timestamp → expires_at, R-CLI-03)
+ * - TACHE-078 (instrumentation storage_write_fail aux sites critiques — OBS-04)
  *
  * Ils constituent le contrat d'interface entre les services de boot, les handlers
  * et les consommateurs (popup TACHE-062, page état santé TACHE-109, tests).
@@ -586,6 +587,7 @@ export const PENDING_M17_TOAST_TTL_MS = 5 * 60 * 1000;
  * TACHE-087 : ajout de m5_snooze_corrupted et update_check_failed (incidents M5).
  * TACHE-088 : ajout de m6_install_date_corrupted et quiz_deferred_stale (incidents M6).
  * TACHE-089 : ajout de m9_handler_error et m17_handler_error (Option B M9/M17).
+ * TACHE-078 : enrichissement de storage_write_fail (module, site, hint — OBS-04).
  */
 export type M7IncidentType =
   | 'boot_fail' // Clé AES absente ou non importable au boot SW
@@ -630,6 +632,7 @@ export type M7IncidentSeverity = 'info' | 'warn' | 'error';
  * TACHE-087 : ajout de m5_snooze_corrupted et update_check_failed (M5).
  * TACHE-088 : ajout de m6_install_date_corrupted et quiz_deferred_stale (M6).
  * TACHE-089 : ajout de m9_handler_error et m17_handler_error (Option B M9/M17).
+ * TACHE-078 : enrichissement de storage_write_fail (module, site, hint — OBS-04).
  */
 export type IncidentContext =
   | { type: 'boot_fail'; hint: 'key_absent' | 'import_failed'; boot_count: number }
@@ -637,7 +640,26 @@ export type IncidentContext =
   | { type: 'canary_reinit'; reason: 'absent' | 'decrypt_failed' | 'mismatch' }
   | { type: 'submit_detect_fail'; code_path: string }
   | { type: 'toast_orphan'; domain_hash_prefix: string; age_ms: number }
-  | { type: 'storage_write_fail'; key: string }
+  | {
+      type: 'storage_write_fail';
+      /** Module source de l'échec (boot | m7 | heartbeat) */
+      module: 'boot' | 'm7' | 'heartbeat';
+      /**
+       * Identifiant du site d'écriture (encryption_key_boot | encryption_key_canary |
+       * pending_m7_toast | heartbeat_write).
+       * Permet de localiser précisément le site sans exposer la clé complète (INV-SEC-02).
+       */
+      site:
+        | 'encryption_key_boot'
+        | 'encryption_key_canary'
+        | 'pending_m7_toast'
+        | 'heartbeat_write';
+      /**
+       * Extrait tronqué du message d'erreur (max 100 chars, INV-SEC-02).
+       * Jamais de donnée sensible — uniquement le nom d'erreur Chrome ou le type JS.
+       */
+      hint: string;
+    }
   | { type: 'idb_write_fail'; store: string }
   | {
       type: 'key_regenerated';
