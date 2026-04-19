@@ -42,6 +42,7 @@ import type {
   WhitelistEntry,
 } from '@/shared/types/storage';
 import type { ModuleId } from '@/shared/types/modules';
+import type { M7IncidentRecord } from '@/shared/types/diagnostics';
 import { createLogger, Logger } from '@/shared/utils/logger';
 
 /** Logger scopé — Options (INV-SEC-02 étendu) */
@@ -168,6 +169,18 @@ interface GetPasswordHashMetaResponse {
   count?: number;
   oldest?: string;
   newest?: string;
+  error?: string;
+}
+/**
+ * Réponse du SW pour l'export du registre d'incidents techniques (m7_incidents).
+ *
+ * R-074-03 (Art. 5.1.c RGPD — minimisation) : ce registre N'EST PAS exporté
+ * par défaut (Art. 20 portabilité). Il est disponible uniquement via l'opt-in
+ * utilisateur « avancé ».
+ */
+interface GetAllIncidentsResponse {
+  success: boolean;
+  incidents?: M7IncidentRecord[];
   error?: string;
 }
 
@@ -671,9 +684,16 @@ function renderAppearanceSection(
  * construit le ExportPayload complet, et déclenche un téléchargement local.
  * Les hashes de mots de passe ne sont PAS inclus — seulement count/oldest/newest (NC-DPO-01).
  *
- * @param config - Configuration courante
+ * R-074-03 (Art. 5.1.c RGPD — minimisation) : le registre m7_incidents (données
+ * techniques de diagnostic) N'EST PAS inclus par défaut dans l'export portabilité
+ * Art. 20 RGPD. Il peut être inclus via opt-in explicite de l'utilisateur
+ * (checkbox « avancé »). Cf. Art. 5.1.c : minimisation des données.
+ *
+ * @param config           - Configuration courante
+ * @param includeIncidents - Si true, inclut m7_incidents dans l'export (opt-in avancé).
+ *                           Par défaut false — conforme au principe de minimisation Art. 5.1.c.
  */
-async function handleExport(config: StoredConfig): Promise<void> {
+async function handleExport(config: StoredConfig, includeIncidents = false): Promise<void> {
   try {
     // Récupération des weekly_scores via le SW
     const scoresResponse = (await browser.runtime.sendMessage({
@@ -733,7 +753,29 @@ async function handleExport(config: StoredConfig): Promise<void> {
       newest: pwHashResponse?.newest ?? '',
     };
 
-    const exportPayload: ExportPayload = {
+    // R-074-03 (Art. 5.1.c RGPD) : m7_incidents exclu par defaut de l'export portabilite.
+    // Inclus uniquement si l'utilisateur a coche l'option « avance » (opt-in explicite).
+    // Si le handler SW n'est pas encore disponible (T-158/159 en deploiement),
+    // on retourne un tableau vide plutot que d'echouer l'export global.
+    let m7Incidents: M7IncidentRecord[] | undefined;
+    if (includeIncidents) {
+      try {
+        const incidentsResponse = (await browser.runtime.sendMessage({
+          module: 'EXPORT',
+          action: 'get_all_incidents',
+          payload: {},
+          timestamp: Date.now(),
+        })) as GetAllIncidentsResponse | undefined;
+        m7Incidents = incidentsResponse?.success ? (incidentsResponse.incidents ?? []) : [];
+      } catch {
+        // Handler SW non disponible (T-158/159 pas encore deploye) — tableau vide
+        m7Incidents = [];
+        logger.warn('Options: handler get_all_incidents non disponible -- m7_incidents = []', {});
+      }
+    }
+
+    // Construction du payload d'export standard (Art. 20 portabilite)
+    const basePayload: ExportPayload = {
       version: '1.0',
       exported_at: new Date().toISOString(),
       extension_version: EXTENSION_VERSION,
@@ -752,6 +794,11 @@ async function handleExport(config: StoredConfig): Promise<void> {
         whitelist,
       },
     };
+
+    // Ajout conditionnel de m7_incidents (opt-in avance — R-074-03)
+    const exportPayload: ExportPayload & { m7_incidents?: M7IncidentRecord[] } = includeIncidents
+      ? { ...basePayload, m7_incidents: m7Incidents }
+      : basePayload;
 
     const json = JSON.stringify(exportPayload, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -851,6 +898,10 @@ async function handleResetWhitelist(statusEl: HTMLElement): Promise<void> {
  * Le bouton de suppression affiche un encart intégré d'avertissement (fond rouge clair)
  * directement sous le bouton — pas d'overlay modal flottant.
  *
+ * R-074-03 (Art. 5.1.c RGPD) : une checkbox opt-in « avancé » permet d'inclure
+ * le registre m7_incidents dans l'export. Non cochée par défaut (minimisation).
+ * Accessibilité : label for + aria-describedby (WCAG 1.3.1, 4.1.2).
+ *
  * @param root    - Élément parent
  * @param config  - Configuration courante
  */
@@ -866,6 +917,42 @@ function renderDataSection(root: HTMLElement, config: StoredConfig): void {
   statusEl.setAttribute('aria-live', 'polite');
   statusEl.style.display = 'none';
 
+  // --- Opt-in m7_incidents (R-074-03 — Art. 5.1.c RGPD — minimisation) ---
+  // Checkbox non cochee par defaut : le registre d'incidents techniques est EXCLU
+  // de l'export portabilite Art. 20 RGPD. L'utilisateur peut l'inclure via cet opt-in.
+
+  const incidentsCheckboxId = 'export-include-m7-incidents';
+  const incidentsHintId = 'export-m7-incidents-hint';
+
+  const checkboxWrapper = document.createElement('div');
+  checkboxWrapper.className = 'export-opt-in-wrapper';
+
+  const incidentsCheckbox = document.createElement('input');
+  incidentsCheckbox.type = 'checkbox';
+  incidentsCheckbox.id = incidentsCheckboxId;
+  incidentsCheckbox.className = 'export-opt-in-checkbox';
+  incidentsCheckbox.checked = false; // défaut : exclu (minimisation Art. 5.1.c)
+  incidentsCheckbox.setAttribute('aria-describedby', incidentsHintId);
+
+  const incidentsLabel = document.createElement('label');
+  incidentsLabel.htmlFor = incidentsCheckboxId;
+  incidentsLabel.className = 'export-opt-in-label';
+  incidentsLabel.textContent =
+    browser.i18n.getMessage('options_export_include_incidents') ||
+    "Inclure le registre d'incidents techniques (avancé)";
+
+  const incidentsHint = document.createElement('p');
+  incidentsHint.id = incidentsHintId;
+  incidentsHint.className = 'export-opt-in-hint';
+  incidentsHint.textContent =
+    browser.i18n.getMessage('options_export_incidents_hint') ||
+    'Contient des métadonnées de diagnostic non nécessaires pour la portabilité (Art. 5.1.c RGPD).';
+
+  checkboxWrapper.appendChild(incidentsCheckbox);
+  checkboxWrapper.appendChild(incidentsLabel);
+  checkboxWrapper.appendChild(incidentsHint);
+  fieldset.appendChild(checkboxWrapper);
+
   // Bouton Export RGPD Art. 20
   const btnExport = document.createElement('button');
   btnExport.type = 'button';
@@ -873,7 +960,9 @@ function renderDataSection(root: HTMLElement, config: StoredConfig): void {
   btnExport.textContent =
     browser.i18n.getMessage('options_btn_export') || 'Exporter mes données (RGPD Art. 20)';
   btnExport.addEventListener('click', () => {
-    handleExport(config).catch(() => undefined);
+    // Lit l'état de la checkbox au moment du clic (opt-in avancé — R-074-03)
+    const includeIncidents = incidentsCheckbox.checked;
+    handleExport(config, includeIncidents).catch(() => undefined);
   });
   fieldset.appendChild(btnExport);
 
