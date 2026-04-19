@@ -13,6 +13,8 @@
  * - Trigger alarme et check diagnostics.m3 via updateM3DiagnosticsOnAlarm
  * - ScoreCalculator mocké — redistribution proportionnelle si module désactivé
  * - Incident events_store_corrupted quand IDB inaccessible
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -32,28 +34,17 @@ import type { ScoreCalculator } from '@/background/score-calculator';
 import type { NudgeMessage } from '@/shared/types/messages';
 import type { IncidentService } from '@/background/services/incident-service';
 import type { WeeklyScore } from '@/shared/types/storage';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mocks
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   action: {
     setBadgeText: vi.fn().mockResolvedValue(undefined),
@@ -67,23 +58,8 @@ global.chrome = {
 
 /** Réinitialise storage et mocks avant chaque test */
 function resetAll(): void {
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  resetStorage();
   vi.clearAllMocks();
-  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-      }
-      callback(result);
-    },
-  );
-  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
   (global.chrome.action.setBadgeText as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
   (global.chrome.action.setBadgeBackgroundColor as ReturnType<typeof vi.fn>).mockResolvedValue(
     undefined,
@@ -225,10 +201,10 @@ describe('clearBadge', () => {
 
 describe('createM3Handler — calculate_score : cas nominaux', () => {
   it('TC-M3H-09 : calcule le score et retourne action=show avec score et week_key', async () => {
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('calculate_score'), mockSender);
 
@@ -239,14 +215,14 @@ describe('createM3Handler — calculate_score : cas nominaux', () => {
   });
 
   it('TC-M3H-10 : M3 désactivé → action=skip reason=m3_disabled + badge effacé', async () => {
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getConfig: vi.fn().mockResolvedValue({
         modules: { M3: false },
       }),
     });
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('calculate_score'), mockSender);
 
@@ -257,14 +233,14 @@ describe('createM3Handler — calculate_score : cas nominaux', () => {
   });
 
   it('TC-M3H-11 : tous modules désactivés → action=skip reason=all_modules_disabled', async () => {
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getConfig: vi.fn().mockResolvedValue({
         modules: { M3: true, M2: false, M5: false, M6: false, M7: false, M9: false },
       }),
     });
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('calculate_score'), mockSender);
 
@@ -276,12 +252,12 @@ describe('createM3Handler — calculate_score : cas nominaux', () => {
   });
 
   it('TC-M3H-12 : score calculé 0 → retourne action=show avec score=0', async () => {
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const scoreCalc = createMockScoreCalculator({
       calculateWeeklyScore: vi.fn().mockResolvedValue(buildWeeklyScore(0)),
     });
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('calculate_score'), mockSender);
 
@@ -295,12 +271,12 @@ describe('createM3Handler — calculate_score : cas nominaux', () => {
   });
 
   it('TC-M3H-13 : score calculé 100 → retourne action=show avec score=100', async () => {
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const scoreCalc = createMockScoreCalculator({
       calculateWeeklyScore: vi.fn().mockResolvedValue(buildWeeklyScore(100)),
     });
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('calculate_score'), mockSender);
 
@@ -312,12 +288,12 @@ describe('createM3Handler — calculate_score : cas nominaux', () => {
 
 describe('createM3Handler — calculate_score : erreur IDB', () => {
   it('TC-M3H-14 : calculateWeeklyScore lève une erreur → action=error, badge effacé', async () => {
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const scoreCalc = createMockScoreCalculator({
       calculateWeeklyScore: vi.fn().mockRejectedValue(new Error('IDBTransactionError')),
     });
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('calculate_score'), mockSender);
 
@@ -329,12 +305,12 @@ describe('createM3Handler — calculate_score : erreur IDB', () => {
   });
 
   it('TC-M3H-15 : getConfig lève une erreur → action=error (catch global)', async () => {
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getConfig: vi.fn().mockRejectedValue(new Error('StorageQuotaExceeded')),
     });
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('calculate_score'), mockSender);
 
@@ -356,12 +332,12 @@ describe('createM3Handler — get_score', () => {
       value: new ArrayBuffer(0),
       iv: new Uint8Array(0),
     };
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getWeeklyScore: vi.fn().mockResolvedValue(storedScore),
     });
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('get_score'), mockSender);
 
@@ -372,12 +348,12 @@ describe('createM3Handler — get_score', () => {
   });
 
   it('TC-M3H-17 : aucun score disponible → action=skip reason=no_score_yet', async () => {
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getWeeklyScore: vi.fn().mockResolvedValue(null),
     });
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('get_score'), mockSender);
 
@@ -387,7 +363,7 @@ describe('createM3Handler — get_score', () => {
   });
 
   it('TC-M3H-18 : get_score avec week_key explicite dans le payload', async () => {
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getWeeklyScore: vi.fn().mockResolvedValue({
         week_key: '2026-W10',
         total_score: 60,
@@ -398,7 +374,7 @@ describe('createM3Handler — get_score', () => {
     });
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(
       buildM3Message('get_score', { week_key: '2026-W10' }),
@@ -409,16 +385,16 @@ describe('createM3Handler — get_score', () => {
     expect(response.action).toBe('show');
     expect(response.data?.['week_key']).toBe('2026-W10');
     // Vérifie que getWeeklyScore a été appelé avec la clé correcte
-    expect(storage.getWeeklyScore).toHaveBeenCalledWith('2026-W10', cryptoKey);
+    expect(stor.getWeeklyScore).toHaveBeenCalledWith('2026-W10', cryptoKey);
   });
 
   it('TC-M3H-19 : getWeeklyScore lève une erreur → action=error reason=storage_error', async () => {
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getWeeklyScore: vi.fn().mockRejectedValue(new Error('IDBAbortError')),
     });
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('get_score'), mockSender);
 
@@ -434,10 +410,10 @@ describe('createM3Handler — get_score', () => {
 
 describe('createM3Handler — action inconnue', () => {
   it('TC-M3H-20 : action inconnue → success=false, action=skip, reason=unknown_action', async () => {
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const scoreCalc = createMockScoreCalculator();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM3Handler(storage, scoreCalc, cryptoKey);
+    const handler = createM3Handler(stor, scoreCalc, cryptoKey);
 
     const response = await handler(buildM3Message('foobar_action'), mockSender);
 
@@ -479,7 +455,10 @@ describe('updateM3DiagnosticsOnAlarm — trigger alarme score', () => {
     const { service } = createMockIncidentService();
     await updateM3DiagnosticsOnAlarm(service as IncidentService, true);
 
-    const stored = mockLocalStorage['diagnostics.m3'] as Record<string, unknown>;
+    const stored = (await storage.get('diagnostics.m3'))['diagnostics.m3'] as Record<
+      string,
+      unknown
+    >;
     expect(stored).toBeDefined();
     expect(stored['ready']).toBe(true);
     expect(typeof stored['last_boot']).toBe('number');

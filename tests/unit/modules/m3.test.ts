@@ -13,6 +13,8 @@
  * - ScoreCalculator.getCurrentWeekKey / getPreviousWeekKey
  * - Cas limites : score 0, première semaine, tous modules désactivés
  * - readM3Diagnostics / updateM3DiagnosticsOnAlarm : diagnostics.m3 (TACHE-086)
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -21,32 +23,24 @@ import {
   COMPONENT_WEIGHTS,
   type ScoreComponents,
 } from '@/background/score-calculator';
-import { readM3Diagnostics, updateM3DiagnosticsOnAlarm } from '@/background/services/m3-boot-service';
+import {
+  readM3Diagnostics,
+  updateM3DiagnosticsOnAlarm,
+} from '@/background/services/m3-boot-service';
 import type { StorageService } from '@/background/storage-service';
 import type { EventPayload } from '@/shared/types/storage';
 import type { IncidentService } from '@/background/services/incident-service';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mocks
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   action: {
     setBadgeText: vi.fn().mockResolvedValue(undefined),
@@ -110,24 +104,9 @@ function createMockIncidentService(): {
 }
 
 /** Réinitialise le mock storage */
-function resetStorage(): void {
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+function doReset(): void {
+  resetStorage();
   vi.clearAllMocks();
-  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-      }
-      callback(result);
-    },
-  );
-  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -439,7 +418,7 @@ describe('COMPONENT_WEIGHTS — validation du total', () => {
 // ---------------------------------------------------------------------------
 
 describe('readM3Diagnostics — valeur par défaut', () => {
-  beforeEach(resetStorage);
+  beforeEach(doReset);
 
   it('TC-M3-BOOT-01 : diagnostics.m3 absent → retourne défaut (ready=false, last_boot=0)', async () => {
     const diag = await readM3Diagnostics();
@@ -451,7 +430,7 @@ describe('readM3Diagnostics — valeur par défaut', () => {
 
   it('TC-M3-BOOT-02 : diagnostics.m3 corrompu → retourne défaut', async () => {
     // Corruption : l'entrée est un nombre au lieu d'un objet
-    mockLocalStorage['diagnostics.m3'] = 42;
+    await storage.set({ 'diagnostics.m3': 42 });
 
     const diag = await readM3Diagnostics();
 
@@ -461,7 +440,7 @@ describe('readM3Diagnostics — valeur par défaut', () => {
 });
 
 describe('updateM3DiagnosticsOnAlarm — IDB accessible', () => {
-  beforeEach(resetStorage);
+  beforeEach(doReset);
 
   it('TC-M3-BOOT-03 : IDB accessible → diagnostics.m3 ready=true, last_boot mis à jour', async () => {
     const { service, incidents } = createMockIncidentService();
@@ -477,13 +456,16 @@ describe('updateM3DiagnosticsOnAlarm — IDB accessible', () => {
     const { service } = createMockIncidentService();
     await updateM3DiagnosticsOnAlarm(service as IncidentService, true);
 
-    const stored = mockLocalStorage['diagnostics.m3'] as Record<string, unknown>;
+    const stored = (await storage.get('diagnostics.m3'))['diagnostics.m3'] as Record<
+      string,
+      unknown
+    >;
     expect(stored).toBeDefined();
     expect(stored['ready']).toBe(true);
     expect(typeof stored['last_boot']).toBe('number');
   });
 
-  it('TC-M3-BOOT-05 : readM3Diagnostics retourne l\'état persisté après alarme', async () => {
+  it("TC-M3-BOOT-05 : readM3Diagnostics retourne l'état persisté après alarme", async () => {
     const { service } = createMockIncidentService();
     await updateM3DiagnosticsOnAlarm(service as IncidentService, true);
 
@@ -494,7 +476,7 @@ describe('updateM3DiagnosticsOnAlarm — IDB accessible', () => {
 });
 
 describe('updateM3DiagnosticsOnAlarm — IDB inaccessible (events_store_corrupted)', () => {
-  beforeEach(resetStorage);
+  beforeEach(doReset);
 
   it('TC-M3-BOOT-06 : IDB inaccessible → incident events_store_corrupted (error)', async () => {
     const { service, incidents } = createMockIncidentService();
@@ -514,7 +496,7 @@ describe('updateM3DiagnosticsOnAlarm — IDB inaccessible (events_store_corrupte
     expect(diag.last_boot).toBeGreaterThan(0);
   });
 
-  it('TC-M3-BOOT-07 : diagnostics.m3.last_incident reflète l\'incident events_store_corrupted', async () => {
+  it("TC-M3-BOOT-07 : diagnostics.m3.last_incident reflète l'incident events_store_corrupted", async () => {
     const { service } = createMockIncidentService();
     const diag = await updateM3DiagnosticsOnAlarm(
       service as IncidentService,
@@ -537,11 +519,14 @@ describe('updateM3DiagnosticsOnAlarm — IDB inaccessible (events_store_corrupte
     expect(incidents[0].type).toBe('events_store_corrupted');
   });
 
-  it('TC-M3-BOOT-09 : diagnostics.m3 persisté avec ready=false en cas d\'IDB KO', async () => {
+  it("TC-M3-BOOT-09 : diagnostics.m3 persisté avec ready=false en cas d'IDB KO", async () => {
     const { service } = createMockIncidentService();
     await updateM3DiagnosticsOnAlarm(service as IncidentService, false, 'NetworkError');
 
-    const stored = mockLocalStorage['diagnostics.m3'] as Record<string, unknown>;
+    const stored = (await storage.get('diagnostics.m3'))['diagnostics.m3'] as Record<
+      string,
+      unknown
+    >;
     expect(stored).toBeDefined();
     expect(stored['ready']).toBe(false);
     expect(stored['last_incident']).toBeDefined();
