@@ -147,18 +147,15 @@
     --sn-color-muted: #8888a0;
 
     --sn-color-primary: #818cf8;
-    --sn-color-accent: #60a5fa; /* 7.7:1 sur #0d0d0f — TACHE-150 WCAG AA */
-    --sn-color-accent-hover: #93c5fd;
-    --sn-color-accent-muted: #06b6d4;
-    --sn-color-accent-light: rgba(96, 165, 250, 0.15);
-    /* Boutons primaires : texte blanc sur accent (pixel-perfect maquettes v3 — Commanditaire 2026-04-19) */
-    /* Accent assombri de #60a5fa à #2563eb pour atteindre 4.5:1 AA normal text avec blanc */
+    /* --sn-color-accent : fond bouton primary (texte blanc dessus, contrast 5.9:1 AA — pixel-perfect maquettes v3 Commanditaire 19/04) */
     --sn-color-accent: #2563eb;
     --sn-color-accent-hover: #1d4ed8;
+    --sn-color-accent-muted: #06b6d4;
+    --sn-color-accent-light: rgba(37, 99, 235, 0.15);
     --sn-color-btn-fg: #fff;
-    /* Texte accent sur fond dark : decouple de --sn-color-accent (qui sert de fond bouton)
-       pour rester AA-safe sur surfaces sombres (#1a1a1f, #0f1625) — fix axe-core options/onboarding dark */
-    --sn-color-accent-text: #60a5fa;
+    /* --sn-color-accent-text : texte accent sur fond dark (decouple de --sn-color-accent qui sert de fond bouton)
+       pour rester AA-safe sur surfaces sombres (#1a1a1f, #0f1625) — fix axe-core options/onboarding dark T-157 */
+    --sn-color-accent-text: #60a5fa; /* 7.7:1 sur #0d0d0f */
 
     --sn-color-success: #22c55e;
     --sn-color-success-bg: rgba(34, 197, 94, 0.12);

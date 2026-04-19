@@ -1,7 +1,7 @@
 # Politique de confidentialité — Sentinel Nudge
 
 **Extension :** Sentinel Nudge — Extension navigateur open source de cyber-hygiène comportementale
-**Version du document :** 1.1
+**Version du document :** 1.2
 **Date d'entrée en vigueur :** 2026-04-19
 **Licence de l'extension :** GNU GPL v3
 **Dépôt public :** https://github.com/antonyblain/sentinel-nudge
@@ -69,11 +69,24 @@ L'éditeur du code source (Antony Blain) agit en tant que **particulier** dans l
 - **Suppression totale** : désinstaller l'extension et/ou cliquer sur « Supprimer toutes mes données » dans la page Options supprime définitivement et localement toutes les données.
 - **Responsabilité partagée avec l'éditeur du navigateur** : si l'utilisateur active la synchronisation Chrome (ou équivalent), ses données locales peuvent être synchronisées vers le cloud de l'éditeur du navigateur. Cette synchronisation est **hors du contrôle de Sentinel Nudge**. Cf. §11.
 
+### 2.4 Outils de la plateforme d'hébergement (GitHub) — hors qualification
+
+Le code source de Sentinel Nudge est hébergé sur **GitHub Inc.** (filiale de Microsoft, États-Unis). À ce titre, plusieurs outils de la plateforme GitHub interviennent automatiquement sur le dépôt public, sans intervention de l'éditeur Sentinel Nudge :
+
+- **Dependabot** (analyse automatique des dépendances et alertes de vulnérabilité).
+- **GitHub Security Advisories** (canal privé de signalement de vulnérabilités).
+- **GitHub CodeQL** (analyse statique SAST automatisée — workflow `codeql.yml`, ruleset OWASP Top 10 + CWE Top 25, exécuté à chaque push et de manière hebdomadaire).
+- **GitHub Actions** (intégration continue, exécution des tests et du build).
+
+Ces outils sont fournis et opérés par **GitHub Inc., responsable de traitement au sens de l'article 4(7) RGPD** pour les données techniques qu'ils manipulent (métadonnées de dépôt, identifiants de contributeurs publics, alertes de sécurité). Sentinel Nudge **ne reçoit ni ne traite aucune donnée personnelle d'utilisateur final** via ces outils : ils opèrent exclusivement sur le code source et son écosystème de développement, jamais sur les données traitées localement par l'extension installée chez les utilisateurs. La politique de confidentialité applicable à ces outils est celle de GitHub (https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
+
+L'éditeur Sentinel Nudge **n'est ni responsable de traitement ni sous-traitant** au sens du RGPD pour ces outils, conformément à la qualification triple §2.1 (l'éditeur n'a pas accès aux données utilisateurs, ne les collecte pas, ne les héberge pas).
+
 ---
 
 ## 3. Finalités et bases légales
 
-Sentinel Nudge est composé de sept fonctionnalités en version 1. Chacune poursuit une finalité précise avec une base légale identifiée.
+Sentinel Nudge est composé de **sept fonctionnalités** en version 1. Chacune poursuit une finalité précise avec une base légale identifiée.
 
 | Fonctionnalité | Finalité                                                                                                                                           | Base légale (RGPD Art. 6)                                         | Opt-in / Opt-out                                                |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------- |
@@ -82,15 +95,15 @@ Sentinel Nudge est composé de sept fonctionnalités en version 1. Chacune pours
 | **Rappel de mise à jour du navigateur** | Détecter une version obsolète du navigateur et proposer la mise à jour.                                                                            | Intérêt légitime (Art. 6.1.f)                                     | Activable / désactivable à tout moment.                         |
 | **Exercices de sensibilisation au phishing** | Proposer un quiz éducatif de phishing en répétition espacée.                                                                                        | Intérêt légitime (Art. 6.1.f)                                     | Activable / désactivable à tout moment.                         |
 | **Alerte mots de passe réutilisés** | Détecter la réutilisation d'un mot de passe sur plusieurs domaines distincts, afin de sensibiliser à l'usage d'un gestionnaire de mots de passe.   | **Consentement explicite (Art. 6.1.a)** — opt-in à l'onboarding   | **Opt-in obligatoire** — désactivable à tout moment.            |
-| **Évaluation de la force des mots de passe** | Évaluer la force d'un mot de passe au moment de sa création (champ de type création) et afficher un indicateur.                                    | Intérêt légitime (Art. 6.1.f)                                     | Activable / désactivable à tout moment.                         |
+| **Détection de mots de passe faibles** | Évaluer la force d'un mot de passe au moment de sa création (champ de type création) et afficher un indicateur de robustesse pour aider l'utilisateur à choisir un mot de passe fort. | Intérêt légitime (Art. 6.1.f)                                     | Activable / désactivable à tout moment.                         |
 | **Alerte copie de données sensibles** | Détecter le collage d'une donnée sensible (carte bancaire, IBAN, numéro de sécurité sociale) dans un formulaire.                                   | Intérêt légitime (Art. 6.1.f)                                     | Activable / désactivable à tout moment.                         |
 
 **Pourquoi ces bases légales ?**
 
-- **Intérêt légitime (Art. 6.1.f)** : l'utilisateur installe volontairement une extension de sécurité. Les fonctionnalités « Protection contre les sites frauduleux », « Score de cyber-hygiène », « Rappel de mise à jour du navigateur », « Exercices de sensibilisation au phishing », « Évaluation de la force des mots de passe » et « Alerte copie de données sensibles » traitent strictement les données nécessaires à cette finalité de sécurité, sans jamais communiquer les données à l'extérieur. Le déséquilibre avec les libertés fondamentales est nul puisque les données ne quittent jamais l'appareil.
+- **Intérêt légitime (Art. 6.1.f)** : l'utilisateur installe volontairement une extension de sécurité. Les fonctionnalités « Protection contre les sites frauduleux », « Score de cyber-hygiène », « Rappel de mise à jour du navigateur », « Exercices de sensibilisation au phishing », « Détection de mots de passe faibles » et « Alerte copie de données sensibles » traitent strictement les données nécessaires à cette finalité de sécurité, sans jamais communiquer les données à l'extérieur. Le déséquilibre avec les libertés fondamentales est nul puisque les données ne quittent jamais l'appareil.
 - **Consentement explicite (Art. 6.1.a)** pour « Alerte mots de passe réutilisés » : le traitement d'empreintes de mots de passe (même pseudonymisées par hash salé et chiffrement AES-256-GCM) est considéré comme plus sensible. Une étape dédiée de l'onboarding demande explicitement le consentement avant toute activation. Ce consentement est **libre, spécifique, éclairé et univoque**, et **révocable à tout moment** via la page Options.
 
-Une **Analyse d'Impact relative à la Protection des Données (AIPD)** a été réalisée pour la fonctionnalité « Alerte mots de passe réutilisés » et validée le 2026-04-11 (cf. document `docs/p3-architecture/p3-aipd-m7-v1.2.md`).
+Une **Analyse d'Impact relative à la Protection des Données (AIPD)** a été réalisée pour la fonctionnalité « Alerte mots de passe réutilisés » et mise à jour le 2026-04-19 en version 1.3 (cf. document `docs/p3-architecture/p3-aipd-m7-v1.3.md`).
 
 ---
 
@@ -136,7 +149,7 @@ Les questions sont référencées par identifiant abstrait uniquement — **aucu
 
 ### 4.5 Alerte mots de passe réutilisés
 
-Cette fonctionnalité fait l'objet d'une **AIPD dédiée** (cf. §10 et `docs/p3-architecture/p3-aipd-m7-v1.2.md`).
+Cette fonctionnalité fait l'objet d'une **AIPD dédiée** (cf. §10 et `docs/p3-architecture/p3-aipd-m7-v1.3.md`).
 
 | Donnée                                                        | Forme traitée                                                     | Lieu de stockage                                             |
 | ------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -147,15 +160,16 @@ Cette fonctionnalité fait l'objet d'une **AIPD dédiée** (cf. §10 et `docs/p3
 | Compteurs et horodatages                                      | `first_seen`, `count`                                             | IndexedDB                                                    |
 | Sel d'installation (`installation_salt`)                      | 16 octets (128 bits) aléatoires                                   | `chrome.storage.local` — durée de vie de l'installation      |
 | Clé de chiffrement AES                                        | Matériau exporté de la `CryptoKey`                                | `chrome.storage.local` (voir §10.3 sur la protection)        |
+| Registre d'incidents techniques (`m7_incidents`)              | Métadonnées techniques de diagnostic (type, sévérité, horodatage) | IndexedDB (store `m7_incidents`, FIFO 500 + TTL 365 jours)   |
 
-### 4.6 Évaluation de la force des mots de passe
+### 4.6 Détection de mots de passe faibles
 
 | Donnée                                    | Forme traitée                                                                                       | Lieu de stockage                      |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | Mot de passe en cours de création         | Analyse via l'algorithme zxcvbn-ts en mémoire, **en moins de 10 ms**                                 | **Aucun** — pas de stockage (R-002)  |
 | Score de force                            | Valeur numérique 0-4                                                                                | En mémoire, affichage immédiat        |
 
-Conformément à la décision R-002 du DAT, **le mot de passe en cours de création n'est jamais stocké**, pas même temporairement.
+Conformément à la décision R-002 du DAT, **le mot de passe en cours de création n'est jamais stocké**, pas même temporairement. L'évaluation se fait à la volée et le résultat (uniquement le niveau de robustesse, pas le mot de passe lui-même) est affiché immédiatement à l'utilisateur sous forme d'indicateur visuel.
 
 ### 4.7 Alerte copie de données sensibles
 
@@ -204,14 +218,18 @@ Le seul mécanisme qui utilise une fonctionnalité du navigateur pouvant impliqu
 
 | Donnée                                            | Durée de conservation                                    | Mécanisme                                                                   |
 | ------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Événements « Protection contre les sites frauduleux », « Score de cyber-hygiène », « Alerte mots de passe réutilisés », « Alerte copie de données sensibles » (store `events`) | 90 jours glissants                                       | Purge automatique hebdomadaire (alarme lundi matin)                         |
+| Événements « Protection contre les sites frauduleux », « Alerte mots de passe réutilisés », « Alerte copie de données sensibles » (store `events`) | 90 jours glissants                                       | Purge automatique hebdomadaire (alarme lundi matin)                         |
 | Empreintes de mots de passe « Alerte mots de passe réutilisés » (`password_hashes`) | 90 jours glissants **et** maximum 100 entrées (FIFO)     | Purge automatique hebdomadaire + éviction FIFO                              |
-| Sessions de quiz « Exercices de sensibilisation au phishing » (`quiz_sessions`) | 90 jours glissants                                       | Purge automatique                                                           |
-| Scores hebdomadaires « Score de cyber-hygiène » (`weekly_scores`) | 52 semaines (1 an)                                       | Purge automatique                                                           |
+| Sessions de quiz « Exercices de sensibilisation au phishing » (`quiz_sessions`) | **52 semaines (1 an)** glissantes                        | Purge automatique hebdomadaire (`storageService.purgeExpired`, voir code `src/background/storage-service.ts`) |
+| Scores hebdomadaires « Score de cyber-hygiène » (`weekly_scores`) | **52 semaines (1 an)** glissantes                        | Purge automatique hebdomadaire (`storageService.purgeExpired`, voir code `src/background/storage-service.ts`) |
 | Whitelist « Protection contre les sites frauduleux » (`whitelist`) | **Indéfinie** — jusqu'à suppression explicite par l'utilisateur | Pas de purge automatique (c'est une préférence utilisateur active)      |
 | Sel d'installation (`installation_salt`)          | Durée de vie de l'installation                           | Supprimé lors de la désinstallation ou de la suppression totale             |
 | Clé de chiffrement AES                            | Durée de vie de l'installation                           | Supprimée lors de la désinstallation ou de la suppression totale             |
-| Intents inter-cycle (`pending_*` dans storage local) | TTL explicite (5 à 10 minutes selon l'intent)         | Purge quotidienne automatique (`onPurgeDaily`)                              |
+| Registre d'incidents M7 (`m7_incidents`)          | **365 jours absolus** OU 500 entrées maximum (FIFO, le plus restrictif des deux) | Purge automatique journalière (`onPurgeDaily`, alarme quotidienne)          |
+| Intents inter-cycle `pending_m7_toast` (chrome.storage.local) | TTL 10 minutes                                          | Purge quotidienne automatique (`onPurgeDaily`)                              |
+| Intents inter-cycle `pending_m17_toast` (chrome.storage.local) | TTL 5 minutes                                           | Purge quotidienne automatique (`onPurgeDaily`)                              |
+| Intents inter-cycle `pending_m6_quiz` (chrome.storage.local) | TTL 7 jours                                             | Purge quotidienne automatique (`onPurgeDaily`)                              |
+| Intents inter-cycle `pending_m5_update_reminder` (chrome.storage.local) | TTL 30 minutes                                          | Purge quotidienne automatique (`onPurgeDaily`)                              |
 
 **Purge manuelle immédiate :** depuis la page Options, le bouton **« Supprimer toutes mes données »** déclenche `indexedDB.deleteDatabase('sentinel-nudge-db')` et `chrome.storage.local.clear()`. L'effacement est complet, immédiat et irréversible.
 
@@ -223,7 +241,7 @@ L'utilisateur dispose de l'ensemble des droits prévus aux articles 15 à 22 du 
 
 | Droit (RGPD)                           | Moyen d'exercice dans Sentinel Nudge                                                                                                                                      |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Droit d'accès (Art. 15)**            | Bouton **« Exporter mes données »** dans la page Options. Produit un fichier JSON local, lisible, contenant toutes les données déchiffrées (hors empreintes brutes de la fonctionnalité « Alerte mots de passe réutilisés » pour protection). |
+| **Droit d'accès (Art. 15)**            | Bouton **« Exporter mes données »** dans la page Options. Produit un fichier JSON local, lisible, contenant toutes les données déchiffrées (hors empreintes brutes de la fonctionnalité « Alerte mots de passe réutilisés » pour protection, et hors registre d'incidents techniques `m7_incidents` par défaut — cf. §8.1). |
 | **Droit de rectification (Art. 16)**   | L'utilisateur peut modifier ses paramètres (profil, fonctionnalités actives, quota, whitelist) à tout moment depuis la page Options.                                            |
 | **Droit à l'effacement (Art. 17)**     | Bouton **« Supprimer toutes mes données »** dans la page Options. Effacement immédiat et complet (IndexedDB + chrome.storage.local). Désinstaller l'extension produit le même effet. |
 | **Droit à la limitation (Art. 18)**    | Désactivation fonctionnalité par fonctionnalité depuis la page Options. Pause globale via désactivation de l'extension dans le gestionnaire du navigateur.                                 |
@@ -231,7 +249,13 @@ L'utilisateur dispose de l'ensemble des droits prévus aux articles 15 à 22 du 
 | **Droit d'opposition (Art. 21)**       | Désactivation de l'intérêt légitime au niveau de chaque fonctionnalité (sauf « Alerte mots de passe réutilisés » qui relève du consentement : désactiver la fonctionnalité équivaut à retirer le consentement).                 |
 | **Décision automatisée (Art. 22)**     | Sans objet — aucune décision produisant des effets juridiques n'est prise par l'extension. Les conseils et rappels sont informatifs et non bloquants.                                  |
 
-**Particularité de l'export « Alerte mots de passe réutilisés » :** pour protéger l'utilisateur contre une éventuelle extraction malveillante, l'export de portabilité **n'inclut pas les empreintes brutes de mots de passe**. Seules les métadonnées agrégées (nombre d'entrées, horodatages, compteurs) sont exportées.
+### 8.1 Particularités de l'export de portabilité (Art. 20)
+
+Pour protéger l'utilisateur contre une éventuelle extraction malveillante, l'export de portabilité applique deux exclusions par défaut :
+
+1. **Empreintes brutes de mots de passe (`password_hashes`)** — exclues. Seules les métadonnées agrégées (nombre d'entrées, horodatages, compteurs) sont exportées. Justification : éviter qu'un attaquant exfiltrant le fichier d'export puisse mener une attaque par dictionnaire sur les hashes.
+
+2. **Registre d'incidents techniques (`m7_incidents`)** — exclu par défaut. Justification : ce registre est un journal forensique de diagnostic technique destiné au mainteneur, pas une donnée personnelle métier de l'utilisateur. L'utilisateur conserve la possibilité de l'inclure explicitement (option « Inclure mon journal de diagnostic » dans la page Options de l'export, désactivée par défaut, accompagnée d'un avertissement sur son contenu technique).
 
 ---
 
@@ -245,7 +269,7 @@ L'utilisateur dispose de l'ensemble des droits prévus aux articles 15 à 22 du 
 
 ## 10. Mesures de sécurité
 
-Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'art, référencées dans le `docs/securite/referentiel-iso27001.md` v1.1 (8 contrôles ISO/IEC 27001:2022 documentés, contrôles A.5.24 / A.5.26 au niveau *Géré* après livraison du runbook de réponse à incident).
+Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'art, référencées dans le `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles ISO/IEC 27001:2022 documentés, contrôles A.5.24 / A.5.26 au niveau *Géré* après livraison du runbook de réponse à incident).
 
 ### 10.1 Mesures techniques
 
@@ -260,6 +284,7 @@ Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'a
 | Aucune dépendance runtime externe                       | Toutes les librairies (zxcvbn, corpus quiz, HSTS list) sont embarquées dans le bundle.           |
 | Validation des messages inter-composants                | `MessageValidator` entre content scripts et service worker pour prévenir toute injection.        |
 | Pattern Cross-Lifecycle-Intent                          | Les intents persistés sont validés, ont un TTL explicite et sont consommés une seule fois.      |
+| Analyse statique SAST automatisée (CodeQL)              | Le code source est scanné en continu par GitHub CodeQL (workflow `codeql.yml`, ruleset OWASP Top 10 + CWE Top 25, exécution à chaque push et hebdomadaire). État au 2026-04-19 : 0 finding (cf. TACHE-187 / TACHE-108 livrée). |
 
 ### 10.2 Mesures organisationnelles
 
@@ -267,8 +292,9 @@ Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'a
 - **Revue de code obligatoire** avant chaque merge (comité revue code formalisé).
 - **Tests automatisés** (Vitest + Playwright) exécutés en intégration continue à chaque *pull request*.
 - **SBOM** (Software Bill of Materials) généré à chaque release.
-- **Runbook de réponse à incident** formalisé (10 étapes, classification P0-P3) — cf. `docs/securite/runbook-reponse-incident.md`.
-- **Référentiel ISO 27001** formalisé — cf. `docs/securite/referentiel-iso27001.md` v1.1.
+- **Runbook de réponse à incident** formalisé (10 étapes, classification P0-P3) — cf. `docs/securite/runbook-reponse-incident-v1.0.md`.
+- **Référentiel ISO 27001** formalisé — cf. `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles tracés post-T-166).
+- **Procédure d'escalade DPO en 6 étapes (E1-E6)** pour tout incident touchant la fonctionnalité « Alerte mots de passe réutilisés » (cf. AIPD v1.3 §6.6).
 
 ### 10.3 Limite assumée sur la clé AES
 
@@ -276,7 +302,7 @@ La clé de chiffrement AES est stockée dans `chrome.storage.local`, inclus dans
 
 ### 10.4 Registre des incidents
 
-Un registre d'incidents local circulaire, en IndexedDB, trace les événements techniques anormaux (corruption de whitelist, échec de déchiffrement, etc.) afin de permettre un diagnostic. Ce registre est **minimisé** (pas de donnée personnelle identifiante, pas de contenu saisi par l'utilisateur) et purgé selon les mêmes règles que les autres stores.
+Un registre d'incidents local circulaire, en IndexedDB (store `m7_incidents`), trace les événements techniques anormaux liés à la fonctionnalité « Alerte mots de passe réutilisés » (corruption de canary, échec de déchiffrement, régénération de clé, etc.) afin de permettre un diagnostic. Ce registre est **minimisé** (pas de donnée personnelle identifiante, pas de contenu saisi par l'utilisateur, pas de domaine en clair ni haché), borné à **500 entrées maximum (FIFO)** avec une **TTL absolue de 365 jours** (purge automatique journalière). Il est **exclus par défaut de l'export de portabilité Art. 20** (voir §8.1).
 
 ---
 
@@ -288,7 +314,7 @@ Par souci de transparence, la présente politique documente explicitement les li
 
 Les formulaires de connexion ou de paiement hébergés dans une **iframe cross-origin** (par exemple Stripe, PayPal, certains SSO tiers, composants d'authentification embarqués) ne sont **pas détectés** par Sentinel Nudge en version 1, conformément au choix de sécurité Option C retenu (`host_permissions` minimales, pas de `<all_urls>`).
 
-**Conséquence pratique :** les fonctionnalités « Alerte mots de passe réutilisés » et « Évaluation de la force des mots de passe » ne se déclenchent pas dans ces iframes. Le risque est documenté (RT-011 du DAT) et son traitement fait l'objet d'une étude en version ultérieure (cf. tâche BACKLOG TACHE-071 « UC-04 iframes cross-origin »).
+**Conséquence pratique :** les fonctionnalités « Alerte mots de passe réutilisés » et « Détection de mots de passe faibles » ne se déclenchent pas dans ces iframes. Le risque est documenté (RT-011 du DAT) et son traitement fait l'objet d'une étude en version ultérieure (cf. tâche BACKLOG TACHE-071 « UC-04 iframes cross-origin »).
 
 ### 11.2 Gestionnaires de mots de passe propriétaires
 
@@ -296,7 +322,7 @@ L'extension ne reconnaît et ne recommande que des **gestionnaires de mots de pa
 
 ### 11.3 Authentification unique (SSO) multi-hostname
 
-Certains systèmes d'authentification unique (notamment Microsoft) redirigent l'utilisateur entre plusieurs noms de domaine distincts pendant le flux de connexion. La détection « Alerte mots de passe réutilisés » peut, dans certains cas, ne pas capturer la saisie sur tous les hostnames intermédiaires. Ce point est documenté dans la matrice de compatibilité providers (`docs/p5-recette/matrice-compatibilite-providers-m7.md`) et fait l'objet d'un suivi spécifique.
+Certains systèmes d'authentification unique (notamment Microsoft) redirigent l'utilisateur entre plusieurs noms de domaine distincts pendant le flux de connexion. La détection « Alerte mots de passe réutilisés » peut, dans certains cas, ne pas capturer la saisie sur tous les hostnames intermédiaires. Ce point est documenté dans la matrice de compatibilité providers (`docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md`) et fait l'objet d'un suivi spécifique.
 
 ### 11.4 Synchronisation du profil navigateur
 
@@ -322,7 +348,7 @@ Le canal public d'échange est le dépôt GitHub de l'extension :
 
 Pour tout signalement confidentiel d'une vulnérabilité susceptible d'affecter la protection des données personnelles :
 
-- **GitHub Security Advisories** — canal privé natif GitHub, conformément au fichier `SECURITY.md` du dépôt.
+- **GitHub Security Advisories** — canal privé natif GitHub, conformément au fichier `SECURITY.md` du dépôt. Cet outil est fourni par GitHub Inc. (cf. §2.4) et n'implique aucun traitement de données personnelles d'utilisateur final par l'éditeur Sentinel Nudge.
 - **SLA** : accusé de réception sous 72 heures, correctif visé sous 30 jours maximum (selon la sévérité).
 
 ### 12.3 Processus interne
@@ -330,7 +356,7 @@ Pour tout signalement confidentiel d'une vulnérabilité susceptible d'affecter 
 Chaque signalement lié aux données personnelles déclenche :
 
 1. Une saisine du DPO de la Fabrique pour évaluation de conformité RGPD.
-2. Une évaluation selon le runbook de réponse à incident (`docs/securite/runbook-reponse-incident.md`), avec classification P0-P3.
+2. Une évaluation selon le runbook de réponse à incident (`docs/securite/runbook-reponse-incident-v1.0.md`), avec classification P0-P3.
 3. Le cas échéant, une mise à jour de la présente politique et une communication publique via le dépôt GitHub.
 
 ---
@@ -364,8 +390,8 @@ Les éléments principaux déjà consolidés :
 - Durées de conservation — cf. §7 de la présente politique.
 - Destinataires — cf. §6 (aucun).
 - Transferts hors UE — cf. §9 (aucun).
-- Mesures de sécurité — cf. §10 et `docs/securite/referentiel-iso27001.md` v1.1.
-- AIPD « Alerte mots de passe réutilisés » — cf. `docs/p3-architecture/p3-aipd-m7-v1.2.md` validée le 2026-04-11.
+- Mesures de sécurité — cf. §10 et `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles tracés).
+- AIPD « Alerte mots de passe réutilisés » — cf. `docs/p3-architecture/p3-aipd-m7-v1.3.md` v1.3 du 2026-04-19.
 
 Le statut particulier de l'éditeur (particulier, sans entreprise, sans accès aux données) et le caractère local du traitement (§2) limitent l'étendue du registre à une formalisation synthétique.
 
@@ -379,6 +405,7 @@ Le statut particulier de l'éditeur (particulier, sans entreprise, sans accès a
 | ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | 1.0     | 2026-04-18 | Version initiale — formalisation complète conforme RGPD Art. 12-14, responsable de traitement, finalités, bases légales, durées, droits, limites. | DPO    |
 | 1.1     | 2026-04-19 | Suppression des codes module (M2, M3, M5, M6, M7, M9, M17) remplacés par des titres clairs user-friendly. Suppression du terme « micro-nudges » (non compréhensible pour l'usager) remplacé par « conseils contextuels » / « rappels ciblés » (feedback Commanditaire). Aucune modification des bases légales, des durées de conservation, des mesures de sécurité ni des droits RGPD. | DPO    |
+| **1.2** | **2026-04-19** | **Corrections de cohérence cross-livrables (E-CROSS-05/06) :** (1) ajout de la fonctionnalité « Détection de mots de passe faibles » au tableau §3 (omission Art. 13.1.c précédemment) ; (2) précisions §7 sur les durées de conservation alignées sur le code source (`weekly_scores` et `quiz_sessions` = 52 semaines, conforme à `src/background/storage-service.ts`) ; (3) ajout au §7 des intents inter-cycle `pending_*` (TTL explicites par intent, déjà implémentés mais absents du tableau précédent) ; (4) ajout §2.4 sur les outils GitHub (Dependabot, Security Advisories, CodeQL) — qualification GitHub Inc. responsable de traitement, hors périmètre éditeur Sentinel Nudge ; (5) §8.1 nouvelle sous-section sur les particularités de l'export Art. 20 (exclusion `password_hashes` et `m7_incidents` par défaut, option utilisateur explicite) ; (6) §10.1 ajout de la mesure technique CodeQL SAST automatisée (TACHE-187) ; (7) §10.4 enrichi sur le registre `m7_incidents` (FIFO 500 + TTL 365 j, exclusion export par défaut) ; (8) §4.5 ajout de la ligne `m7_incidents` dans les données traitées par « Alerte mots de passe réutilisés » ; (9) références AIPD bumpées en v1.3. Aucune modification des bases légales ni des droits RGPD. | DPO    |
 
 ---
 
@@ -387,10 +414,11 @@ Le statut particulier de l'éditeur (particulier, sans entreprise, sans accès a
 - **Règlement (UE) 2016/679 (RGPD)** — https://eur-lex.europa.eu/eli/reg/2016/679/oj
 - **Lignes directrices du CEPD** — https://edpb.europa.eu/our-work-tools/general-guidance_fr
 - **Guides CNIL (AIPD, registre, consentement, cookies, durées de conservation)** — https://www.cnil.fr/fr/rgpd-passer-a-laction
-- **AIPD Sentinel Nudge — Alerte mots de passe réutilisés (v1.2)** — `docs/p3-architecture/p3-aipd-m7-v1.2.md`
-- **DAT Sentinel Nudge v1.3** — `docs/p3-architecture/p3-dat-v1.3.md`
+- **AIPD Sentinel Nudge — Alerte mots de passe réutilisés (v1.3)** — `docs/p3-architecture/p3-aipd-m7-v1.3.md`
+- **DAT Sentinel Nudge v1.4** — `docs/p3-architecture/p3-dat-v1.4.md`
 - **Cahier des charges v1.1** — `docs/p1-besoin/p1-cahier-des-charges-v1.1.md`
-- **Référentiel ISO 27001 v1.1** — `docs/securite/referentiel-iso27001.md`
-- **Runbook réponse à incident** — `docs/securite/runbook-reponse-incident.md`
-- **Registre des traitements Art. 30** — `docs/rgpd/registre-des-traitements-v1.0.md`
+- **Référentiel ISO 27001 v1.2** — `docs/securite/referentiel-iso27001-v1.2.md`
+- **Runbook réponse à incident** — `docs/securite/runbook-reponse-incident-v1.0.md`
+- **Registre des traitements Art. 30** — `docs/rgpd/registre-des-traitements-v1.0.md` (à bumper en v1.1 par T-155 pour aligner les durées `weekly_scores`/`quiz_sessions` à 52 semaines et ajouter les intents `pending_*`)
 - **SECURITY.md** — `SECURITY.md` (racine du dépôt)
+- **GitHub Privacy Statement** — https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement (qualification §2.4)

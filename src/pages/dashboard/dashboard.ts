@@ -31,6 +31,10 @@
 
 import { browser } from '@/shared/browser/browser-adapter';
 import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
+import { createLogger, Logger } from '@/shared/utils/logger';
+
+/** Logger scopé — Dashboard (INV-SEC-02 étendu) */
+const logger = createLogger('Dashboard');
 
 /** Seuil de score vert */
 const SCORE_GREEN = 70;
@@ -741,15 +745,9 @@ async function initDashboard(): Promise<void> {
     errorEl.textContent = 'Impossible de charger le tableau de bord.';
     root.appendChild(errorEl);
 
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Dashboard: erreur initialisation',
-        context: { error: message },
-      }),
-    );
+    logger.error('Dashboard: erreur initialisation', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -758,14 +756,8 @@ document.addEventListener('DOMContentLoaded', () => {
   void initTheme();
   watchThemeChanges();
   initDashboard().catch((err: unknown) => {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Dashboard: erreur inattendue',
-        context: { error: message },
-      }),
-    );
+    logger.error('Dashboard: erreur inattendue', {
+      error_name: Logger.errorName(err),
+    });
   });
 });
