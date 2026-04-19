@@ -17,6 +17,8 @@
  * - Corruption m6_install_date → fallback Date.now() + pas de reject
  * - Corpus vide → action='skip' reason='corpus_unavailable'
  * - Aucun onglet actif → action='skip' reason='no_active_tab'
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -37,36 +39,20 @@ import {
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
 import { PENDING_M6_QUIZ_KEY, PENDING_M6_QUIZ_TTL_MS } from '@/shared/types/diagnostics';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mocks
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 // Onglet actif simulé (modifiable par test)
 let mockActiveTabs: chrome.tabs.Tab[] = [{ id: 42, active: true, index: 0 } as chrome.tabs.Tab];
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((keys: string | string[], callback?: () => void) => {
-        const ks = Array.isArray(keys) ? keys : [keys];
-        ks.forEach((k) => delete mockLocalStorage[k]);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     // Callback-style conforme au browser-adapter : chrome.tabs.query(queryInfo, callback)
@@ -199,32 +185,10 @@ const mockSender = {} as chrome.runtime.MessageSender;
 
 /** Réinitialise le storage et les mocks entre les tests */
 function resetAll(): void {
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  resetStorage();
   mockActiveTabs = [{ id: 42, active: true, index: 0 } as chrome.tabs.Tab];
   vi.clearAllMocks();
 
-  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-      }
-      callback(result);
-    },
-  );
-  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
-  (global.chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string | string[], callback?: () => void) => {
-      const ks = Array.isArray(keys) ? keys : [keys];
-      ks.forEach((k) => delete mockLocalStorage[k]);
-      callback?.();
-    },
-  );
   (global.chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(
     (_queryInfo: object, callback: (tabs: chrome.tabs.Tab[]) => void) => {
       callback(mockActiveTabs);
@@ -255,11 +219,11 @@ beforeEach(resetAll);
 describe('handleCheckQuiz — date de quiz dépassée → quiz déclenché', () => {
   it('TC-M6-CQ-01 : m6_next_quiz_date dans le passé → action=show', async () => {
     // Date du prochain quiz = il y a 1 heure
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() - 60 * 60 * 1000;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() - 60 * 60 * 1000 });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -269,9 +233,9 @@ describe('handleCheckQuiz — date de quiz dépassée → quiz déclenché', () 
 
   it('TC-M6-CQ-02 : m6_next_quiz_date absent (jamais planifié) → quiz immédiat (action=show)', async () => {
     // Aucune date dans le storage → firstQuiz
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -280,11 +244,11 @@ describe('handleCheckQuiz — date de quiz dépassée → quiz déclenché', () 
   });
 
   it('TC-M6-CQ-03 : m6_next_quiz_date=0 (valeur passée) → quiz déclenché', async () => {
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = 0;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: 0 });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -297,11 +261,11 @@ describe('handleCheckQuiz — date de quiz dépassée → quiz déclenché', () 
 describe('handleCheckQuiz — date pas encore atteinte → skip', () => {
   it('TC-M6-CQ-04 : m6_next_quiz_date dans le futur, pas de pending → skip reason=not_scheduled_yet', async () => {
     // Date du prochain quiz dans 7 jours
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() + 7 * 24 * 60 * 60 * 1000 });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -311,13 +275,13 @@ describe('handleCheckQuiz — date pas encore atteinte → skip', () => {
   });
 
   it('TC-M6-CQ-05 : pending_m6_quiz présent mais expires_at périmé → purge + skip', async () => {
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() + 24 * 60 * 60 * 1000;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() + 24 * 60 * 60 * 1000 });
     // Pending périmé (expires_at dans le passé)
-    mockLocalStorage[PENDING_M6_QUIZ_KEY] = { expires_at: Date.now() - 1000 };
+    await storage.set({ [PENDING_M6_QUIZ_KEY]: { expires_at: Date.now() - 1000 } });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -325,17 +289,17 @@ describe('handleCheckQuiz — date pas encore atteinte → skip', () => {
     expect(response.action).toBe('skip');
     expect(response.reason).toBe('not_scheduled_yet');
     // Pending périmé doit être purgé
-    expect(mockLocalStorage[PENDING_M6_QUIZ_KEY]).toBeUndefined();
+    expect((await storage.get(PENDING_M6_QUIZ_KEY))[PENDING_M6_QUIZ_KEY]).toBeUndefined();
   });
 
   it('TC-M6-CQ-06 : pending_m6_quiz malformé (pas un objet) → skip', async () => {
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() + 24 * 60 * 60 * 1000;
-    // Pending malformé
-    mockLocalStorage[PENDING_M6_QUIZ_KEY] = 'invalid-string';
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() + 24 * 60 * 60 * 1000 });
+    // Pending malformé — le wrapper JSON-strict accepte une string
+    await storage.set({ [PENDING_M6_QUIZ_KEY]: 'invalid-string' });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -352,16 +316,16 @@ describe('handleCheckQuiz — date pas encore atteinte → skip', () => {
 describe('handleCheckQuiz — corpus et onglet actif', () => {
   it('TC-M6-CQ-07 : corpus vide → action=skip reason=corpus_unavailable', async () => {
     // Date dépassée
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() - 1000;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() - 1000 });
     // Corpus vide
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 404,
     });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -372,13 +336,13 @@ describe('handleCheckQuiz — corpus et onglet actif', () => {
 
   it('TC-M6-CQ-08 : aucun onglet actif → action=skip reason=no_active_tab', async () => {
     // Date dépassée
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() - 1000;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() - 1000 });
     // Pas d'onglet actif
     mockActiveTabs = [];
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -389,11 +353,11 @@ describe('handleCheckQuiz — corpus et onglet actif', () => {
 
   it('TC-M6-CQ-09 : quiz déclenché → sendMessage envoyé avec questions', async () => {
     // Date dépassée
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() - 1000;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() - 1000 });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -409,18 +373,20 @@ describe('handleCheckQuiz — corpus et onglet actif', () => {
   });
 
   it('TC-M6-CQ-10 : après déclenchement, pending_m6_quiz est purgé (R-CLI-05 one-shot)', async () => {
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = Date.now() - 1000;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: Date.now() - 1000 });
     // Pending présent avant le déclenchement
-    mockLocalStorage[PENDING_M6_QUIZ_KEY] = { expires_at: Date.now() + PENDING_M6_QUIZ_TTL_MS };
+    await storage.set({
+      [PENDING_M6_QUIZ_KEY]: { expires_at: Date.now() + PENDING_M6_QUIZ_TTL_MS },
+    });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     await handler(buildM6Message('check_quiz'), mockSender);
 
     // Purge one-shot après affichage (R-CLI-05)
-    expect(mockLocalStorage[PENDING_M6_QUIZ_KEY]).toBeUndefined();
+    expect((await storage.get(PENDING_M6_QUIZ_KEY))[PENDING_M6_QUIZ_KEY]).toBeUndefined();
   });
 });
 
@@ -513,12 +479,13 @@ describe('getOrInitInstallDate — fallback corruption m6_install_date', () => {
     expect(result).toBeGreaterThanOrEqual(before);
     expect(result).toBeLessThanOrEqual(after);
     // Persisté dans le storage
-    expect(typeof mockLocalStorage[M6_INSTALL_DATE_KEY]).toBe('number');
+    const stored = (await storage.get(M6_INSTALL_DATE_KEY))[M6_INSTALL_DATE_KEY];
+    expect(typeof stored).toBe('number');
   });
 
   it('TC-M6-CQ-22 : m6_install_date valide → retourne la valeur existante', async () => {
     const validTs = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    mockLocalStorage[M6_INSTALL_DATE_KEY] = validTs;
+    await storage.set({ [M6_INSTALL_DATE_KEY]: validTs });
 
     const result = await getOrInitInstallDate();
     expect(result).toBe(validTs);
@@ -537,7 +504,7 @@ describe('getNextQuizDate', () => {
 
   it('TC-M6-CQ-24 : m6_next_quiz_date présent → retourne la valeur', async () => {
     const futureDate = Date.now() + 7 * 24 * 60 * 60 * 1000;
-    mockLocalStorage[M6_NEXT_QUIZ_DATE_KEY] = futureDate;
+    await storage.set({ [M6_NEXT_QUIZ_DATE_KEY]: futureDate });
 
     const result = await getNextQuizDate();
     expect(result).toBe(futureDate);
