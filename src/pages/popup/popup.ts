@@ -44,6 +44,10 @@ import {
   DIAGNOSTICS_M9_KEY,
   DIAGNOSTICS_M17_KEY,
 } from '@/shared/types/diagnostics';
+import { createLogger, Logger } from '@/shared/utils/logger';
+
+/** Logger scopé — Popup (INV-SEC-02 étendu) */
+const logger = createLogger('Popup');
 
 /** Score seuil vert (>= 70) */
 const SCORE_GREEN_THRESHOLD = 70;
@@ -795,15 +799,9 @@ async function initPopup(): Promise<void> {
       browser.i18n.getMessage('popup_error') || 'Impossible de récupérer les données';
     root.appendChild(errorEl);
 
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.warn(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'warn',
-        message: 'Popup: échec récupération état SW',
-        context: { error: message },
-      }),
-    );
+    logger.warn('Popup: échec récupération état SW', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -812,14 +810,8 @@ document.addEventListener('DOMContentLoaded', () => {
   void initTheme();
   watchThemeChanges();
   initPopup().catch((err: unknown) => {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Popup: erreur inattendue',
-        context: { error: message },
-      }),
-    );
+    logger.error('Popup: erreur inattendue', {
+      error_name: Logger.errorName(err),
+    });
   });
 });
