@@ -167,9 +167,10 @@ const alarmDispatcher: AlarmDispatcher = {
   /**
    * Purge des données expirées (alarme quotidienne 02h00).
    *
-   * Deux étapes :
+   * Trois étapes :
    * 1. Purge IndexedDB (événements > 90 jours via storageService.purgeExpired)
    * 2. Purge chrome.storage.local des clés `pending_*` expirées (TACHE-093 / ADR-002)
+   * 3. Purge m7_incidents expirés > 365 jours (T-159 R-074-02 / Art. 5.1.e RGPD)
    */
   async onPurgeDaily(): Promise<void> {
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
@@ -179,6 +180,11 @@ const alarmDispatcher: AlarmDispatcher = {
     // Purge des intents cross-lifecycle expirés (ADR-002 §Conséquences négatives)
     // Empêche l'accumulation silencieuse de clés pending_* dans chrome.storage.local (~5 Mo quota).
     await purgePendingIntents();
+
+    // T-159 R-074-02 : purge TTL absolue 365j du registre m7_incidents (Art. 5.1.e RGPD).
+    // incidentService.db doit être initialisée — storageService.initDB() est appelé ci-dessus
+    // et partage la même IDBDatabase via initService() au boot SW.
+    await incidentService.purgeOldEntries(365);
   },
 };
 

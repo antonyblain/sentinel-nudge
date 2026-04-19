@@ -6,6 +6,8 @@
  * - analyzeRisks : détection HTTP, HSTS, Levenshtein, exclusions localhost
  * - createM2Handler : validation payload, whitelist, session dedup, signaux insuffisants
  * - initBootM2 : boot happy path, whitelist absente, whitelist corrompue, diagnostics.m2 (TACHE-085)
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -15,35 +17,17 @@ import { initBootM2, readM2Diagnostics } from '@/background/services/m2-boot-ser
 import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
 import type { IncidentService } from '@/background/services/incident-service';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Setup : mock de chrome.storage.local pour la déduplication de session
-// Le browser-adapter wrappant chrome.storage.local avec des callbacks,
-// le mock doit respecter la signature callback(result) de l'API Chrome.
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((key: string | string[], callback?: () => void) => {
-        const keys = Array.isArray(key) ? key : [key];
-        keys.forEach((k) => delete mockLocalStorage[k]);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     create: vi.fn().mockResolvedValue({}),
@@ -101,28 +85,6 @@ function createMockIncidentService(): {
     }),
   };
   return { service, incidents };
-}
-
-/** Réinitialise le mock storage et les mocks Vitest */
-function resetStorage(): void {
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
-  vi.clearAllMocks();
-  // Réinitialiser les implémentations chrome.storage.local
-  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-      }
-      callback(result);
-    },
-  );
-  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -197,31 +159,16 @@ describe('analyzeRisks', () => {
 // ---------------------------------------------------------------------------
 
 describe('createM2Handler — validation du payload', () => {
-  beforeEach(() => {
-    // Vider la session de déduplication
-    mockLocalStorage['m2_session_domains'] = [];
+  beforeEach(async () => {
+    resetStorage();
     vi.clearAllMocks();
-    // Réinitialiser le mock avec la signature callback
-    (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-      (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      },
-    );
-    (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-      (items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      },
-    );
+    // Pré-initialiser la session de déduplication vide
+    await storage.set({ m2_session_domains: [] });
   });
 
   it('rejette une action inconnue', async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message(
       { signals: ['http', 'hsts_miss'], domain_hash: DOMAIN_HASH_VALID },
       'unknown_action',
@@ -233,8 +180,8 @@ describe('createM2Handler — validation du payload', () => {
   });
 
   it('rejette un domain_hash invalide (format incorrect)', async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({ signals: ['http', 'hsts_miss'], domain_hash: 'invalid-hash' });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -243,8 +190,8 @@ describe('createM2Handler — validation du payload', () => {
   });
 
   it("rejette si signals n'est pas un tableau", async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({ signals: 'http', domain_hash: DOMAIN_HASH_VALID });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -258,29 +205,15 @@ describe('createM2Handler — validation du payload', () => {
 // ---------------------------------------------------------------------------
 
 describe('createM2Handler — logique métier', () => {
-  beforeEach(() => {
-    mockLocalStorage['m2_session_domains'] = [];
+  beforeEach(async () => {
+    resetStorage();
     vi.clearAllMocks();
-    (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-      (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      },
-    );
-    (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-      (items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      },
-    );
+    await storage.set({ m2_session_domains: [] });
   });
 
   it('skip si moins de 2 signaux (SFD §2.1)', async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({
       signals: ['http'], // 1 seul signal
       domain_hash: DOMAIN_HASH_VALID,
@@ -293,8 +226,8 @@ describe('createM2Handler — logique métier', () => {
   });
 
   it('skip si le domaine est en whitelist M2', async () => {
-    const storage = createMockStorage({ isWhitelisted: true });
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({ isWhitelisted: true });
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({
       signals: ['http', 'hsts_miss'],
       domain_hash: DOMAIN_HASH_VALID,
@@ -307,9 +240,9 @@ describe('createM2Handler — logique métier', () => {
   });
 
   it('skip si le domaine a déjà été nudgé dans cette session', async () => {
-    mockLocalStorage['m2_session_domains'] = [DOMAIN_HASH_VALID];
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    await storage.set({ m2_session_domains: [DOMAIN_HASH_VALID] });
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({
       signals: ['http', 'hsts_miss'],
       domain_hash: DOMAIN_HASH_VALID,
@@ -322,8 +255,8 @@ describe('createM2Handler — logique métier', () => {
   });
 
   it('retourne show quand toutes les conditions sont remplies', async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({
       signals: ['http', 'hsts_miss'],
       domain_hash: DOMAIN_HASH_VALID,
@@ -338,8 +271,8 @@ describe('createM2Handler — logique métier', () => {
   });
 
   it("enregistre le domaine en session après l'affichage", async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({
       signals: ['http', 'hsts_miss'],
       domain_hash: DOMAIN_HASH_VALID,
@@ -347,33 +280,34 @@ describe('createM2Handler — logique métier', () => {
     await handler(msg, {} as chrome.runtime.MessageSender);
 
     // La session doit contenir le domaine
-    const session = mockLocalStorage['m2_session_domains'] as string[];
+    const session = (await storage.get('m2_session_domains'))['m2_session_domains'] as string[];
     expect(session).toContain(DOMAIN_HASH_VALID);
   });
 
   it("n'ajoute pas le domaine en session si skip (signaux insuffisants)", async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({
       signals: ['http'], // 1 signal → skip
       domain_hash: DOMAIN_HASH_VALID,
     });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
-    const session = (mockLocalStorage['m2_session_domains'] as string[]) ?? [];
+    const session =
+      ((await storage.get('m2_session_domains'))['m2_session_domains'] as string[]) ?? [];
     expect(session).not.toContain(DOMAIN_HASH_VALID);
   });
 
   it("logue l'événement pour M3 quand le nudge est affiché", async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({
       signals: ['http', 'hsts_miss'],
       domain_hash: DOMAIN_HASH_VALID,
     });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStor.logEvent).toHaveBeenCalledWith(
       'M2',
       expect.objectContaining({ action: 'shown', signals: ['http', 'hsts_miss'] }),
       expect.anything(),
@@ -381,8 +315,8 @@ describe('createM2Handler — logique métier', () => {
   });
 
   it('deux domaines différents dans la même session : les deux sont nudgés', async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
 
     // Premier domaine
     const msg1 = buildM2Message({
@@ -407,29 +341,15 @@ describe('createM2Handler — logique métier', () => {
 // ---------------------------------------------------------------------------
 
 describe('createM2Handler — overlay_action', () => {
-  beforeEach(() => {
-    mockLocalStorage['m2_session_domains'] = [];
+  beforeEach(async () => {
+    resetStorage();
     vi.clearAllMocks();
-    (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-      (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      },
-    );
-    (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-      (items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      },
-    );
+    await storage.set({ m2_session_domains: [] });
   });
 
   it('ajoute le domaine en whitelist quand user_action=trusted', async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message(
       { user_action: 'trusted', domain_hash: DOMAIN_HASH_VALID, signals: ['http', 'hsts_miss'] },
       'overlay_action',
@@ -437,19 +357,19 @@ describe('createM2Handler — overlay_action', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_VALID, 'M2');
+    expect(mockStor.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_VALID, 'M2');
   });
 
   it("enregistre l'événement pour dismissed", async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message(
       { user_action: 'dismissed', domain_hash: DOMAIN_HASH_VALID, signals: ['http', 'hsts_miss'] },
       'overlay_action',
     );
     await handler(msg, {} as chrome.runtime.MessageSender);
 
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStor.logEvent).toHaveBeenCalledWith(
       'M2',
       expect.objectContaining({ action: 'dismissed' }),
       expect.anything(),
@@ -457,8 +377,8 @@ describe('createM2Handler — overlay_action', () => {
   });
 
   it('rejette un payload sans user_action', async () => {
-    const storage = createMockStorage({});
-    const handler = createM2Handler(storage as StorageService, createFakeKey());
+    const mockStor = createMockStorage({});
+    const handler = createM2Handler(mockStor as StorageService, createFakeKey());
     const msg = buildM2Message({ domain_hash: DOMAIN_HASH_VALID }, 'overlay_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -472,12 +392,15 @@ describe('createM2Handler — overlay_action', () => {
 // ---------------------------------------------------------------------------
 
 describe('initBootM2 — boot happy path (whitelist valide présente)', () => {
-  beforeEach(resetStorage);
+  beforeEach(() => {
+    resetStorage();
+    vi.clearAllMocks();
+  });
 
-  it('TC-M2-BOOT-01 : whitelist valide présente → ready=true, pas d\'incident', async () => {
+  it("TC-M2-BOOT-01 : whitelist valide présente → ready=true, pas d'incident", async () => {
     // Setup : whitelist valide dans le storage
     const validWhitelist = ['paypal.com', 'google.com', 'amazon.com'];
-    mockLocalStorage['whitelist_m2'] = validWhitelist;
+    await storage.set({ whitelist_m2: validWhitelist });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM2(service as IncidentService);
@@ -490,12 +413,15 @@ describe('initBootM2 — boot happy path (whitelist valide présente)', () => {
   });
 
   it('TC-M2-BOOT-02 : diagnostics.m2 persiste ready=true dans chrome.storage.local', async () => {
-    mockLocalStorage['whitelist_m2'] = ['paypal.com', 'google.com'];
+    await storage.set({ whitelist_m2: ['paypal.com', 'google.com'] });
 
     const { service } = createMockIncidentService();
     await initBootM2(service as IncidentService);
 
-    const stored = mockLocalStorage['diagnostics.m2'] as Record<string, unknown>;
+    const stored = (await storage.get('diagnostics.m2'))['diagnostics.m2'] as Record<
+      string,
+      unknown
+    >;
     expect(stored).toBeDefined();
     expect(stored['ready']).toBe(true);
     expect(stored['whitelist_size']).toBe(2);
@@ -504,17 +430,18 @@ describe('initBootM2 — boot happy path (whitelist valide présente)', () => {
 
   it('TC-M2-BOOT-03 : whitelist valide → whitelist_m2 non modifiée', async () => {
     const validWhitelist = ['paypal.com', 'amazon.com'];
-    mockLocalStorage['whitelist_m2'] = validWhitelist;
+    await storage.set({ whitelist_m2: validWhitelist });
 
     const { service } = createMockIncidentService();
     await initBootM2(service as IncidentService);
 
     // La whitelist ne doit pas être réécrite quand elle est valide
-    expect(mockLocalStorage['whitelist_m2']).toEqual(validWhitelist);
+    const stored = (await storage.get('whitelist_m2'))['whitelist_m2'];
+    expect(stored).toEqual(validWhitelist);
   });
 
-  it('TC-M2-BOOT-04 : readM2Diagnostics retourne l\'état persisté après boot', async () => {
-    mockLocalStorage['whitelist_m2'] = ['paypal.com', 'google.com', 'amazon.com'];
+  it("TC-M2-BOOT-04 : readM2Diagnostics retourne l'état persisté après boot", async () => {
+    await storage.set({ whitelist_m2: ['paypal.com', 'google.com', 'amazon.com'] });
 
     const { service } = createMockIncidentService();
     await initBootM2(service as IncidentService);
@@ -526,7 +453,10 @@ describe('initBootM2 — boot happy path (whitelist valide présente)', () => {
 });
 
 describe('initBootM2 — whitelist absente (premier boot)', () => {
-  beforeEach(resetStorage);
+  beforeEach(() => {
+    resetStorage();
+    vi.clearAllMocks();
+  });
 
   it('TC-M2-BOOT-05 : whitelist absente → régénération depuis typosquatting-targets.json', async () => {
     // Aucune whitelist dans le storage (premier install)
@@ -539,7 +469,7 @@ describe('initBootM2 — whitelist absente (premier boot)', () => {
     expect(diag.whitelist_size).toBeGreaterThan(0);
 
     // La whitelist doit être présente dans le storage
-    const stored = mockLocalStorage['whitelist_m2'];
+    const stored = (await storage.get('whitelist_m2'))['whitelist_m2'];
     expect(Array.isArray(stored)).toBe(true);
     expect((stored as string[]).length).toBeGreaterThan(0);
   });
@@ -564,7 +494,7 @@ describe('initBootM2 — whitelist absente (premier boot)', () => {
     expect(diag.last_incident?.ts).toBeGreaterThan(0);
   });
 
-  it('TC-M2-BOOT-08 : whitelist absente → PAS d\'incident whitelist_corrupted', async () => {
+  it("TC-M2-BOOT-08 : whitelist absente → PAS d'incident whitelist_corrupted", async () => {
     const { service, incidents } = createMockIncidentService();
     await initBootM2(service as IncidentService);
 
@@ -574,11 +504,14 @@ describe('initBootM2 — whitelist absente (premier boot)', () => {
 });
 
 describe('initBootM2 — whitelist corrompue (shape invalide)', () => {
-  beforeEach(resetStorage);
+  beforeEach(() => {
+    resetStorage();
+    vi.clearAllMocks();
+  });
 
   it('TC-M2-BOOT-09 : whitelist = objet non-tableau → incident whitelist_corrupted (error)', async () => {
     // Corruption : l'entrée est un objet au lieu d'un tableau
-    mockLocalStorage['whitelist_m2'] = { corrupted: true };
+    await storage.set({ whitelist_m2: { corrupted: true } });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM2(service as IncidentService);
@@ -592,7 +525,7 @@ describe('initBootM2 — whitelist corrompue (shape invalide)', () => {
   });
 
   it('TC-M2-BOOT-10 : whitelist corrompue → incident whitelist_regenerated (warn) après corruption', async () => {
-    mockLocalStorage['whitelist_m2'] = 'not-an-array';
+    await storage.set({ whitelist_m2: 'not-an-array' });
 
     const { service, incidents } = createMockIncidentService();
     await initBootM2(service as IncidentService);
@@ -604,7 +537,7 @@ describe('initBootM2 — whitelist corrompue (shape invalide)', () => {
 
   it('TC-M2-BOOT-11 : whitelist = tableau vide → traitée comme invalide → régénération', async () => {
     // Un tableau vide ne satisfait pas l'invariant INV-M2-01 (whitelist_size > 0 si ready=true)
-    mockLocalStorage['whitelist_m2'] = [];
+    await storage.set({ whitelist_m2: [] });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM2(service as IncidentService);
@@ -617,12 +550,12 @@ describe('initBootM2 — whitelist corrompue (shape invalide)', () => {
   });
 
   it('TC-M2-BOOT-12 : whitelist corrompue → whitelist_m2 régénérée dans storage', async () => {
-    mockLocalStorage['whitelist_m2'] = 42; // nombre = shape invalide
+    await storage.set({ whitelist_m2: 42 }); // nombre = shape invalide
 
     const { service } = createMockIncidentService();
     await initBootM2(service as IncidentService);
 
-    const stored = mockLocalStorage['whitelist_m2'];
+    const stored = (await storage.get('whitelist_m2'))['whitelist_m2'];
     expect(Array.isArray(stored)).toBe(true);
     expect((stored as string[]).length).toBeGreaterThan(0);
     // Vérifier que ce sont bien des strings de domaines
@@ -630,7 +563,7 @@ describe('initBootM2 — whitelist corrompue (shape invalide)', () => {
   });
 
   it('TC-M2-BOOT-13 : whitelist corrompue → diagnostics.m2.last_incident de type whitelist_corrupted', async () => {
-    mockLocalStorage['whitelist_m2'] = { invalid: 'object' };
+    await storage.set({ whitelist_m2: { invalid: 'object' } });
 
     const { service } = createMockIncidentService();
     const diag = await initBootM2(service as IncidentService);
@@ -642,31 +575,34 @@ describe('initBootM2 — whitelist corrompue (shape invalide)', () => {
 
   it('TC-M2-BOOT-14 : whitelist avec entrées non-string → régénération', async () => {
     // Tableau avec entrées non conformes (nombres au lieu de strings)
-    mockLocalStorage['whitelist_m2'] = [1, 2, 3];
+    await storage.set({ whitelist_m2: [1, 2, 3] });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM2(service as IncidentService);
 
     expect(diag.ready).toBe(true);
-    const stored = mockLocalStorage['whitelist_m2'] as string[];
+    const stored = (await storage.get('whitelist_m2'))['whitelist_m2'] as string[];
     expect(typeof stored[0]).toBe('string');
     expect(incidents.some((i) => i.type === 'whitelist_corrupted')).toBe(true);
   });
 });
 
 describe('initBootM2 — état initial conservatif', () => {
-  beforeEach(resetStorage);
+  beforeEach(() => {
+    resetStorage();
+    vi.clearAllMocks();
+  });
 
   it('TC-M2-BOOT-15 : diagnostics.m2 posé à ready=false au début du boot (état conservatif)', async () => {
     // Whitelist valide — vérifie que l'état conservatif est posé avant la validation
-    mockLocalStorage['whitelist_m2'] = ['paypal.com'];
+    await storage.set({ whitelist_m2: ['paypal.com'] });
 
     let conservativeStateObserved = false;
-    const originalSet = (global.chrome.storage.local.set as ReturnType<typeof vi.fn>);
-
-    // Intercepter le premier appel à set (état conservatif) avant que le résultat final soit écrit
     let callCount = 0;
-    originalSet.mockImplementation((items: Record<string, unknown>, callback?: () => void) => {
+
+    // Espionner storage.set pour intercepter le premier appel (état conservatif)
+    const originalSet = storage.set.bind(storage);
+    const spy = vi.spyOn(storage, 'set').mockImplementation(async (items, callback) => {
       callCount++;
       if (callCount === 1 && items['diagnostics.m2']) {
         const diag = items['diagnostics.m2'] as Record<string, unknown>;
@@ -674,13 +610,13 @@ describe('initBootM2 — état initial conservatif', () => {
           conservativeStateObserved = true;
         }
       }
-      Object.assign(mockLocalStorage, items);
-      callback?.();
+      return originalSet(items, callback);
     });
 
     const { service } = createMockIncidentService();
     await initBootM2(service as IncidentService);
 
+    spy.mockRestore();
     expect(conservativeStateObserved).toBe(true);
   });
 
