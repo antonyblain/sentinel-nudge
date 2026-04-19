@@ -29,11 +29,13 @@ body {
   font-weight: var(--sn-font-weight-normal);
   line-height: var(--sn-line-height);
   color: var(--sn-color-fg);
-  background-color: var(--sn-color-bg);
+  background-color: var(
+    --sn-color-surface
+  ); /* T-157(b): aligner body.bg avec popup-root (evite artefact coins Aegis Light) */
   width: 320px;
   min-height: 360px;
   max-height: 600px;
-  overflow-y: auto;
+  overflow-y: hidden; /* T-157(d): pas de scrollbar residuelle MV3 */
   -webkit-font-smoothing: antialiased;
 }
 
@@ -44,6 +46,22 @@ body {
   overflow: hidden;
   box-shadow: var(--sn-shadow-lg);
   position: relative; /* requis pour ::before/::after dégradés thème Matrix */
+}
+
+/* (a) T-157 — Midnight Obsidian : border-radius popup-root = radius-xl (20px, maquette v3) */
+@media (prefers-color-scheme: dark) {
+  #popup-root {
+    border-radius: var(--sn-radius-xl);
+  }
+}
+
+[data-theme='dark'] #popup-root {
+  border-radius: var(--sn-radius-xl);
+}
+
+/* (a) T-157 — Force Aegis Light border-radius (override si data-theme=light + OS dark) */
+[data-theme='light'] #popup-root {
+  border-radius: var(--sn-radius-lg);
 }
 
 /* Thème Matrix (Cyberpunk Neon) — dégradé magenta→cyan en haut + bas + glow externe */
@@ -270,7 +288,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--sn-space-sm);
-  padding: 20px;
+  padding: 16px 20px; /* T-157(d): reduit de 20px->16px top/bottom */
 }
 
 /* ─── Titre de section (ex: "MODULES ACTIFS") ───────────────────────────── */
