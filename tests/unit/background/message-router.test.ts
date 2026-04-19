@@ -14,7 +14,7 @@
  *   - rate_limit_exceeded → response error + incident loggue si incidentService
  *   - exception handler → response error reason=internal_error
  *   - quota increment uniquement si action === 'show' et non critique
- * - setIncidentService : injection apres construction
+ * - injection IncidentService : au constructeur (T-103, anciennement setIncidentService)
  * - listen() : enregistre un seul listener
  * - validateNudgeMessage : rejet des messages invalides (module absent, action vide, timestamp absent)
  * - R-CLI-05 : incidentService null (pas d'injection) → rate_limit drop sans crash
@@ -312,8 +312,8 @@ describe('MessageRouter — rate_limit_exceeded', () => {
   it('TC-MR-11 : rate_limit avec incidentService → incident loggue severity=warn', async () => {
     vi.useFakeTimers();
     const { svc, calls } = createIncidentMock();
-    const router = new MessageRouter(createPermissiveQuotaMock());
-    router.setIncidentService(svc);
+    // T-103 : incidentService passé au constructeur (plus de setIncidentService)
+    const router = new MessageRouter(createPermissiveQuotaMock(), svc);
     router.registerHandler('M3', vi.fn().mockResolvedValue({ success: true, action: 'show' }));
 
     const sender: chrome.runtime.MessageSender = { tab: { id: 99 } as chrome.tabs.Tab };
@@ -331,8 +331,8 @@ describe('MessageRouter — rate_limit_exceeded', () => {
 
   it('TC-MR-12 : rate_limit sans incidentService → pas de crash (R-CLI-05)', async () => {
     vi.useFakeTimers();
-    // Pas d'injection d'incidentService → incidentService = null
-    const router = new MessageRouter(createPermissiveQuotaMock());
+    // T-103 : null passé explicitement au constructeur (pas de service d'incidents)
+    const router = new MessageRouter(createPermissiveQuotaMock(), null);
     router.registerHandler('M3', vi.fn().mockResolvedValue({ success: true, action: 'show' }));
 
     const sender: chrome.runtime.MessageSender = { tab: { id: 1 } as chrome.tabs.Tab };
@@ -391,14 +391,18 @@ describe('MessageRouter — exception handler', () => {
 });
 
 // ---------------------------------------------------------------------------
-// TC-MR-14 : setIncidentService
+// TC-MR-14 : injection IncidentService via constructeur (T-103)
 // ---------------------------------------------------------------------------
 
-describe('MessageRouter — setIncidentService', () => {
-  it('TC-MR-14 : setIncidentService injecte le service sans erreur', () => {
-    const router = new MessageRouter(createPermissiveQuotaMock());
+describe('MessageRouter — injection IncidentService au constructeur', () => {
+  it('TC-MR-14 : constructeur accepte incidentService sans erreur', () => {
     const { svc } = createIncidentMock();
-    expect(() => router.setIncidentService(svc)).not.toThrow();
+    // T-103 : injection au constructeur — pas de setIncidentService post-instanciation
+    expect(() => new MessageRouter(createPermissiveQuotaMock(), svc)).not.toThrow();
+  });
+
+  it("TC-MR-14b : constructeur sans incidentService (null par défaut) ne lève pas d'erreur", () => {
+    expect(() => new MessageRouter(createPermissiveQuotaMock())).not.toThrow();
   });
 });
 
@@ -412,12 +416,19 @@ describe('validateNudgeMessage — NC-SEC-01', () => {
   });
 
   it('TC-MR-15b : module absent → false', () => {
-    expect(validateNudgeMessage({ action: 'show', payload: {}, timestamp: Date.now() })).toBe(false);
+    expect(validateNudgeMessage({ action: 'show', payload: {}, timestamp: Date.now() })).toBe(
+      false,
+    );
   });
 
   it('TC-MR-15c : module inconnu → false', () => {
     expect(
-      validateNudgeMessage({ module: 'UNKNOWN', action: 'show', payload: {}, timestamp: Date.now() }),
+      validateNudgeMessage({
+        module: 'UNKNOWN',
+        action: 'show',
+        payload: {},
+        timestamp: Date.now(),
+      }),
     ).toBe(false);
   });
 
@@ -450,7 +461,12 @@ describe('validateNudgeMessage — NC-SEC-01', () => {
 
   it('TC-MR-15h : module EXPORT (interne) → true', () => {
     expect(
-      validateNudgeMessage({ module: 'EXPORT', action: 'get_data', payload: {}, timestamp: Date.now() }),
+      validateNudgeMessage({
+        module: 'EXPORT',
+        action: 'get_data',
+        payload: {},
+        timestamp: Date.now(),
+      }),
     ).toBe(true);
   });
 });
@@ -486,9 +502,9 @@ describe('MessageRouter — isolation rate-limit par tab.id', () => {
       await dispatchMsg(router, msg, senderTab1);
     }
     const tab1Result = await dispatchMsg(router, msg, senderTab1);
-    expect(
-      (tab1Result as Record<string, unknown>)['error'] ?? tab1Result.reason,
-    ).toBe('rate_limit_exceeded');
+    expect((tab1Result as Record<string, unknown>)['error'] ?? tab1Result.reason).toBe(
+      'rate_limit_exceeded',
+    );
 
     // tab2 doit etre autorise
     const tab2Result = await dispatchMsg(router, msg, senderTab2);

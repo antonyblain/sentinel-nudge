@@ -60,15 +60,18 @@ import { createLogger, Logger } from '@/shared/utils/logger';
 const cryptoService = new CryptoService();
 const storageService = new StorageService(cryptoService);
 const quotaManager = new QuotaManager(storageService);
-const messageRouter = new MessageRouter(quotaManager);
-const scoreCalculator = new ScoreCalculator(storageService);
 
 // Services TACHE-061 : Heartbeat M7, Canary hash, Registre d'incidents
 const heartbeatService = new HeartbeatService();
 const canaryService = new CanaryService(cryptoService);
-// IncidentService est instancie apres storageService.initDB() (ARB-061-01)
+// IncidentService instancié AVANT MessageRouter (T-103) : permet l'injection au constructeur
 // et expose un buffer memoire pré-init pour ne pas perdre les incidents du boot (ARB-061-02)
 const incidentService = new IncidentService();
+
+// T-103 : incidentService passé au constructeur — élimine la fenêtre boot ~100ms
+// durant laquelle un incident rate_limit_exceeded aurait été silencieusement perdu.
+const messageRouter = new MessageRouter(quotaManager, incidentService);
+const scoreCalculator = new ScoreCalculator(storageService);
 
 /** Logger scopé ServiceWorker — mitigation R-M7-08 / TACHE-083 */
 const swLogger = createLogger('ServiceWorker');
@@ -631,8 +634,7 @@ void (async () => {
 
     // Étape 3 — Flush du buffer pré-init (ARB-061-02)
     await incidentService.initService(storageService.getDB());
-    // UC-03 / INV-UC03-05 : injecter le service d'incidents dans le routeur pour les incidents rate_limit_exceeded
-    messageRouter.setIncidentService(incidentService);
+    // T-103 : injection déjà effectuée au constructeur — setIncidentService supprimé.
     // OBS-04 / TACHE-078 : injecter incidentService dans heartbeatService pour instrumenter heartbeat_write
     heartbeatService.setIncidentService(incidentService);
 
