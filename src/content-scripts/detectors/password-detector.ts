@@ -1156,6 +1156,39 @@ async function handleFocusOnPasswordField(field: HTMLInputElement): Promise<void
 }
 
 // ---------------------------------------------------------------------------
+// UC-07/UC-08 — Filtre M7 : détection champ de création (autocomplete)
+// ---------------------------------------------------------------------------
+
+/**
+ * Détermine si un champ password est un champ de **création** de mot de passe
+ * (signup / changement de mot de passe) via l'attribut HTML autocomplete W3C.
+ *
+ * Un champ avec autocomplete contenant le token "new-password" signale explicitement
+ * qu'un nouveau mot de passe est en cours de création. Dans ce cas, M7 (détection de
+ * réutilisation inter-domaines) NE DOIT PAS s'activer : le mot de passe n'existe pas
+ * encore et aucune réutilisation n'est possible (UC-07/UC-08 — D-PM-06).
+ *
+ * M9 (évaluation de la force) RESTE ACTIF sur ces champs — c'est son use case
+ * principal (alerter sur un mot de passe faible lors d'un signup).
+ *
+ * Gestion des valeurs composées (spec HTML W3C §4.10.18.7) :
+ * autocomplete accepte des tokens multiples séparés par espaces :
+ *   "new-password username" → contient le token "new-password" → filtré
+ *
+ * Case-insensitive : "NEW-PASSWORD" est traité de la même façon que "new-password".
+ *
+ * @param input - Champ password à analyser
+ * @returns true si le champ est un champ de création (M7 doit être ignoré)
+ */
+function isNewPasswordField(input: HTMLInputElement): boolean {
+  const autocomplete = input.getAttribute('autocomplete');
+  if (!autocomplete) return false;
+  // Parser les tokens séparés par espaces (spec HTML W3C §4.10.18.7)
+  const tokens = autocomplete.toLowerCase().split(/\s+/);
+  return tokens.includes('new-password');
+}
+
+// ---------------------------------------------------------------------------
 // Module M7 — hash et envoi au submit
 // ---------------------------------------------------------------------------
 
@@ -1240,6 +1273,19 @@ async function handleFormSubmit(
       });
     }
     m9Ctx.overlayControls?.hide();
+  }
+
+  // UC-07/UC-08 (D-PM-06) : exclure M7 si autocomplete="new-password".
+  // Ce token HTML W3C indique un formulaire de création / changement de mot de passe.
+  // La réutilisation inter-domaines ne peut pas être détectée sur un nouveau mot de passe
+  // → faux positif, M7 est ignoré. M9 (force) reste actif — bloc précédent non concerné.
+  if (isNewPasswordField(pwdField)) {
+    logger.info('M7: skipped — autocomplete=new-password detected', {
+      event: 'm7_filter_new_password',
+      selector: `#${pwdField.id || ''}[name="${pwdField.name || ''}"]`,
+      reason: 'autocomplete_new_password',
+    });
+    return;
   }
 
   // --- M7 : hachage et envoi ---
@@ -1520,6 +1566,15 @@ function attachOrphanPasswordListeners(): void {
       if (target.type !== 'password' && !_snPasswordInputs.has(target)) return;
       if (target.form) return; // Deja gere par le listener submit du form
       if (target.value.length === 0) return;
+      // UC-07/UC-08 (D-PM-06) : exclure M7 sur les champs autocomplete="new-password"
+      if (isNewPasswordField(target)) {
+        logger.info('M7: orphan Enter skipped — autocomplete=new-password', {
+          event: 'm7_filter_new_password',
+          selector: `#${target.id || ''}[name="${target.name || ''}"]`,
+          reason: 'autocomplete_new_password',
+        });
+        return;
+      }
       logger.info('M7/M9: orphan password Enter pressed', {
         module: 'M7',
         hint: `field_id=${target.id || '(none)'} field_name=${target.name || '(none)'}`,
@@ -1562,6 +1617,15 @@ function attachOrphanPasswordListeners(): void {
       const pwdField = orphans[0];
       if (!pwdField) return;
 
+      // UC-07/UC-08 (D-PM-06) : exclure M7 sur les champs autocomplete="new-password"
+      if (isNewPasswordField(pwdField)) {
+        logger.info('M7: orphan click skipped — autocomplete=new-password', {
+          event: 'm7_filter_new_password',
+          selector: `#${pwdField.id || ''}[name="${pwdField.name || ''}"]`,
+          reason: 'autocomplete_new_password',
+        });
+        return;
+      }
       logger.info('M7/M9: orphan password click-submit', {
         module: 'M7',
         hint: `btn_id=${btn.id || '(none)'} btn_tag=${btn.tagName.toLowerCase()} pwd_field_id=${pwdField.id || '(none)'}`,
@@ -1867,4 +1931,5 @@ export {
   handleFormSubmit,
   observeDynamicForms,
   initPasswordDetector,
+  isNewPasswordField,
 };
