@@ -108,11 +108,11 @@ Le projet Sentinel Nudge applique les principes suivants, qui peuvent orienter v
 - **Stockage local chiffré** : hashes de mots de passe chiffrés avec AES-256-GCM (Web Crypto API), clé et sel générés localement.
 - **Code open source** : auditable intégralement, couverture de tests visée à 80 %.
 - **Revues de code systématiques** : chaque PR passe une revue ESLint + Prettier + Vitest + E2E Playwright, et un comité de revue de code formel pour les modifications sensibles.
-- **Référentiel ISO 27001:2022** : cf. [`docs/securite/referentiel-iso27001.md`](docs/securite/referentiel-iso27001.md).
+- **Référentiel ISO 27001:2022** : cf. [`docs/securite/referentiel-iso27001-v1.2.md`](docs/securite/referentiel-iso27001-v1.2.md).
 
 ## Ressources
 
-- [Référentiel ISO 27001 du projet](docs/securite/referentiel-iso27001.md)
+- [Référentiel ISO 27001 du projet](docs/securite/referentiel-iso27001-v1.2.md)
 - [ADR-001 Service Worker Boot Contract](docs/adr/adr-001-sw-boot-contract.md)
 - [ADR-002 Cross-Lifecycle Intent](docs/adr/adr-002-cross-lifecycle-intent.md)
 - [AIPD module M7](docs/p3-conception/p3-aipd-m7-v1.0.md)

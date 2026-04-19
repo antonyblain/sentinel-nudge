@@ -129,7 +129,52 @@ export default [
           message:
             'TACHE-083 / R-M7-08 : console.log() direct interdit dans src/ — utiliser createLogger(scope).info/warn/error(). Voir src/shared/utils/logger.ts',
         },
+        // ---------------------------------------------------------------------------
+        // T-188 — Extension de la règle à console.info / console.warn / console.error
+        //
+        // Après migration T-104 (SW + handlers) et T-188 (CS + pages UI), tout appel
+        // direct à console.info/warn/error en dehors de la factory logger est interdit.
+        // Utiliser createLogger(scope).info/warn/error() à la place.
+        //
+        // Exception légitime : src/shared/utils/logger.ts lui-même (voir bloc ci-dessous).
+        // Les tests (tests/**) sont exclus : les spies console.* sont légitimes.
+        // ---------------------------------------------------------------------------
+        {
+          selector: "CallExpression[callee.object.name='console'][callee.property.name='info']",
+          message:
+            'T-188 / R-M7-08 : console.info() direct interdit dans src/ — utiliser createLogger(scope).info(). Voir src/shared/utils/logger.ts',
+        },
+        {
+          selector: "CallExpression[callee.object.name='console'][callee.property.name='warn']",
+          message:
+            'T-188 / R-M7-08 : console.warn() direct interdit dans src/ — utiliser createLogger(scope).warn(). Voir src/shared/utils/logger.ts',
+        },
+        {
+          selector: "CallExpression[callee.object.name='console'][callee.property.name='error']",
+          message:
+            'T-188 / R-M7-08 : console.error() direct interdit dans src/ — utiliser createLogger(scope).error(). Voir src/shared/utils/logger.ts',
+        },
+        {
+          selector: "CallExpression[callee.object.name='console'][callee.property.name='debug']",
+          message:
+            'T-188 / R-M7-08 : console.debug() direct interdit dans src/ — utiliser createLogger(scope).info(). Voir src/shared/utils/logger.ts',
+        },
+        {
+          selector: "CallExpression[callee.object.name='console'][callee.property.name='trace']",
+          message:
+            'T-188 / R-M7-08 : console.trace() direct interdit dans src/ — utiliser createLogger(scope).info(). Voir src/shared/utils/logger.ts',
+        },
       ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // Exception : la factory logger elle-même utilise console.* en interne.
+  // Ces appels sont légitimes et doivent être exclus des règles no-restricted-syntax.
+  // ---------------------------------------------------------------------------
+  {
+    files: ['src/shared/utils/logger.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
   {

@@ -34,6 +34,10 @@ import { browser } from '@/shared/browser/browser-adapter';
 import { hashPassword, hashDomain } from '@/shared/utils/hash';
 import { analyzeRisks } from '@/content-scripts/detectors/risk-analyzer';
 import { zxcvbn } from '@zxcvbn-ts/core';
+import { createLogger, Logger } from '@/shared/utils/logger';
+
+/** Logger scopé — content script password detector (INV-SEC-02 étendu) */
+const logger = createLogger('PasswordDetector');
 
 // Note : les Custom Elements (customElements.define) ne fonctionnent PAS dans les
 // content scripts Chrome MV3 (isolated world — "Illegal constructor").
@@ -68,7 +72,7 @@ try {
 const DEBOUNCE_MS = 150;
 
 /**
- * Timer de coalescing pour le console.info de handleTypeAttributeMutation.
+ * Timer de coalescing pour le logger.info de handleTypeAttributeMutation.
  * Évite le spam de logs lors des toggles rapides (rate-limiting 100ms — M-SEC-02).
  */
 let _snMutationLogTimer: ReturnType<typeof setTimeout> | null = null;
@@ -186,24 +190,16 @@ function handleTypeAttributeMutation(mutations: MutationRecord[]): void {
       registerPasswordInput(target);
       // M-SEC-02 : coalescing 100ms — évite le spam de logs lors des toggles rapides.
       // Le log est différé et coalescé : N mutations dans une fenêtre de 100ms
-      // produisent UN seul console.info au lieu de N (rate-limiting).
+      // produisent UN seul logger.info au lieu de N (rate-limiting).
       if (_snMutationLogTimer !== null) {
         clearTimeout(_snMutationLogTimer);
       }
       _snMutationLogTimer = setTimeout(() => {
         _snMutationLogTimer = null;
-        console.info(
-          JSON.stringify({
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: 'Sentinel Nudge UC-05: type attribute mutation registered',
-            context: {
-              input_id: target.id || '(none)',
-              input_name: target.name || '(none)',
-              new_type: newType,
-            },
-          }),
-        );
+        logger.info('UC-05: type attribute mutation registered', {
+          module: 'M7',
+          hint: `input_id=${target.id || '(none)'} name=${target.name || '(none)'} new_type=${newType}`,
+        });
       }, 100);
     }
   }
@@ -1219,16 +1215,10 @@ async function handleFormSubmit(
     // Sel absent — ne pas traiter (cas premier lancement ou storage effacé).
     // Log structuré pour diagnostic : sans ce log, le silent fail de M7 est
     // invisible (cf. P-016 dans PROBLEMES.md).
-    console.warn(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'warn',
-        message: 'M7/M9: installation_salt absent dans chrome.storage.local',
-        context: {
-          hint: "L'extension n'a pas été correctement initialisée. Recharger l'extension ou compléter l'onboarding.",
-        },
-      }),
-    );
+    logger.warn('M7/M9: installation_salt absent dans chrome.storage.local', {
+      module: 'M7',
+      hint: "Extension non initialisée — recharger ou compléter l'onboarding",
+    });
     return;
   }
 
@@ -1275,14 +1265,10 @@ async function handleFormSubmit(
   // Si M2 était actif sur ce champ, différer M7 de 5s (SFD §2.1.5)
   const m2WasActive = fieldsWithM2Active.has(pwdField);
   const sendM7 = async (): Promise<void> => {
-    console.info(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'Sentinel Nudge M7: sending password_submitted to SW',
-        context: { domain_hash: domainHash.slice(0, 8) + '...' },
-      }),
-    );
+    logger.info('M7: sending password_submitted to SW', {
+      module: 'M7',
+      hint: `domain_hash_prefix=${domainHash.slice(0, 8)}`,
+    });
     try {
       const response = (await browser.runtime.sendMessage({
         module: 'M7',
@@ -1294,14 +1280,10 @@ async function handleFormSubmit(
         timestamp: Date.now(),
       })) as { success: boolean; action: string; data?: Record<string, unknown> } | null;
 
-      console.info(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: 'Sentinel Nudge M7: SW response received',
-          context: { response },
-        }),
-      );
+      logger.info('M7: SW response received', {
+        module: 'M7',
+        hint: response ? `action=${response.action}` : 'null',
+      });
 
       // NOTE : le toast n'est PAS affiche directement ici. Le SW a stocke
       // pending_m7_toast dans chrome.storage.local. Un listener storage.onChanged
@@ -1309,15 +1291,10 @@ async function handleFormSubmit(
       // resilience a la navigation post-submit, cf. TACHE-056).
     } catch (err) {
       // Log explicite de l'erreur pour diagnostic (au lieu du silent fail)
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.warn(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'warn',
-          message: 'Sentinel Nudge M7: sendMessage to SW failed',
-          context: { error: errMsg },
-        }),
-      );
+      logger.warn('M7: sendMessage to SW failed', {
+        module: 'M7',
+        error_name: Logger.errorName(err),
+      });
     }
   };
 
@@ -1543,14 +1520,10 @@ function attachOrphanPasswordListeners(): void {
       if (target.type !== 'password' && !_snPasswordInputs.has(target)) return;
       if (target.form) return; // Deja gere par le listener submit du form
       if (target.value.length === 0) return;
-      console.info(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: 'Sentinel Nudge M7/M9: orphan password Enter pressed',
-          context: { field_id: target.id || '(none)', field_name: target.name || '(none)' },
-        }),
-      );
+      logger.info('M7/M9: orphan password Enter pressed', {
+        module: 'M7',
+        hint: `field_id=${target.id || '(none)'} field_name=${target.name || '(none)'}`,
+      });
       void handleFormSubmit(event, target);
     },
     { capture: true },
@@ -1589,19 +1562,10 @@ function attachOrphanPasswordListeners(): void {
       const pwdField = orphans[0];
       if (!pwdField) return;
 
-      console.info(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: 'Sentinel Nudge M7/M9: orphan password click-submit',
-          context: {
-            btn_id: btn.id || '(none)',
-            btn_tag: btn.tagName.toLowerCase(),
-            btn_text: btn.textContent?.trim().slice(0, 30) || '(none)',
-            pwd_field_id: pwdField.id || '(none)',
-          },
-        }),
-      );
+      logger.info('M7/M9: orphan password click-submit', {
+        module: 'M7',
+        hint: `btn_id=${btn.id || '(none)'} btn_tag=${btn.tagName.toLowerCase()} pwd_field_id=${pwdField.id || '(none)'}`,
+      });
       void handleFormSubmit(event, pwdField);
     },
     { capture: true },
@@ -1612,14 +1576,10 @@ function attachOrphanPasswordListeners(): void {
     document.querySelectorAll<HTMLInputElement>('input[type="password"]'),
   ).filter((f) => !f.form).length;
   if (orphanCount > 0) {
-    console.info(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'Sentinel Nudge: orphan password inputs detected (no <form> parent)',
-        context: { count: orphanCount, strategy: 'fallback Enter + click listeners attached' },
-      }),
-    );
+    logger.info('Orphan password inputs detected (no <form> parent)', {
+      module: 'M7',
+      hint: `count=${orphanCount} strategy=fallback-Enter+click`,
+    });
   }
 }
 
@@ -1648,14 +1608,10 @@ function attachSubmitListeners(): void {
         // UC-05 (TACHE-072) : utiliser collectPasswordInputs pour inclure les inputs
         // togglés en type="text" qui sont dans le registre _snPasswordInputs (INV-UC05-01)
         const pwdFields = collectPasswordInputs(form);
-        console.info(
-          JSON.stringify({
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: 'Sentinel Nudge M7/M9: submit event captured',
-            context: { pwdFields: pwdFields.length, formAction: form.action || '(none)' },
-          }),
-        );
+        logger.info('M7/M9: submit event captured', {
+          module: 'M7',
+          hint: `pwd_fields=${pwdFields.length} form_action=${form.action || '(none)'}`,
+        });
         pwdFields.forEach((field) => {
           void handleFormSubmit(event, field);
         });
@@ -1664,14 +1620,10 @@ function attachSubmitListeners(): void {
     );
   });
   if (newlyAttached > 0) {
-    console.info(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'Sentinel Nudge: submit listeners attached',
-        context: { newForms: newlyAttached, pwdForms: pwdFormsCount, totalForms: forms.length },
-      }),
-    );
+    logger.info('Submit listeners attached', {
+      module: 'M7',
+      hint: `new_forms=${newlyAttached} pwd_forms=${pwdFormsCount} total=${forms.length}`,
+    });
   }
 }
 
@@ -1783,25 +1735,16 @@ async function checkAndShowPendingM7Toast(): Promise<void> {
     // utilisateur (closeToast) ou l'expiration TTL. Permet au toast de
     // survivre a un redirect post-submit (pattern pending_toast).
 
-    console.info(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'Sentinel Nudge M7: pending toast rendered',
-        context: { domain_hash: pending.domain_hash.slice(0, 8) + '...' },
-      }),
-    );
+    logger.info('M7: pending toast rendered', {
+      module: 'M7',
+      hint: `domain_hash_prefix=${pending.domain_hash.slice(0, 8)}`,
+    });
     showToastM7(pending.domain_hash);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'warn',
-        message: 'Sentinel Nudge M7: checkAndShowPendingM7Toast failed',
-        context: { error: msg },
-      }),
-    );
+    logger.warn('M7: checkAndShowPendingM7Toast failed', {
+      module: 'M7',
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -1862,18 +1805,10 @@ function initPasswordDetector(): void {
       const form = event.target as HTMLFormElement | null;
       if (!form || form.tagName !== 'FORM') return;
       const pwdCount = form.querySelectorAll<HTMLInputElement>('input[type="password"]').length;
-      console.info(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: 'Sentinel Nudge: global submit captured (capture phase)',
-          context: {
-            form_id: form.id || '(none)',
-            form_action: form.action || '(none)',
-            pwdCount,
-          },
-        }),
-      );
+      logger.info('Global submit captured (capture phase)', {
+        module: 'M7',
+        hint: `form_id=${form.id || '(none)'} form_action=${form.action || '(none)'} pwd_count=${pwdCount}`,
+      });
     },
     { capture: true },
   );
@@ -1910,14 +1845,11 @@ export function isExtensionContext(): boolean {
 // Conditionné sur isExtensionContext() pour permettre les tests unitaires
 // (import du module sans auto-exécution dans l'environnement vitest/jsdom — TACHE-094)
 if (isExtensionContext()) {
-  console.info(
-    JSON.stringify({
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message: 'Sentinel Nudge password-detector: injected',
-      context: { url: location.hostname, readyState: document.readyState },
-    }),
-  );
+  logger.info('password-detector: injected', {
+    module: 'M7',
+    hostname: Logger.hostnameOf(location.href),
+    hint: `readyState=${document.readyState}`,
+  });
   initPasswordDetector();
 }
 

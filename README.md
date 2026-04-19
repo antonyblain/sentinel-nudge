@@ -67,8 +67,8 @@ npm run format:check     # Prettier
 Sentinel Nudge applique un modèle de menace formel (STRIDE) et 10 contrôles ISO 27001 A.5/A.8 explicites.
 
 - **Politique de sécurité & divulgation responsable** : [SECURITY.md](SECURITY.md) — canal GitHub Security Advisories, SLA 30 jours.
-- **Référentiel ISO 27001 v1.1** : [docs/securite/referentiel-iso27001.md](docs/securite/referentiel-iso27001.md)
-- **Runbook de réponse à incident** : [docs/securite/runbook-reponse-incident.md](docs/securite/runbook-reponse-incident.md) (classification P0-P3, 10 étapes)
+- **Référentiel ISO 27001 v1.2** : [docs/securite/referentiel-iso27001-v1.2.md](docs/securite/referentiel-iso27001-v1.2.md)
+- **Runbook de réponse à incident** : [docs/securite/runbook-reponse-incident-v1.0.md](docs/securite/runbook-reponse-incident-v1.0.md) (classification P0-P3, 10 étapes)
 - **Hardening CI/CD** : SHA pinning actions (CWE-829), permissions read-all par défaut — [docs/securite/hardening-ci-cd-v1.0.md](docs/securite/hardening-ci-cd-v1.0.md)
 
 ---
@@ -99,11 +99,11 @@ Tout le traitement est **100% local**. Aucune donnée n'est transmise à un tier
 | Document | Pour qui |
 |---|---|
 | [Politique de confidentialité v1.1](docs/rgpd/politique-de-confidentialite-v1.1.md) | Utilisateur final |
-| [Matrice de compatibilité providers](docs/p5-recette/matrice-compatibilite-providers-m7.md) | Utilisateur curieux + contributeurs |
+| [Matrice de compatibilité providers](docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md) | Utilisateur curieux + contributeurs |
 | [Plan de tests manuels consolidé v1.0](docs/p5-recette/plan-tests-manuels-consolide-v1.0.md) | Testeurs QA |
-| [Référentiel ISO 27001 v1.1](docs/securite/referentiel-iso27001.md) | Audit sécurité |
+| [Référentiel ISO 27001 v1.2](docs/securite/referentiel-iso27001-v1.2.md) | Audit sécurité |
 | [SECURITY.md](SECURITY.md) | Chercheurs en sécurité |
-| [Runbook incident](docs/securite/runbook-reponse-incident.md) | Gestion des vulnérabilités signalées |
+| [Runbook incident](docs/securite/runbook-reponse-incident-v1.0.md) | Gestion des vulnérabilités signalées |
 
 ---
 

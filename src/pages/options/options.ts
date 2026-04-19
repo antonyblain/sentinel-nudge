@@ -42,6 +42,10 @@ import type {
   WhitelistEntry,
 } from '@/shared/types/storage';
 import type { ModuleId } from '@/shared/types/modules';
+import { createLogger, Logger } from '@/shared/utils/logger';
+
+/** Logger scopé — Options (INV-SEC-02 étendu) */
+const logger = createLogger('Options');
 
 /** Version de l'extension (lue depuis le manifest) */
 const EXTENSION_VERSION = (browser.runtime.getManifest() as { version: string }).version;
@@ -295,15 +299,9 @@ async function saveConfig(patch: Partial<StoredConfig>, feedbackEl?: HTMLElement
     await browser.storage.local.set({ config: updated });
     if (feedbackEl) showSavedFeedback(feedbackEl);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Options: échec sauvegarde config',
-        context: { error: message },
-      }),
-    );
+    logger.error('Options: échec sauvegarde config', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -767,15 +765,9 @@ async function handleExport(config: StoredConfig): Promise<void> {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Options: échec export données',
-        context: { error: message },
-      }),
-    );
+    logger.error('Options: échec export données', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -806,15 +798,9 @@ async function handleDeleteAllData(statusEl: HTMLElement): Promise<void> {
     statusEl.className = 'data-status data-status-success';
     statusEl.style.display = 'block';
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Options: échec suppression données',
-        context: { error: message },
-      }),
-    );
+    logger.error('Options: échec suppression données', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -853,15 +839,9 @@ async function handleResetWhitelist(statusEl: HTMLElement): Promise<void> {
     statusEl.className = 'data-status data-status-success';
     statusEl.style.display = 'block';
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Options: échec reset whitelist',
-        context: { error: message },
-      }),
-    );
+    logger.error('Options: échec reset whitelist', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -1152,15 +1132,9 @@ async function initOptions(): Promise<void> {
     errorEl.textContent = 'Impossible de charger la configuration.';
     root.appendChild(errorEl);
 
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Options: échec initialisation',
-        context: { error: message },
-      }),
-    );
+    logger.error('Options: échec initialisation', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -1169,14 +1143,8 @@ document.addEventListener('DOMContentLoaded', () => {
   void initTheme();
   watchThemeChanges();
   initOptions().catch((err: unknown) => {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Options: erreur inattendue',
-        context: { error: message },
-      }),
-    );
+    logger.error('Options: erreur inattendue', {
+      error_name: Logger.errorName(err),
+    });
   });
 });
