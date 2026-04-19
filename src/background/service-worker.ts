@@ -360,6 +360,9 @@ async function initializeServices(cryptoKey: CryptoKey): Promise<void> {
   // Flush du buffer pré-init (ARB-061-02) — incidents collectés avant initDB()
   await incidentService.initService(storageService.getDB());
 
+  // OBS-04 / TACHE-078 : injecter incidentService dans heartbeatService pour instrumenter heartbeat_write
+  heartbeatService.setIncidentService(incidentService);
+
   // Initialisation du canary hash (INV-06, CM-C1)
   // Au premier install : init depuis zéro
   // Aux boots suivants : ce chemin n'est appelé que si canary.verify() est ok
@@ -630,6 +633,8 @@ void (async () => {
     await incidentService.initService(storageService.getDB());
     // UC-03 / INV-UC03-05 : injecter le service d'incidents dans le routeur pour les incidents rate_limit_exceeded
     messageRouter.setIncidentService(incidentService);
+    // OBS-04 / TACHE-078 : injecter incidentService dans heartbeatService pour instrumenter heartbeat_write
+    heartbeatService.setIncidentService(incidentService);
 
     // Étape 4 — Chargement de la clé AES
     let cryptoKey = await loadCryptoKey();
@@ -659,7 +664,19 @@ void (async () => {
       const newKey = await cryptoService.generateKey();
       const material = await cryptoService.exportKey(newKey);
       const materialArray = Array.from(new Uint8Array(material));
-      await browser.storage.local.set({ encryption_key_material: materialArray });
+      // OBS-04 / TACHE-078 : instrumentation storage_write_fail — site critique (clé AES absente)
+      // Re-throw obligatoire : si la clé n'est pas persistée, le boot est compromis (INV-SEC-03).
+      try {
+        await browser.storage.local.set({ encryption_key_material: materialArray });
+      } catch (writeErr: unknown) {
+        await incidentService.log('storage_write_fail', 'error', {
+          type: 'storage_write_fail',
+          module: 'boot',
+          site: 'encryption_key_boot',
+          hint: (writeErr instanceof Error ? writeErr.message : String(writeErr)).slice(0, 100),
+        });
+        throw writeErr;
+      }
       cryptoKey = newKey;
 
       // Re-initialiser le canary avec la nouvelle clé
@@ -737,7 +754,19 @@ void (async () => {
           const newKey = await cryptoService.generateKey();
           const material = await cryptoService.exportKey(newKey);
           const materialArray = Array.from(new Uint8Array(material));
-          await browser.storage.local.set({ encryption_key_material: materialArray });
+          // OBS-04 / TACHE-078 : instrumentation storage_write_fail — site critique (canary_failed)
+          // Re-throw obligatoire : si la clé n'est pas persistée, le boot est compromis (INV-SEC-03).
+          try {
+            await browser.storage.local.set({ encryption_key_material: materialArray });
+          } catch (writeErr: unknown) {
+            await incidentService.log('storage_write_fail', 'error', {
+              type: 'storage_write_fail',
+              module: 'boot',
+              site: 'encryption_key_canary',
+              hint: (writeErr instanceof Error ? writeErr.message : String(writeErr)).slice(0, 100),
+            });
+            throw writeErr;
+          }
           cryptoKey = newKey;
           await canaryService.init(cryptoKey);
           // Re-verify pour confirmer
