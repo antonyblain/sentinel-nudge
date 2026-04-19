@@ -275,7 +275,7 @@ Aucune violation enregistrée à ce jour (état 2026-04-19).
 |---|---|---|---|---|---|---|---|
 | VIOL-001 | — | — | — | — | — | — | — |
 
-**Procédure** : en cas d'incident de sécurité, le runbook `docs/securite/runbook-reponse-incident.md` impose la saisine DPO systématique (Step 2) et la validation DPO obligatoire avant notification utilisateurs (Step 7 + template 6.5). Articulation avec Art. 33 (notification CNIL < 72 h) et Art. 34 (notification personnes concernées). La **procédure d'escalade DPO en six étapes E1-E6** est formalisée dans la note DPO T-115 v1.0 (`docs/rgpd/note-dpo-circuit-incidents-m7-v1.0.md`) et désormais reflétée au référentiel ISO 27001 v1.2 (12 contrôles). **Auto-saisine** du DPO prévue (note T-115 §3.2) en cas d'absence de signalement par l'Incident Manager.
+**Procédure** : en cas d'incident de sécurité, le runbook `docs/securite/runbook-reponse-incident-v1.0.md` impose la saisine DPO systématique (Step 2) et la validation DPO obligatoire avant notification utilisateurs (Step 7 + template 6.5). Articulation avec Art. 33 (notification CNIL < 72 h) et Art. 34 (notification personnes concernées). La **procédure d'escalade DPO en six étapes E1-E6** est formalisée dans la note DPO T-115 v1.0 (`docs/rgpd/note-dpo-circuit-incidents-m7-v1.0.md`) et désormais reflétée au référentiel ISO 27001 v1.2 (12 contrôles). **Auto-saisine** du DPO prévue (note T-115 §3.2) en cas d'absence de signalement par l'Incident Manager.
 
 ---
 
