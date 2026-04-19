@@ -29,6 +29,10 @@
 import { browser } from '@/shared/browser/browser-adapter';
 import { initTheme, watchThemeChanges } from '@/shared/utils/apply-theme';
 import type { ModuleId } from '@/shared/types/modules';
+import { createLogger, Logger } from '@/shared/utils/logger';
+
+/** Logger scopé — Onboarding (INV-SEC-02 étendu) */
+const logger = createLogger('Onboarding');
 
 /** Nombre total d'étapes */
 const TOTAL_STEPS = 4;
@@ -538,15 +542,9 @@ async function finishOnboarding(): Promise<void> {
       window.location.href = 'about:blank';
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Onboarding: échec finalisation',
-        context: { error: message },
-      }),
-    );
+    logger.error('Onboarding: échec finalisation', {
+      error_name: Logger.errorName(err),
+    });
   }
 }
 
@@ -694,14 +692,8 @@ document.addEventListener('DOMContentLoaded', () => {
   void initTheme();
   watchThemeChanges();
   initOnboarding().catch((err: unknown) => {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue';
-    console.error(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: 'Onboarding: erreur inattendue',
-        context: { error: message },
-      }),
-    );
+    logger.error('Onboarding: erreur inattendue', {
+      error_name: Logger.errorName(err),
+    });
   });
 });
