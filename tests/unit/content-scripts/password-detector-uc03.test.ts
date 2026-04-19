@@ -22,36 +22,19 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
 // Helpers de mock chrome (réutilisés dans chaque sous-bloc)
 // ---------------------------------------------------------------------------
 
 function buildChromeMock() {
-  const mockStorageLocalGet = vi
-    .fn()
-    .mockImplementation((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      callback({});
-    });
-  const mockStorageLocalSet = vi
-    .fn()
-    .mockImplementation((_items: Record<string, unknown>, callback?: () => void) => {
-      callback?.();
-    });
-  const mockStorageLocalRemove = vi
-    .fn()
-    .mockImplementation((_keys: string[], callback?: () => void) => {
-      callback?.();
-    });
+  // T-189 : storage.local délégué au wrapper createMockChromeStorage() (P-018)
+  const { storage: mockStorage } = createMockChromeStorage();
 
   const chromeMock = {
     storage: {
-      local: {
-        get: mockStorageLocalGet,
-        set: mockStorageLocalSet,
-        remove: mockStorageLocalRemove,
-        clear: vi.fn().mockImplementation((callback?: () => void) => callback?.()),
-      },
+      local: mockStorage,
       onChanged: { addListener: vi.fn() },
     },
     runtime: {
@@ -79,7 +62,7 @@ function buildChromeMock() {
     i18n: { getMessage: vi.fn().mockReturnValue('') },
   } as unknown as typeof chrome;
 
-  return { chromeMock, mockStorageLocalGet };
+  return { chromeMock, mockStorage };
 }
 
 // ---------------------------------------------------------------------------
@@ -176,7 +159,7 @@ describe('TC-UC03-03 : pending M7 toast dans iframe → return early', () => {
     const fakeTop = { location: { origin: window.location.origin } } as Window;
     Object.defineProperty(window, 'top', { value: fakeTop, configurable: true });
 
-    const { chromeMock, mockStorageLocalGet } = buildChromeMock();
+    const { chromeMock, mockStorage } = buildChromeMock();
     global.chrome = chromeMock;
 
     // Import dynamique — same-origin mais pas top frame
@@ -194,12 +177,10 @@ describe('TC-UC03-03 : pending M7 toast dans iframe → return early', () => {
       await new Promise((r) => setTimeout(r, 0));
     }
 
-    // Le storage.local.get pour pending_m7_toast ne doit pas avoir été appelé par checkAndShow
-    // (la fonction retourne avant de toucher au storage)
-    const pendingToastCalls = mockStorageLocalGet.mock.calls.filter(
-      (c) => Array.isArray(c[0]) && (c[0] as string[]).includes('pending_m7_toast'),
-    );
-    expect(pendingToastCalls).toHaveLength(0);
+    // T-189 : le storage wrapper retourne {} si la clé n'a jamais été écrite.
+    // La fonction retourne early (window.top !== window) → pending_m7_toast n'est jamais écrit.
+    const result = await mockStorage.get(['pending_m7_toast']);
+    expect(result['pending_m7_toast']).toBeUndefined();
   });
 });
 

@@ -32,18 +32,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
 // Mock chrome — DOIT être défini avant l'import du module testé
 // Le mock empêche l'auto-exec de initPasswordDetector() (side-effects module-level)
 // ---------------------------------------------------------------------------
 
-const mockStorageLocalGet = vi
-  .fn()
-  .mockImplementation((_keys: unknown, callback: (r: Record<string, unknown>) => void) => {
-    callback({ installation_salt: 'a'.repeat(64) });
-  });
-const mockStorageOnChangedAddListener = vi.fn();
+// T-189 : storage.local délégué au wrapper createMockChromeStorage() (P-018)
+const { storage, reset: resetStorage } = createMockChromeStorage();
+
 const mockRuntimeSendMessage = vi
   .fn()
   .mockImplementation((_msg: unknown, callback?: (r: unknown) => void) => {
@@ -52,14 +50,9 @@ const mockRuntimeSendMessage = vi
 
 global.chrome = {
   storage: {
-    local: {
-      get: mockStorageLocalGet,
-      set: vi.fn().mockImplementation((_items: unknown, callback?: () => void) => callback?.()),
-      remove: vi.fn().mockImplementation((_keys: unknown, callback?: () => void) => callback?.()),
-      clear: vi.fn().mockImplementation((callback?: () => void) => callback?.()),
-    },
+    local: storage,
     onChanged: {
-      addListener: mockStorageOnChangedAddListener,
+      addListener: vi.fn(),
     },
   },
   runtime: {
@@ -191,18 +184,15 @@ describe('TC-UC05-05-SPA — Détachement/re-render input React/Vue (TACHE-097 C
   let observeSpy: ReturnType<typeof vi.fn>;
   let disconnectSpy: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // NB-01 T-096 : reset complet avant chaque test
     _snPasswordInputs.clear();
     document.body.innerHTML = '';
+    resetStorage();
     vi.clearAllMocks();
 
-    // Réinitialiser le salt mock après clearAllMocks
-    mockStorageLocalGet.mockImplementation(
-      (_keys: unknown, callback: (r: Record<string, unknown>) => void) => {
-        callback({ installation_salt: 'a'.repeat(64) });
-      },
-    );
+    // T-189 : salt pré-chargé dans le wrapper (remplace mockImplementation)
+    await storage.set({ installation_salt: 'a'.repeat(64) });
     mockRuntimeSendMessage.mockImplementation((_msg: unknown, callback?: (r: unknown) => void) => {
       callback?.({ success: true, action: 'skip', reason: 'no_reuse' });
     });
