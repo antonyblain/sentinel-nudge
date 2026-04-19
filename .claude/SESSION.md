@@ -2,6 +2,44 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (session 2026-04-19 soir — cycle parallélisation agents Fabrique, ~19h00-20h45).** Session reprise sur consigne Commanditaire « parallélise plusieurs tâches, il faut qu'on avance de façon importante ». **5 agents Fabrique lancés en séquence × 2 vagues sur zones disjointes** (LL-022 respecté — 2 agents simultanés max), tous livrés CI 6/6 dès la première tentative (aucune régression, aucune itération auto-correction).
+
+**Tâches livrées (5 agents + 1 orchestrateur + 2 hotfix)** :
+- **T-059** 12 scénarios TC-M7-01 à TC-M7-12 (32 tests unitaires + intégration) — PR #123
+- **T-060** Wrapper mock `chrome.storage.local` JSON-strict + simulation quota + SW lifecycle (55 tests, 310L) — PR #124
+- **T-064** Filtre `autocomplete="new-password"` M7 (UC-07/UC-08, 15 tests + correctif TC-UC01-04-B) — PR #125
+- **T-078** Instrumenter `storage_write_fail` aux 4 sites critiques (SW boot x2, m7-handler pending_m7_toast, heartbeat-service write) + 6 tests — PR #126 **mergée**
+- **T-063** Protocole recette manuelle v1.0 (601L, 17 scénarios G/W/T UC-01 à UC-06, gabarit PV) — PR #127
+- **T-167** SFD v1.2 stub produit directement par orchestrateur (addendum §9 UC+ARB+ADR, cf. LL-032) — PR #120
+- **Hotfix prettier** `.prettierignore` pour exclure `.claude/*.md` — PR #122 **mergée**
+- **Fix LESSONS_LEARNED** restauration format compact + .prettierignore embarqué sur branche T-167
+
+**9 PR mergées dans la fenêtre soir** : #91 T-028, #94 revue Fabrique, #104 PDCA, #117 cycle final, #118 codeql-action v4, #121 clôture soir, #122 hotfix prettier, #80 T-120 SBOM anchore, #126 T-078.
+
+**6 PR en auto-merge GitHub** : #127, #125, #124, #123, #120, #119 (dev-deps Dependabot) — séquencement automatique en cours.
+
+**Leçons capitalisées (2 nouvelles)** :
+- **LL-032** (déjà capitalisée après-midi) : Ne pas déléguer à l'Analyste métier les bumps documentaires >1000L — orchestrateur produit stubs + découpage PR incrémentales.
+- **LL-033** (nouvelle) : Prettier casse les tableaux Markdown compacts des fichiers `.claude/*.md`. `.prettierignore` configuré pour les exclure.
+
+**Mémoire auto enrichie (2 nouvelles)** :
+- `feedback_demarrage_session_cible.md` — lecture ciblée au démarrage (SESSION.md limit:60, pas d'intégrale)
+- `feedback_prettier_claude_files.md` — ne jamais Prettier sur `.claude/*.md`
+
+**Incidents observés (non bloquants)** :
+- LL-031 reproduit 2× (HEAD déplacée par agents en worktree) — détecté par `git branch --show-current` systématique, aucun commit sur mauvaise branche grâce à vérification pré-commit.
+- `tests/helpers/` et `tests/unit/helpers/` apparus en untracked dans WT principal — artefact des checkouts transitoires sur branches d'agents, disparaîtra après merge des PR correspondantes (#124).
+
+## 🔜 Point de reprise prochaine session
+
+1. **Vérifier les 6 PR soir bien mergées** (#127, #125, #124, #123, #120, #119). Si bloquées, relancer `gh pr update-branch` séquentiel.
+2. **Should restants prio** (BACKLOG) : T-082 (5 scénarios enrichissement T-059 : SM-01/02/04/05/07), T-066 (CS `all_frames: true` iframes same-origin), T-076 (test CM-EOP1 canary_reinit intégration), T-096 (renforcer tests isTrusted), T-097 (TC-UC05-05-SPA dépend T-101).
+3. **Enrichissement SFD §2.M7** par PR incrémentale (intégration ARB-061-01/02/03 dans corps du SFD, §9 → §2 — cf. LL-032 roadmap).
+4. **Migration tests existants** vers wrapper `mock-chrome-storage` (T-060 livré) — couvre P-018 régression à détecter dans les tests legacy.
+5. **Protocole recette formelle** (T-063 livré) à exécuter sur les 6 UC pour v1 — recette manuelle complète avec PV signé.
+
+---
+
 **Où on en est (session 2026-04-19 soir — reprise courte ~19h00, clôture PR cycle convergence + T-167 stub).** Session courte démarrée après feedback Commanditaire sur consommation tokens (26% consommés sur dashboard de démarrage — LL capitalisée). Objectifs limités et atteints.
 
 **Livré ce soir** :
