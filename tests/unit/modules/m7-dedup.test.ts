@@ -9,6 +9,8 @@
  * - TC-UC03-DEDUP-03 : 2 messages de hash différent mais même domain → les 2 sont traités
  *
  * Référence : mini-DAT TACHE-070 §INV-UC03-04
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -17,20 +19,17 @@ import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
 import type { HeartbeatService } from '@/background/services/heartbeat-service';
 import type { IncidentService } from '@/background/services/incident-service';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
-// Mock chrome minimal pour le browser-adapter
-const mockLocalStorage: Record<string, unknown> = {};
+// ---------------------------------------------------------------------------
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
+// ---------------------------------------------------------------------------
+
+const { storage, reset: resetStorage } = createMockChromeStorage();
+
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        callback(mockLocalStorage);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     create: vi.fn().mockResolvedValue({}),
@@ -79,6 +78,7 @@ describe('M7 déduplication — INV-UC03-04', () => {
   beforeEach(() => {
     // Reset de la Map module-level entre chaque test pour l'isolation
     recentSubmits.clear();
+    resetStorage();
     vi.useFakeTimers();
   });
 
@@ -91,10 +91,10 @@ describe('M7 déduplication — INV-UC03-04', () => {
   // → 2e retourne action:'skip', reason:'deduplicated' ; addPasswordHash appelé 1x
   // --------------------------------------------------------------------------
   it('TC-UC03-DEDUP-01 : doublon dans la fenêtre 2s → skip deduplicated, addPasswordHash 1x', async () => {
-    const storage = createMockStorage();
+    const mockStorage = createMockStorage();
     const services = createMockServices();
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       services.heartbeat as HeartbeatService,
       services.incident as IncidentService,
@@ -116,17 +116,17 @@ describe('M7 déduplication — INV-UC03-04', () => {
     expect(resp2.reason).toBe('deduplicated');
 
     // addPasswordHash n'a été appelé qu'une seule fois (le 2e est droppé avant)
-    expect(storage.addPasswordHash).toHaveBeenCalledTimes(1);
+    expect(mockStorage.addPasswordHash).toHaveBeenCalledTimes(1);
   });
 
   // --------------------------------------------------------------------------
   // TC-UC03-DEDUP-02 : 2 messages identiques séparés de 3s → les 2 traités
   // --------------------------------------------------------------------------
   it('TC-UC03-DEDUP-02 : doublon séparé de 3s → fenêtre expirée → les 2 traités', async () => {
-    const storage = createMockStorage();
+    const mockStorage = createMockStorage();
     const services = createMockServices();
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       services.heartbeat as HeartbeatService,
       services.incident as IncidentService,
@@ -150,17 +150,17 @@ describe('M7 déduplication — INV-UC03-04', () => {
     expect(resp2.reason).toBe('no_reuse');
 
     // addPasswordHash appelé 2 fois (les 2 messages sont traités)
-    expect(storage.addPasswordHash).toHaveBeenCalledTimes(2);
+    expect(mockStorage.addPasswordHash).toHaveBeenCalledTimes(2);
   });
 
   // --------------------------------------------------------------------------
   // TC-UC03-DEDUP-03 : 2 messages de hash différent, même domain → les 2 traités
   // --------------------------------------------------------------------------
   it('TC-UC03-DEDUP-03 : hash différents même domain → les 2 traités', async () => {
-    const storage = createMockStorage();
+    const mockStorage = createMockStorage();
     const services = createMockServices();
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       services.heartbeat as HeartbeatService,
       services.incident as IncidentService,
@@ -182,6 +182,6 @@ describe('M7 déduplication — INV-UC03-04', () => {
     expect(resp2.reason).toBe('no_reuse');
 
     // Les 2 ont appelé addPasswordHash
-    expect(storage.addPasswordHash).toHaveBeenCalledTimes(2);
+    expect(mockStorage.addPasswordHash).toHaveBeenCalledTimes(2);
   });
 });
