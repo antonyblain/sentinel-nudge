@@ -1,0 +1,68 @@
+name: CodeQL — SAST JavaScript/TypeScript
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+  schedule:
+    # Lundi à 06:00 UTC — complément au scan Dependabot hebdomadaire
+    - cron: '0 6 * * 1'
+
+# Permissions minimales — security-events:write requis pour publier les alertes SARIF
+# dans l'onglet "Security" du dépôt GitHub (Code Scanning).
+# contents:read et actions:read sont nécessaires à l'initialisation CodeQL.
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+# Annuler les runs précédents si un nouveau push est reçu sur la même branche/PR.
+# Évite la congestion de runners sur des push successifs rapides.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: CodeQL — SAST JavaScript/TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Configuration Node.js 24 LTS
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f  # v6.3.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installation des dépendances (requis pour analyse CodeQL)
+        run: npm ci
+
+      # Initialise la base de données CodeQL pour JavaScript/TypeScript.
+      # Le langage "javascript-typescript" regroupe JS et TS en une seule analyse.
+      # Le ruleset "security-and-quality" couvre OWASP Top 10 + CWE Top 25 + qualité.
+      - name: Initialisation CodeQL
+        uses: github/codeql-action/init@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a  # v3.35.2
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      # Pour les projets JS/TS compilés (TypeScript → JS via Vite/tsc),
+      # autobuild produit de meilleurs résultats que l'analyse des sources brutes.
+      # CodeQL détectera les patterns après transformation du compilateur.
+      - name: Build automatique CodeQL (autobuild)
+        uses: github/codeql-action/autobuild@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a  # v3.35.2
+
+      # Exécute l'analyse et publie les résultats SARIF dans l'onglet Security.
+      # En mode observe-only : non bloquant sur les branch protections (T-187).
+      # Triage des findings à planifier en tâche dédiée (ISO 27001 A.8.29).
+      - name: Analyse CodeQL
+        uses: github/codeql-action/analyze@ce64ddcb0d8d890d2df4a9d1c04ff297367dea2a  # v3.35.2
+        with:
+          category: /language:javascript-typescript
