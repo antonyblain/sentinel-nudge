@@ -2,6 +2,8 @@
  * @file tests/unit/background/service-worker-install-flag.test.ts
  * @description Tests unitaires du flag `installation_in_progress` — TACHE-079 / R-M7-09.
  *
+ * T-189 — migration vers wrapper mock-chrome-storage (JSON-strict, P-018).
+ *
  * Couvre la garde anti-race entre l'IIFE module-level du Service Worker et
  * onInstalled(reason='install') au premier install. Sans cette garde, les deux
  * s'exécutent en quasi-simultané et l'IIFE voit la clé AES absente (pas encore
@@ -31,41 +33,26 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mock chrome.storage.local
+// Mock chrome.storage.local — T-189 : wrapper JSON-strict (P-018)
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
-const removedKeys: string[] = [];
-const warnCalls: Array<{ message: string; context?: Record<string, unknown> }> = [];
-const infoCalls: Array<{ message: string; context?: Record<string, unknown> }> = [];
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        keys.forEach((k) => {
-          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
-        });
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((key: string | string[], callback?: () => void) => {
-        const keys = Array.isArray(key) ? key : [key];
-        keys.forEach((k) => {
-          removedKeys.push(k);
-          delete mockLocalStorage[k];
-        });
-        callback?.();
-      }),
-    },
+    local: storage,
   },
 } as unknown as typeof chrome;
+
+// ---------------------------------------------------------------------------
+// Observateurs de logs (reproduisent les traces du SW)
+// ---------------------------------------------------------------------------
+
+const warnCalls: Array<{ message: string; context?: Record<string, unknown> }> = [];
+const infoCalls: Array<{ message: string; context?: Record<string, unknown> }> = [];
 
 // ---------------------------------------------------------------------------
 // Constants (reproduites depuis service-worker.ts pour les tests — TACHE-079)
@@ -158,15 +145,22 @@ async function simulateIifeStep0(): Promise<IifeStep0Result> {
   return { skipped: false, wasStale: false, bootContinued: true };
 }
 
+/**
+ * Lit une valeur depuis le mock storage.
+ * Remplace les accès directs à mockLocalStorage[key] des tests pré-T-189.
+ */
+async function getStorageValue(key: string): Promise<unknown> {
+  const result = await storage.get([key]);
+  return result[key];
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () => {
   beforeEach(() => {
-    // Réinitialiser le storage et les logs avant chaque test
-    Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
-    removedKeys.length = 0;
+    resetStorage();
     warnCalls.length = 0;
     infoCalls.length = 0;
     vi.clearAllMocks();
@@ -178,7 +172,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
 
   it('TC-01 : flag posé (timestamp récent) → IIFE skip, canary/key regen non exécutés', async () => {
     // onFirstInstall pose le flag avec un timestamp récent
-    mockLocalStorage['installation_in_progress'] = Date.now();
+    await storage.set({ installation_in_progress: Date.now() });
 
     const result = await simulateIifeStep0();
 
@@ -194,7 +188,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
 
   it('TC-01b : flag en boolean true (rétrocompatibilité) → IIFE skip aussi', async () => {
     // Format boolean (ancien format avant TACHE-079) — doit toujours skip
-    mockLocalStorage['installation_in_progress'] = true;
+    await storage.set({ installation_in_progress: true });
 
     const result = await simulateIifeStep0();
 
@@ -212,14 +206,14 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
     let flagDuringInstall: boolean = false;
 
     await simulateOnFirstInstall(async () => {
-      // Pendant l'install : flag présent
-      flagDuringInstall = Boolean(mockLocalStorage['installation_in_progress']);
+      // Pendant l'install : flag présent — lecture via API storage (async)
+      const val = await getStorageValue('installation_in_progress');
+      flagDuringInstall = Boolean(val);
     });
 
     // Après l'install : flag levé
     expect(flagDuringInstall).toBe(true);
-    expect(mockLocalStorage['installation_in_progress']).toBeUndefined();
-    expect(removedKeys).toContain('installation_in_progress');
+    expect(await getStorageValue('installation_in_progress')).toBeUndefined();
 
     // L'IIFE suivante procède normalement
     const result = await simulateIifeStep0();
@@ -228,9 +222,9 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
   });
 
   it('TC-02b : removal explicite du flag → IIFE procède au boot complet', async () => {
-    // Poser puis retirer le flag manuellement
-    mockLocalStorage['installation_in_progress'] = Date.now();
-    delete mockLocalStorage['installation_in_progress'];
+    // Poser puis retirer le flag via l'API storage
+    await storage.set({ installation_in_progress: Date.now() });
+    await storage.remove('installation_in_progress');
 
     const result = await simulateIifeStep0();
 
@@ -247,7 +241,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
   it('TC-03 : flag orphelin (timestamp > 60s) → IIFE ignore flag + log warn install_flag_stale', async () => {
     // Simuler un flag posé il y a 65 secondes (> INSTALL_FLAG_STALE_MS=60s)
     const staleTimestamp = Date.now() - (INSTALL_FLAG_STALE_MS + 5_000);
-    mockLocalStorage['installation_in_progress'] = staleTimestamp;
+    await storage.set({ installation_in_progress: staleTimestamp });
 
     const result = await simulateIifeStep0();
 
@@ -261,14 +255,13 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
     expect(warnCalls[0].context?.hint).toBe('install_flag_stale');
 
     // Flag nettoyé du storage
-    expect(mockLocalStorage['installation_in_progress']).toBeUndefined();
-    expect(removedKeys).toContain('installation_in_progress');
+    expect(await getStorageValue('installation_in_progress')).toBeUndefined();
   });
 
   it('TC-03b : flag récent (exactement à la limite < 60s) → IIFE skip (pas stale)', async () => {
     // Simuler un flag posé il y a 59 secondes (< INSTALL_FLAG_STALE_MS)
     const recentTimestamp = Date.now() - (INSTALL_FLAG_STALE_MS - 1_000);
-    mockLocalStorage['installation_in_progress'] = recentTimestamp;
+    await storage.set({ installation_in_progress: recentTimestamp });
 
     const result = await simulateIifeStep0();
 
@@ -281,7 +274,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
 
   it('TC-03c : après nettoyage flag stale → boot nominal sans incident fantôme', async () => {
     // Simuler un flag stale
-    mockLocalStorage['installation_in_progress'] = Date.now() - 90_000;
+    await storage.set({ installation_in_progress: Date.now() - 90_000 });
 
     const result = await simulateIifeStep0();
     expect(result.wasStale).toBe(true);
@@ -299,7 +292,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
 
   it('TC-04 : storage sans flag → boot nominal, aucun skip, aucun warn', async () => {
     // Storage vide (pas de flag installation_in_progress)
-    expect(mockLocalStorage['installation_in_progress']).toBeUndefined();
+    expect(await getStorageValue('installation_in_progress')).toBeUndefined();
 
     const result = await simulateIifeStep0();
 
@@ -312,7 +305,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
 
   it('TC-04b : résultat {} (clé absente du storage) → comportement nominal préservé', async () => {
     // Simuler chrome.storage.local.get retournant {} (clé inexistante)
-    // — mockLocalStorage vide, la clé n'est pas dans le résultat
+    // — storage vide, la clé n'est pas dans le résultat
     const result = await simulateIifeStep0();
 
     // undefined est falsy → pas de skip
@@ -325,7 +318,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
   // ---------------------------------------------------------------------------
 
   it('TC-05 : log info émis avec hint=install_in_progress lors du skip', async () => {
-    mockLocalStorage['installation_in_progress'] = Date.now();
+    await storage.set({ installation_in_progress: Date.now() });
 
     await simulateIifeStep0();
 
@@ -339,7 +332,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
   });
 
   it('TC-05b : log warn émis avec hint=install_flag_stale lors du fallback stale', async () => {
-    mockLocalStorage['installation_in_progress'] = Date.now() - 120_000; // 2 minutes d'age
+    await storage.set({ installation_in_progress: Date.now() - 120_000 }); // 2 minutes d'age
 
     await simulateIifeStep0();
 
@@ -362,7 +355,8 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
 
     await expect(
       simulateOnFirstInstall(async () => {
-        flagDuringInstall = Boolean(mockLocalStorage['installation_in_progress']);
+        const val = await getStorageValue('installation_in_progress');
+        flagDuringInstall = Boolean(val);
         throw new Error('Erreur simulée — crash dans onFirstInstall');
       }),
     ).rejects.toThrow('Erreur simulée — crash dans onFirstInstall');
@@ -371,8 +365,7 @@ describe('TACHE-079 — flag installation_in_progress (service-worker.ts)', () =
     expect(flagDuringInstall).toBe(true);
 
     // Après l'exception (finally garanti) : flag levé
-    expect(mockLocalStorage['installation_in_progress']).toBeUndefined();
-    expect(removedKeys).toContain('installation_in_progress');
+    expect(await getStorageValue('installation_in_progress')).toBeUndefined();
 
     // L'IIFE suivante peut procéder normalement
     const result = await simulateIifeStep0();
