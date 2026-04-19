@@ -20,6 +20,11 @@
 - **T-082** 5 scénarios SM-01/02/04/05/07 TC-M7 (15 tests, 677L, complément T-059) — PR #130 **mergée**
 - **T-096** Renforcer tests isTrusted (NB-01 beforeEach + NB-03 helper `findCallByKey`, 17 tests 14→17) — PR #131
 
+*Vague 4 (3 agents, reprise Commanditaire « continue »)* :
+- **T-097** TC-UC05-05-SPA détachement/re-render React/Vue (7 tests, ARB-072-01 validé) — PR #133 **mergée**
+- **T-102** Bump mini-DAT T-070 iframes v1.0 → v1.1 (R-UC03-07 borne recentSubmits + INV-UC03-04/05 + Option B formalisée + risques hérités) — PR #135
+- **T-103** Refactor MessageRouter injection `IncidentService` via constructeur (élimine fenêtre boot 100ms, +25 tests dont 3 régression boot-window) — PR #134
+
 *Orchestrateur direct* :
 - **T-167** SFD v1.2 stub (addendum §9 UC+ARB+ADR, cf. LL-032) — PR #120 **mergée**
 
@@ -27,9 +32,9 @@
 - **Prettier** `.prettierignore` pour exclure `.claude/*.md` — PR #122 **mergée**
 - **Fix LESSONS_LEARNED** restauration format compact + `.prettierignore` embarqué sur branche T-167
 
-**14 PR mergées dans la fenêtre soir** : #91 T-028, #94 revue Fabrique, #104 PDCA, #117 cycle final, #121 clôture 1er cycle, #80 T-120 SBOM anchore, #118 codeql-action v4, #122 hotfix prettier, #119 dev-deps Dependabot, #126 T-078, #127 T-063, #120 T-167, #129 T-076, #130 T-082.
+**18+ PR mergées dans la fenêtre soir** : #91 T-028, #94 revue Fabrique, #104 PDCA, #117 cycle final, #121 clôture 1er cycle, #80 T-120 SBOM anchore, #118 codeql-action v4, #122 hotfix prettier, #119 dev-deps Dependabot, #126 T-078, #127 T-063, #120 T-167, #129 T-076, #130 T-082, #128 bilan session vague 1-2, #132 bilan enrichi vague 3, #133 T-097, #124 T-060.
 
-**5 PR en auto-merge GitHub** (séquencement automatique) : #131 T-096, #128 (ce bilan session), #125 T-064, #124 T-060, #123 T-059.
+**5 PR en auto-merge GitHub** (séquencement automatique) : #135 T-102, #134 T-103, #131 T-096, #125 T-064, #123 T-059.
 
 **Leçons capitalisées (2 nouvelles)** :
 - **LL-032** (déjà capitalisée après-midi) : Ne pas déléguer à l'Analyste métier les bumps documentaires >1000L — orchestrateur produit stubs + découpage PR incrémentales.
