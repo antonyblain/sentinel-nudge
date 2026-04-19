@@ -19,3 +19,14 @@ src/coverage/
 # Playwright E2E
 playwright-report/
 test-results/
+
+# Scripts patch one-shot produits par agents Fabrique (déjà appliqués via leurs PR)
+# Cf. feedback_agents_no_patch_scripts.md — les agents utilisent Edit/Write,
+# pas des scripts Python de patch persistants dans le repo.
+scripts/patch_*.py
+
+# Verrous tmp skill scheduled-tasks
+.claude/scheduled_tasks.lock
+
+# Worktrees agents Fabrique (isolation par skill fabrique-orchestration)
+.claude/worktrees/
