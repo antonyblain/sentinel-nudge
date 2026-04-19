@@ -15,9 +15,14 @@
  * - Seules les écritures passent par log() — pas d'API d'édition exposée (CM-T4)
  *
  * Invariants :
- * - INV-03  : count() ≤ MAX_INCIDENTS à tout moment
- * - INV-SEC-02 : context typé IncidentContext — aucun plaintext sensible
- * - INV-SEC-04 : les error ne sont purgés qu'en dernier recours (store 100% error)
+ * - INV-03      : count() ≤ MAX_INCIDENTS à tout moment
+ * - INV-SEC-02  : context typé IncidentContext — aucun plaintext sensible
+ * - INV-SEC-04  : les error ne sont purgés qu'en dernier recours (store 100% error)
+ * - INV-SEC-04b : assertNoDomainHashInContext() bloque tout champ sensible à runtime
+ *
+ * RGPD :
+ * - T-158 R-074-01 : assertion runtime assertNoDomainHashInContext() dans log()
+ * - T-159 R-074-02 : TTL absolue 365j (expires_at) + purgeOldEntries() quotidien
  *
  * Référence : Mini-DAT TACHE-061 §3.3, §4, §6 (INV-03), §6bis (INV-SEC-04),
  *             §9 (ARB-061-02/03), §9bis, §11.2/11.4
@@ -32,6 +37,9 @@ import type {
 
 /** Borne maximale du registre circulaire (ARB-061-03 / Option A) */
 export const MAX_INCIDENTS = 500;
+
+/** TTL absolue des entrées m7_incidents en millisecondes (365 jours — T-159 R-074-02 / Art. 5.1.e RGPD) */
+export const INCIDENT_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 
 /** Taille maximale du buffer mémoire pré-initDB (ARB-061-02 / Option B) */
 const PRE_INIT_BUFFER_MAX = 10;
@@ -50,6 +58,104 @@ interface M7IncidentRecordExtended extends M7IncidentRecord {
   /** Nombre de répétitions coalescées (optionnel, géré en mémoire) */
   repeat_count?: number;
 }
+
+// ---------------------------------------------------------------------------
+// T-158 R-074-01 : Assertion runtime — interdiction de champs sensibles
+// ---------------------------------------------------------------------------
+
+/**
+ * Patterns de détection de données sensibles interdites dans IncidentContext.
+ *
+ * T-158 (R-074-01) : engage formellement l'absence de données personnelles
+ * dans le registre m7_incidents (Art. 5.1.c RGPD — minimisation).
+ *
+ * Champs interdits détectés :
+ * - Clé `domain_hash` (quel que soit le type de valeur)
+ * - Valeur string matchant un SHA-256 hex 64 caractères
+ * - Clé `password_hash` brut
+ * - Clé `installation_salt` (32 caractères hex)
+ * - Valeur string contenant une URL complète (http/https)
+ */
+const FORBIDDEN_KEY_PATTERN = /^(domain_hash|password_hash|installation_salt)$/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
+const HEX32_PATTERN = /^[a-f0-9]{32}$/i;
+const URL_PATTERN = /https?:\/\/[^\s]+/;
+
+/**
+ * Vérifie récursivement qu'un objet context ne contient aucun champ sensible interdit.
+ *
+ * Fail-fast (throw) : ce contrôle est bloquant MEP — l'IncidentService ne doit
+ * JAMAIS persister de données personnelles. Un log silencieux laisserait une faille
+ * ouverte sans alerte opérateur. Le throw force une correction immédiate.
+ *
+ * Champs bloqués (INV-SEC-04b / R-074-01) :
+ * 1. Clé `domain_hash` — hash SHA-256 salé du domaine (PendingM7Toast.domain_hash)
+ * 2. Valeur string matchant `/^[a-f0-9]{64}$/i` — tout SHA-256 hex brut
+ * 3. Clé `password_hash` — hash de mot de passe brut
+ * 4. Clé `installation_salt` — sel d'installation (32 chars hex)
+ * 5. Valeur string matchant `/https?:\/\/[^\s]+/` — URL complète avec chemin/query
+ *
+ * Exception `domain_hash_prefix` : autorisé car c'est un préfixe tronqué (ex: 'abcd1234'),
+ * non un hash complet (< 64 chars hex). La regex SHA-256 ne matche pas.
+ *
+ * @param context - Contexte IncidentContext à valider (ou sous-objet lors de la récursion)
+ * @throws Error 'INV-SEC-04 violation: forbidden field in IncidentContext' si détection
+ */
+export function assertNoDomainHashInContext(context: unknown): void {
+  if (context === null || context === undefined) return;
+  if (typeof context !== 'object') {
+    // Valeur scalaire : vérifier si c'est une string sensible
+    if (typeof context === 'string') {
+      if (SHA256_HEX_PATTERN.test(context)) {
+        throw new Error(
+          'INV-SEC-04 violation: forbidden field in IncidentContext (SHA-256 hex value detected)',
+        );
+      }
+      if (URL_PATTERN.test(context)) {
+        throw new Error('INV-SEC-04 violation: forbidden field in IncidentContext (URL detected)');
+      }
+    }
+    return;
+  }
+
+  // Parcours de l'objet
+  const obj = context as Record<string, unknown>;
+  for (const key of Object.keys(obj)) {
+    // 1. Vérifier le nom de clé
+    if (FORBIDDEN_KEY_PATTERN.test(key)) {
+      throw new Error(
+        `INV-SEC-04 violation: forbidden field in IncidentContext (key '${key}' is not allowed)`,
+      );
+    }
+    // 2. Vérifier installation_salt par regex valeur (32 chars hex) sur clés non-whitelistées
+    //    Note: domain_hash_prefix est whitelisté (< 64 chars) — pas de faux positif
+    const val = obj[key];
+    if (typeof val === 'string') {
+      if (HEX32_PATTERN.test(val)) {
+        throw new Error(
+          `INV-SEC-04 violation: forbidden field in IncidentContext (key '${key}' contains a 32-char hex value — possible installation_salt)`,
+        );
+      }
+      if (SHA256_HEX_PATTERN.test(val)) {
+        throw new Error(
+          `INV-SEC-04 violation: forbidden field in IncidentContext (key '${key}' contains a SHA-256 hex value)`,
+        );
+      }
+      if (URL_PATTERN.test(val)) {
+        throw new Error(
+          `INV-SEC-04 violation: forbidden field in IncidentContext (key '${key}' contains a URL)`,
+        );
+      }
+    } else if (typeof val === 'object' && val !== null) {
+      // Récursion sur les sous-objets
+      assertNoDomainHashInContext(val);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Service principal
+// ---------------------------------------------------------------------------
 
 /**
  * Service de journalisation des incidents M7 dans IndexedDB.
@@ -106,27 +212,36 @@ export class IncidentService {
    * - Après initService() : insertion directe dans IndexedDB avec purge FIFO si nécessaire
    *
    * Coalescing anti-DoS (CM-DOS2) :
-   * - Si le même (type, severity) a été loggé < COALESCE_WINDOW_MS avec repeat_count < COALESCE_MAX_REPEAT
+   * - Si le même (type, severity) a été loggué < COALESCE_WINDOW_MS avec repeat_count < COALESCE_MAX_REPEAT
    *   → incrémenter repeat_count de la dernière entrée au lieu d'en créer une nouvelle
    * - Exception : severity='error' → jamais coalescé (CM-DOS3, timestamp précis préservé)
    *
    * INV-SEC-02 : le type IncidentContext garantit à la compilation l'absence de données sensibles.
    * INV-SEC-04 : si count >= MAX_INCIDENTS, la purge cible info → warn → error (dernier recours).
+   * INV-SEC-04b (T-158 R-074-01) : assertNoDomainHashInContext() bloque les champs sensibles à runtime.
+   * T-159 R-074-02 : expires_at = Date.now() + 365j initialisé ici.
    *
    * @param type     - Type d'incident (M7IncidentType)
    * @param severity - Sévérité (info/warn/error)
    * @param context  - Contexte structuré (IncidentContext — CM-ID2)
+   * @throws Error 'INV-SEC-04 violation: forbidden field in IncidentContext' si champ sensible détecté
    */
   async log(
     type: M7IncidentType,
     severity: M7IncidentSeverity,
     context: IncidentContext,
   ): Promise<void> {
+    // T-158 R-074-01 : assertion runtime — fail-fast si champ sensible détecté
+    assertNoDomainHashInContext(context);
+
     const record: M7IncidentRecord = {
       ts: Date.now(),
       type,
       severity,
       context,
+      // T-159 R-074-02 : TTL absolue 365 jours (Art. 5.1.e RGPD)
+      // Pas de dérogation severity : même les error sont purgés après 365j.
+      expires_at: Date.now() + INCIDENT_TTL_MS,
     };
 
     if (!this.initialized || this.db === null) {
@@ -195,6 +310,97 @@ export class IncidentService {
         reject(
           new Error(
             `[IncidentService] Échec count: ${request.error?.message ?? 'Erreur inconnue'}`,
+          ),
+        );
+    });
+  }
+
+  /**
+   * Purge les entrées expirées du store m7_incidents (TTL absolue 365 jours).
+   *
+   * T-159 (R-074-02) — Art. 5.1.e RGPD (limitation de la conservation) :
+   * Supprime toutes les entrées dont `expires_at < Date.now()`.
+   *
+   * Pas de dérogation severity : même les incidents severity=error sont purgés
+   * après leur TTL (pas d'exception "forensique" — Art. 5.1.e RGPD strict).
+   * Justification : le registre m7_incidents est un journal de diagnostic local,
+   * non un journal d'audit légal. La forensique post-incident ne justifie pas
+   * une rétention indéfinie de données liées à des traitements potentiellement personnels.
+   *
+   * À appeler quotidiennement dans onPurgeDaily() (alarme 02h00).
+   *
+   * @param ttlDays - Durée de rétention en jours (défaut : 365). Paramètre pour testabilité.
+   * @returns Nombre d'entrées supprimées
+   * @throws Error si la base n'est pas initialisée
+   */
+  async purgeOldEntries(ttlDays: number = 365): Promise<number> {
+    const db = this.requireDB();
+    // ttlDays sert de fallback TTL pour les entrées legacy antérieures à T-159
+    // qui ne possèdent pas de champ expires_at explicite.
+    const legacyCutoffMs = ttlDays * 24 * 60 * 60 * 1000;
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('m7_incidents', 'readwrite');
+      const store = tx.objectStore('m7_incidents');
+      // Curseur sur l'index ts (ordre croissant) : les plus anciens en premier
+      // Optimisation : on arrête dès que ts > cutoff (les entrées récentes ne sont pas expirées)
+      const tsIndex = store.index('ts');
+      const cursorReq = tsIndex.openCursor(null, 'next');
+      let deletedCount = 0;
+
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result;
+        if (!cursor) {
+          resolve(deletedCount);
+          return;
+        }
+
+        const entry = cursor.value as M7IncidentRecord;
+
+        // Vérification expires_at (présent dans les nouvelles entrées T-159)
+        // Fallback sur ts + TTL pour les entrées legacy sans expires_at
+        const expiresAt =
+          typeof entry.expires_at === 'number' ? entry.expires_at : entry.ts + legacyCutoffMs;
+
+        if (expiresAt < Date.now()) {
+          // Entrée expirée — pas de dérogation severity (Art. 5.1.e RGPD strict)
+          const deleteReq = cursor.delete();
+          deleteReq.onsuccess = () => {
+            deletedCount++;
+            cursor.continue();
+          };
+          deleteReq.onerror = () =>
+            reject(
+              new Error(
+                `[IncidentService] Échec purgeOldEntries delete: ${deleteReq.error?.message ?? 'Erreur inconnue'}`,
+              ),
+            );
+        } else {
+          // Optimisation : les entrées sont triées par ts croissant.
+          // Si l'entrée courante n'est pas expirée (expires_at >= now),
+          // et qu'on utilise le fallback ts-based, on peut arrêter le curseur.
+          // Pour les entrées avec expires_at explicite on continue (cas de TTL réduit en test).
+          if (typeof entry.expires_at !== 'number') {
+            // Entrée legacy non expirée — on peut s'arrêter (ts croissant)
+            resolve(deletedCount);
+            return;
+          }
+          // Entrée avec expires_at explicite non expirée — on continue pour les TTL hétérogènes
+          cursor.continue();
+        }
+      };
+
+      cursorReq.onerror = () =>
+        reject(
+          new Error(
+            `[IncidentService] Échec purgeOldEntries curseur: ${cursorReq.error?.message ?? 'Erreur inconnue'}`,
+          ),
+        );
+
+      tx.onerror = () =>
+        reject(
+          new Error(
+            `[IncidentService] Échec transaction purgeOldEntries: ${tx.error?.message ?? 'Erreur inconnue'}`,
           ),
         );
     });
