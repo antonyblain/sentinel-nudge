@@ -18,17 +18,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
 // Setup global chrome AVANT l'import du module — état initial : extension réelle
 // ---------------------------------------------------------------------------
 
-const mockStorageLocalGet = vi
-  .fn()
-  .mockImplementation((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-    callback({});
-  });
-const mockStorageOnChangedAddListener = vi.fn();
+// T-189 : storage.local délégué au wrapper createMockChromeStorage() (P-018)
+const { storage, reset: resetStorage } = createMockChromeStorage();
+
 const mockRuntimeSendMessage = vi
   .fn()
   .mockImplementation((_msg: unknown, callback?: (r: unknown) => void) => {
@@ -38,14 +36,9 @@ const mockRuntimeSendMessage = vi
 // Chrome initial avec runtime.id défini → isExtensionContext() = true
 global.chrome = {
   storage: {
-    local: {
-      get: mockStorageLocalGet,
-      set: vi.fn().mockImplementation((_items: unknown, callback?: () => void) => callback?.()),
-      remove: vi.fn().mockImplementation((_keys: unknown, callback?: () => void) => callback?.()),
-      clear: vi.fn().mockImplementation((callback?: () => void) => callback?.()),
-    },
+    local: storage,
     onChanged: {
-      addListener: mockStorageOnChangedAddListener,
+      addListener: vi.fn(),
     },
   },
   runtime: {
@@ -83,6 +76,11 @@ describe('TACHE-094 — isExtensionContext() : guard mockable pour auto-exec', (
    * qui manipule l'objet global.
    */
   const originalChrome = global.chrome;
+
+  beforeEach(() => {
+    resetStorage();
+    vi.clearAllMocks();
+  });
 
   afterEach(() => {
     // Restaurer chrome après chaque test qui le manipule
