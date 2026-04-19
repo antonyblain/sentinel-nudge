@@ -611,7 +611,7 @@ Même pattern que Options : `focus-visible` attendu sur les boutons nav et les i
 
 ## 13. Tests axe-core T-150 / T-157
 
-**Statut post-hotfix T-157 (PR #81) et PR #92 :** 12/12 règles axe-core WCAG 2.2 AA verts confirmés sur le périmètre couvert par les tests automatisés. Les résultats axe-core sont à archiver dans `docs/accessibilite/captures/` dans le cadre de T-180.
+**Statut post-hotfix T-157 (PR #81) et PR #92 :** 12/12 règles axe-core WCAG 2.2 AA verts confirmés sur le périmètre couvert par les tests automatisés. Les résultats axe-core sont à archiver dans `docs/accessibilite/captures/axe-core/` selon le plan `captures/axe-core/plan-archivage-v1.0.md` (T-180).
 
 **Règles axe-core activées (à maintenir)** :
 - `color-contrast` — contraste texte/fond
@@ -641,7 +641,7 @@ Les tests manuels avec NVDA (lecteur d'écran gratuit, Windows 11) ne sont pas r
 | Navigation par étapes onboarding | Onboarding | WCAG 2.4.3 A |
 | Focus M7 désactivé avec aria-label | Onboarding étape 3 | WCAG 4.1.2 AA |
 
-Les captures et résultats sont à archiver dans `docs/accessibilite/captures/` (T-180).
+Les captures et résultats sont à archiver dans `docs/accessibilite/captures/` (T-180). Scénarios NVDA structurés disponibles dans `captures/nvda/scenarios-nvda-v1.0.md`.
 
 ---
 
