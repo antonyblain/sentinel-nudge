@@ -14,6 +14,8 @@
  * - Deux domaines différents : cooldown indépendant par domaine_hash
  *
  * Référence : SFD §2.5.3 (cooldown 30j, suppression_list), TACHE-057 (CRITICAL_MODULES)
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -24,33 +26,17 @@ import type { NudgeMessage } from '@/shared/types/messages';
 import type { PasswordHashRecord } from '@/shared/types/storage';
 import type { HeartbeatService } from '@/background/services/heartbeat-service';
 import type { IncidentService } from '@/background/services/incident-service';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mock chrome.storage.local
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        _keys.forEach((k) => {
-          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
-        });
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((_keys: string | string[], callback?: () => void) => {
-        const ks = Array.isArray(_keys) ? _keys : [_keys];
-        ks.forEach((k) => delete mockLocalStorage[k]);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     create: vi.fn().mockResolvedValue({}),
@@ -90,7 +76,7 @@ function buildHashRecord(hash: string, domainHash: string, id = 1): PasswordHash
   return {
     id,
     tag: hash.substring(0, 8),
-    value: new ArrayBuffer(32),
+    value: new ArrayBuffer(32), // Ciphertext factice — passé au mock StorageService, pas à chrome.storage
     iv: new Uint8Array(12),
     domain_hash: domainHash,
     first_seen: Date.now() - 1000,
@@ -162,7 +148,7 @@ async function encryptHash(key: CryptoKey, hash: string): Promise<PasswordHashRe
 
 beforeEach(() => {
   recentSubmits.clear();
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  resetStorage();
   vi.clearAllMocks();
 });
 
@@ -191,9 +177,9 @@ describe('M7 cooldown 30j fonctionnel', () => {
     const record = await encryptHash(key, HASH_PWD_1);
 
     // Candidat avec domain_hash différent → réutilisation inter-domaines
-    const storage = createMockStorage({ candidates: [record] });
+    const mockStorage = createMockStorage({ candidates: [record] });
     const { heartbeat, incident } = createMockServices();
-    const handler = createM7Handler(storage as StorageService, key, heartbeat, incident);
+    const handler = createM7Handler(mockStorage as StorageService, key, heartbeat, incident);
 
     // Aucun nudge précédent → pas de cooldown actif
     const msg = buildM7Message({ hash: HASH_PWD_1, domain_hash: DOMAIN_HASH_EXAMPLE });
@@ -207,13 +193,13 @@ describe('M7 cooldown 30j fonctionnel', () => {
     const key = await createRealKey();
     const record = await encryptHash(key, HASH_PWD_1);
 
-    const storage = createMockStorage({ candidates: [record] });
+    const mockStorage = createMockStorage({ candidates: [record] });
     const { heartbeat, incident } = createMockServices();
-    const handler = createM7Handler(storage as StorageService, key, heartbeat, incident);
+    const handler = createM7Handler(mockStorage as StorageService, key, heartbeat, incident);
 
     // Simuler un nudge récent (il y a 1 heure — dans les 30j)
     const recentTs = Date.now() - 60 * 60 * 1000; // -1h
-    mockLocalStorage[M7_LAST_NUDGE_KEY] = { [DOMAIN_HASH_EXAMPLE]: recentTs };
+    await storage.set({ [M7_LAST_NUDGE_KEY]: { [DOMAIN_HASH_EXAMPLE]: recentTs } });
 
     // Dedup window : hash différent pour éviter déduplication
     const msg = buildM7Message({ hash: HASH_PWD_1, domain_hash: DOMAIN_HASH_EXAMPLE });
@@ -228,13 +214,13 @@ describe('M7 cooldown 30j fonctionnel', () => {
     const key = await createRealKey();
     const record = await encryptHash(key, HASH_PWD_2);
 
-    const storage = createMockStorage({ candidates: [record] });
+    const mockStorage = createMockStorage({ candidates: [record] });
     const { heartbeat, incident } = createMockServices();
-    const handler = createM7Handler(storage as StorageService, key, heartbeat, incident);
+    const handler = createM7Handler(mockStorage as StorageService, key, heartbeat, incident);
 
     // Nudge il y a 31 jours → cooldown expiré
     const expiredTs = Date.now() - (NUDGE_COOLDOWN_MS + 24 * 60 * 60 * 1000);
-    mockLocalStorage[M7_LAST_NUDGE_KEY] = { [DOMAIN_HASH_EXAMPLE]: expiredTs };
+    await storage.set({ [M7_LAST_NUDGE_KEY]: { [DOMAIN_HASH_EXAMPLE]: expiredTs } });
 
     const msg = buildM7Message({ hash: HASH_PWD_2, domain_hash: DOMAIN_HASH_EXAMPLE });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
@@ -248,13 +234,13 @@ describe('M7 cooldown 30j fonctionnel', () => {
     // On a un hash du même mot de passe sur domain "other"
     const record = await encryptHash(key, HASH_PWD_1);
 
-    const storage = createMockStorage({ candidates: [record] });
+    const mockStorage = createMockStorage({ candidates: [record] });
     const { heartbeat, incident } = createMockServices();
-    const handler = createM7Handler(storage as StorageService, key, heartbeat, incident);
+    const handler = createM7Handler(mockStorage as StorageService, key, heartbeat, incident);
 
     // DOMAIN_HASH_EXAMPLE a un nudge récent, mais DOMAIN_HASH_OTHER n'en a pas
     const recentTs = Date.now() - 60 * 60 * 1000; // -1h
-    mockLocalStorage[M7_LAST_NUDGE_KEY] = { [DOMAIN_HASH_EXAMPLE]: recentTs };
+    await storage.set({ [M7_LAST_NUDGE_KEY]: { [DOMAIN_HASH_EXAMPLE]: recentTs } });
 
     // Test sur DOMAIN_HASH_OTHER (pas de cooldown) — mais domain_hash = other
     // Pour déclencher réutilisation : hash présent sur DOMAIN_HASH_EXAMPLE (≠ OTHER)
@@ -262,7 +248,7 @@ describe('M7 cooldown 30j fonctionnel', () => {
       ...record,
       domain_hash: DOMAIN_HASH_EXAMPLE, // hash stocké sous domain 1
     };
-    (storage.getPasswordHashesByTag as ReturnType<typeof vi.fn>).mockResolvedValue([
+    (mockStorage.getPasswordHashesByTag as ReturnType<typeof vi.fn>).mockResolvedValue([
       recordForOther,
     ]);
 
@@ -284,9 +270,9 @@ describe('M7 suppression_list (bouton "Ne plus afficher")', () => {
     const record = await encryptHash(key, HASH_PWD_1);
 
     // Domaine dans suppression_list
-    const storage = createMockStorage({ candidates: [record], isSuppressed: true });
+    const mockStorage = createMockStorage({ candidates: [record], isSuppressed: true });
     const { heartbeat, incident } = createMockServices();
-    const handler = createM7Handler(storage as StorageService, key, heartbeat, incident);
+    const handler = createM7Handler(mockStorage as StorageService, key, heartbeat, incident);
 
     const msg = buildM7Message({ hash: HASH_PWD_1, domain_hash: DOMAIN_HASH_EXAMPLE });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
@@ -298,9 +284,9 @@ describe('M7 suppression_list (bouton "Ne plus afficher")', () => {
 
   it('TC-M7-SUPPRESS-02 : action toast_action suppress_domain → addToWhitelist appelé', async () => {
     const key = await createRealKey();
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const { heartbeat, incident } = createMockServices();
-    const handler = createM7Handler(storage as StorageService, key, heartbeat, incident);
+    const handler = createM7Handler(mockStorage as StorageService, key, heartbeat, incident);
 
     const msg = buildM7Message(
       { user_action: 'suppress_domain', domain_hash: DOMAIN_HASH_EXAMPLE },
@@ -309,16 +295,16 @@ describe('M7 suppression_list (bouton "Ne plus afficher")', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_EXAMPLE, 'M7');
+    expect(mockStorage.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_EXAMPLE, 'M7');
   });
 
   it('TC-M7-SUPPRESS-03 : pas de réutilisation inter-domaines → aucun nudge', async () => {
     const key = await createRealKey();
     // Candidats avec le même domain_hash que la soumission → intra-domaine ignoré
     const record = buildHashRecord(HASH_PWD_1, DOMAIN_HASH_EXAMPLE, 1);
-    const storage = createMockStorage({ candidates: [record] });
+    const mockStorage = createMockStorage({ candidates: [record] });
     const { heartbeat, incident } = createMockServices();
-    const handler = createM7Handler(storage as StorageService, key, heartbeat, incident);
+    const handler = createM7Handler(mockStorage as StorageService, key, heartbeat, incident);
 
     const msg = buildM7Message({ hash: HASH_PWD_1, domain_hash: DOMAIN_HASH_EXAMPLE });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
