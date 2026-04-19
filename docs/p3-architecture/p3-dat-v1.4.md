@@ -1752,7 +1752,7 @@ Le tableau ci-dessous recense tous les fichiers utilisant l’une ou l’autre f
 | Irréversibilité des données hachées | FNV-1a | Non applicable | Les domaines HTTP hachés en FNV-1a sont des données publiques non sensibles |
 | Documentation des choix algorithmiques | Les deux | Conforme — présente section §17 + JSDoc `hash.ts` | Ce document constitue la décision architecturale de référence |
 
-**Référence croisée :** Référentiel ISO 27001 v1.1, contrôle A.8.24, section 4.6 — `docs/securite/referentiel-iso27001.md`.
+**Référence croisée :** Référentiel ISO 27001 v1.2, contrôle A.8.24, section 4.8 — `docs/securite/referentiel-iso27001-v1.2.md`.
 
 
 ## Annexe A — Versions des dépendances recommandées

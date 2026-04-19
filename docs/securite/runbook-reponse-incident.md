@@ -299,7 +299,7 @@ Cette procédure se lit de haut en bas, étape par étape. Chaque étape est un 
 - [ ] Commit le post-mortem sur `develop` (le post-mortem est public par défaut — un projet OSS communique en transparence). Masquer uniquement les PoC exploitables et les IoC sensibles.
 - [ ] Capitaliser dans `.claude/LESSONS_LEARNED.md` : nouvelles règles permanentes, patterns à éviter, invariants à renforcer.
 - [ ] Mettre à jour `.claude/RISQUES.md` : créer ou clôturer les entrées R-XXX correspondantes.
-- [ ] Mettre à jour `docs/securite/referentiel-iso27001.md` : si de nouvelles mesures sont permanentes, les tracer dans les fiches A.5.24/A.5.26 ou A.8.8.
+- [ ] Mettre à jour `docs/securite/referentiel-iso27001-v1.2.md` : si de nouvelles mesures sont permanentes, les tracer dans les fiches A.5.24/A.5.26 ou A.8.8.
 - [ ] Mettre à jour `.claude/BACKLOG.md` : créer les tâches de remédiation long terme identifiées (correctifs defense-in-depth, tests à généraliser).
 - [ ] Si pertinent, produire un nouvel ADR (format `docs/adr/adr-XXX-*.md`) pour capturer une décision architecturale dérivée.
 - [ ] Archiver le journal d'incident local dans `docs/securite/incidents/` (maintenant public, PoC retirés).
@@ -442,7 +442,7 @@ Questions: please open a standard (non-security) GitHub issue.
 | Ressource | Chemin | Usage |
 |-----------|--------|-------|
 | Politique de signalement | `SECURITY.md` (racine) | Document public vu par les reporters |
-| Référentiel ISO 27001 | `docs/securite/referentiel-iso27001.md` | Fiches A.5.24, A.5.26, A.8.8 |
+| Référentiel ISO 27001 | `docs/securite/referentiel-iso27001-v1.2.md` | Fiches A.5.24, A.5.26, A.8.8 |
 | ADR-001 SW-BOOT-CONTRACT | `docs/adr/adr-001-sw-boot-contract.md` | Classe "fail silent at boot" (CWE-252, CWE-755) |
 | ADR-002 CROSS-LIFECYCLE-INTENT | `docs/adr/adr-002-cross-lifecycle-intent.md` | Résilience aux frontières de cycle de vie (CWE-502) |
 | AIPD M7 v1.0 | `docs/p3-architecture/p3-aipd-m7-v1.0.md` | Impact vie privée du module M7 — à consulter pour tout incident M7 |
@@ -527,7 +527,7 @@ Un runbook non exercé s'atrophie. Le projet s'engage à pratiquer **au minimum 
 ### 10.2 Documents projet
 
 - `SECURITY.md` (racine) — politique publique de signalement.
-- `docs/securite/referentiel-iso27001.md` — fiches détaillées A.5.24 (§4.8), A.5.26 (§4.8), A.8.8 (§4.2).
+- `docs/securite/referentiel-iso27001-v1.2.md` — fiches détaillées A.5.24 (§4.12), A.5.26 (§4.12), A.8.8 (§4.3).
 - `docs/adr/adr-001-sw-boot-contract.md` — classe CWE-252 / CWE-755.
 - `docs/adr/adr-002-cross-lifecycle-intent.md` — classe CWE-502.
 - `docs/p3-architecture/p3-aipd-m7-v1.0.md` — impact vie privée M7.
@@ -539,4 +539,4 @@ Un runbook non exercé s'atrophie. Le projet s'engage à pratiquer **au minimum 
 
 | Version | Date | Auteur | Changements | Sources |
 |---------|------|--------|-------------|---------|
-| 1.0 | 2026-04-17 | Architecte sécurité (Fabrique) | Initialisation — runbook complet aligné A.5.24/A.5.26/A.8.8 ; SLA 7j/14j/30j cohérent avec SECURITY.md ; 10 steps procéduraux ; 5 templates de communication ; grille post-mortem ; cadence tabletop annuelle. | TACHE-110 (validée par Commanditaire), `docs/securite/referentiel-iso27001.md` §4.2 et §4.8, post-mortem M7 v1.0, ADR-001, ADR-002. |
+| 1.0 | 2026-04-17 | Architecte sécurité (Fabrique) | Initialisation — runbook complet aligné A.5.24/A.5.26/A.8.8 ; SLA 7j/14j/30j cohérent avec SECURITY.md ; 10 steps procéduraux ; 5 templates de communication ; grille post-mortem ; cadence tabletop annuelle. | TACHE-110 (validée par Commanditaire), `docs/securite/referentiel-iso27001-v1.2.md` §4.3 et §4.12, post-mortem M7 v1.0, ADR-001, ADR-002. |
