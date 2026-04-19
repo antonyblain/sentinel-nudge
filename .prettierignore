@@ -1,0 +1,19 @@
+# Fichiers de mémoire Fabrique — format tabulaire manuel compact
+# Prettier reformate les tableaux Markdown GitHub-style avec lignes vides
+# entre rows, ce qui dégrade la lisibilité. Ces fichiers sont maintenus
+# manuellement — ne JAMAIS les passer à prettier.
+.claude/*.md
+
+# Artefacts de build et dépendances
+dist/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+
+# Logs & tmp
+*.log
+.claude/scheduled_tasks.lock
+
+# Diagrammes sources (Mermaid) — format propre non prettier-compatible
+docs/**/*.mmd
