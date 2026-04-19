@@ -15,6 +15,7 @@
  */
 
 import type { M7Diagnostics } from '@/shared/types/diagnostics';
+import type { IncidentService } from '@/background/services/incident-service';
 import { DIAGNOSTICS_M7_KEY, M7_DIAGNOSTICS_DEFAULT } from '@/shared/types/diagnostics';
 import { browser } from '@/shared/browser/browser-adapter';
 
@@ -25,6 +26,25 @@ import { browser } from '@/shared/browser/browser-adapter';
  * Toutes les méthodes sont async (chrome.storage.local est asynchrone).
  */
 export class HeartbeatService {
+  /**
+   * Service d'incidents injecté après initialisation pour instrumenter les
+   * échecs d'écriture storage (OBS-04 / TACHE-078).
+   * Optionnel : si absent, l'erreur est logguée via logger uniquement.
+   */
+  private incidentService: IncidentService | null = null;
+
+  /**
+   * Injecte le service d'incidents après instanciation (évite la dépendance circulaire
+   * HeartbeatService → IncidentService → HeartbeatService).
+   *
+   * À appeler depuis service-worker.ts après incidentService.initService().
+   *
+   * @param service - Instance IncidentService initialisée
+   */
+  setIncidentService(service: IncidentService): void {
+    this.incidentService = service;
+  }
+
   /**
    * Lit le heartbeat courant depuis chrome.storage.local.
    *
@@ -81,9 +101,24 @@ export class HeartbeatService {
    * @throws Error si chrome.storage.local.set échoue
    */
   async write(diagnostics: M7Diagnostics): Promise<void> {
-    await browser.storage.local.set({
-      [DIAGNOSTICS_M7_KEY]: diagnostics,
-    });
+    // OBS-04 / TACHE-078 : instrumentation storage_write_fail — site heartbeat_write.
+    // Re-throw préservé : les callers (onBootStart/onBootSuccess/onBootFailure/onDetection)
+    // opèrent dans des contextes déjà gérés par les try/catch de service-worker.ts.
+    try {
+      await browser.storage.local.set({
+        [DIAGNOSTICS_M7_KEY]: diagnostics,
+      });
+    } catch (writeErr: unknown) {
+      if (this.incidentService) {
+        await this.incidentService.log('storage_write_fail', 'error', {
+          type: 'storage_write_fail',
+          module: 'heartbeat',
+          site: 'heartbeat_write',
+          hint: (writeErr instanceof Error ? writeErr.message : String(writeErr)).slice(0, 100),
+        });
+      }
+      throw writeErr;
+    }
   }
 
   /**
