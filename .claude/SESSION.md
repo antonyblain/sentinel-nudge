@@ -2,21 +2,33 @@
 
 ## Fil rouge (narration courte)
 
-**Où on en est (fin session 2026-04-19 — clôture propre demandée Commanditaire).** 🏁 **29 PR mergées** sur la session (#51 à #78 moins #75 fermée). Cycle UC-01 + Chantiers G/H/I/J + conformité RGPD user-friendly + audit GitHub + LL-030/031 + pixel-perfect popup 3 thèmes + hotfix 6 défauts rendu. **29 PR** dont :
-- Tests : 435 → **897 verts** (+462 tests sur la session)
-- Design system v2 : 3 thèmes retenus Aegis Light / Midnight Obsidian / Cyberpunk Neon intégrés
-- Structure popup pixel-perfect maquettes v3 (T-156)
-- Politique confidentialité v1.1 + AIPD v1.2 + registre traitements Art. 30 user-friendly (T-154)
-- Supply-chain hardening : SHA pinning CWE-829, CODEOWNERS, dependabot, LICENSE GPL-3.0 sur main
-- 2FA + Passkey activés (T-122), paramétrage repo (default=develop, squash only, auto-delete, T-129)
+**Où on en est (session 2026-04-19 matinée — parallélisation maximale + repo PUBLIC).** 🚀 **Session intensive enchaînée sans temps mort I-011** sous direction Commanditaire « parallélise + dis-moi ce que toi tu fais en parallèle ». **Bilan provisoire ~10:30** :
 
-**PR #79 hotfix en cours** : 6 fixes Commanditaire (bouton "Voir le tableau de bord", labels modules courts, doublon "lundi", texte blanc bouton dark, dégradé Cyberpunk top+bottom+glow, btn-fg matrix gardé noir AA-safe après arbitrage axe-core). CI partielle (E2E fail axe-core contraste matrix — remonté dans T-157 arbitrage demain).
+**Tâches terminées matinée 2026-04-19** :
+- **T-157** finitions popup (4 sous-tâches a/b/c/d) + hotfix axe-core options/onboarding dark — PR #81 mergée (squash `473ea3b`, CI 4/4 verte). Commanditaire arbitrage Option C bouton Matrix outline cyan transparent + glow (14.2:1 AAA) tranché en début de session. Hotfix axe-core nouveau token sémantique `--sn-color-accent-text` introduit pour découpler texte sur fond dark vs fond bouton primary.
+- **T-041** DAT v1.4 (FNV-1a vs SHA-256) — PR #87 mergée (squash, CI 4/4 verte). Section 17 ~130L documentant le cloisonnement des deux espaces de hash de domaine + matrice ISO 27001 A.8.24 + 7 sites d'usage.
+- **T-074** note DPO compatibilité mini-DAT TACHE-061 / AIPD M7 — Avis FAVORABLE SOUS RÉSERVES (R-074-01/02/03 bloquantes MEP) — PR #82 (en cours merge).
+- **T-115** note DPO circuit incidents M7 obligatoire (Step 2/7 runbook) — Avis FAVORABLE + procédure escalade DPO 6 étapes E1-E6 — PR #82.
+- **T-155** registre traitements Art. 30 v1.1 user-friendly + annexe correspondance — PR #82.
+- **T-120** SBOM via anchore/sbom-action SHA-pinned (CWE-829) — PR #80 (en cours merge).
+- **T-112** ✅ **REPO PUBLIC** complet via CLI (10 étapes contrôlées) — `visibility=public`, secret_scanning + push_protection + dependabot security updates + private_vulnerability_reporting tous `enabled`, branch protection main+develop avec CI checks `quality`+`e2e` + linear history + no force push + admins inclus. Note pragmatique : `required_approving_review_count: 0` sur les 2 branches (sinon repo solo bloqué — à relever quand contributeurs externes apparaîtront).
+- **T-130** topics + Discussions + DCO via CLI avec contrôles — 10 topics ajoutés, GitHub Discussions activées, `web_commit_signoff_required: true`. Reste : doc `docs/securite/secrets-cws.md` à différer (post-roadmap CWS).
+- **PR Dependabot #84** (ws + playwright-crx) mergée immédiatement après passage public.
 
-**TACHE-157 créée** (session demain 2026-04-20) : (a) angles/bords arrondis chips/boutons, (b) rendu bizarre en haut popup Aegis, (c) arbitrage contraste bouton Matrix (blanc pixel-perfect vs noir AA), (d) scroll résiduel popup.
+**Mémoire enrichie** : `feedback_confiance_controle.md` ajouté — principe Commanditaire « confiance n'exclut pas contrôle » : après toute modif (gh api PATCH, edit config, merge), relire/vérifier explicitement l'état effectif via commande inverse. Appliqué systématiquement à T-112 et toutes les actions critiques de la session.
 
-**Actions Commanditaire restantes** : recette manuelle Google+MS (TACHE-068), TACHE-112 passage repo public (guide prêt, 4 points gh CLI + 2 points UI), TACHE-157 finitions popup à la reprise.
+**Innovation méthodologique LL-022/023/024 reconfirmée** : 4 agents Fabrique en parallélisation simultanée (Dev T-157 + Archi logiciel T-041 + DPO T-074/115/155 + DevSecOps T-120) puis 2 nouveaux (Dev T-134/135/136 + Archi sécu T-028) sur zones strictement disjointes. Aucun conflit de merge. Cycle hotfix axe-core inséré sans interrompre les agents.
 
-Clôture propre — aucun worktree actif. Base develop saine.
+**État courant (~10:30)** :
+- 3 PR ouvertes en attente CI verte (post update-branch) : #80 T-120, #82 DPO, #83 Dependabot actions
+- 2 nouveaux agents en background : Dev T-134/135/136 (pages statiques a11y) + Archi sécu T-028 (web_accessible_resources resserrement)
+- Aucun worktree mort. CI verte sur develop tip.
+
+**Actions Commanditaire restantes** : recette manuelle Google+MS (TACHE-068) toujours, T-130 (d) doc secrets-cws.md différée.
+
+---
+
+**Clôture session 2026-04-18 (récap)** : 29 PR mergées (#51 à #78 moins #75 fermée). Cycle UC-01 + Chantiers G/H/I/J + conformité RGPD user-friendly + audit GitHub + LL-030/031 + pixel-perfect popup 3 thèmes + hotfix 6 défauts rendu. Tests : 435 → 897 verts (+462). Supply-chain hardening : SHA pinning CWE-829, CODEOWNERS, dependabot, LICENSE GPL-3.0 sur main. 2FA + Passkey activés (T-122), paramétrage repo (default=develop, squash only, auto-delete, T-129).
 
 ---
 
