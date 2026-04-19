@@ -638,23 +638,23 @@ describe('TC-UC01-04 — Filtre isCreationForm sur page SSO Step 2', () => {
     expect(m7Messages.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('TC-UC01-04-B : formulaire SSO avec autocomplete="new-password" → M7 envoie password_submitted au submit (comportement documenté)', async () => {
+  it('TC-UC01-04-B : formulaire SSO avec autocomplete="new-password" → M7 n\'envoie PAS password_submitted (T-064)', async () => {
     /**
-     * Comportement documentaire (pas strictement un échec) :
+     * Comportement mis à jour par T-064 (UC-07/UC-08 — D-PM-06) :
      *
-     * isCreationForm est évaluée dans handleFocusOnPasswordField (au focus), non au submit.
-     * handleFormSubmit envoie toujours password_submitted à M7, indépendamment de
-     * isCreationForm. L'impact d'un faux positif isCreationForm se limite au routing
-     * M9 vs M2 au focus — M7 au submit n'est pas affecté.
+     * Avant T-064, handleFormSubmit envoyait password_submitted à M7 même si le champ
+     * avait autocomplete="new-password". Ce comportement produisait un faux positif :
+     * le token "new-password" est un signal HTML W3C fiable d'un formulaire de création
+     * → la réutilisation inter-domaines ne peut pas être détectée sur un nouveau mdp.
      *
-     * Si un IdP SSO expose autocomplete="new-password" sur son formulaire de connexion
-     * Step 2, M7 continue de détecter la réutilisation. Seul M9 (force) peut s'afficher
-     * au lieu de M2 (risque site) — comportement non bloquant pour UC-01.
+     * Après T-064, isNewPasswordField() filtre le champ AVANT le bloc M7 :
+     * M7 password_submitted N'est PAS envoyé. M9 reste actif (bloc précédent dans
+     * handleFormSubmit non affecté par le filtre).
      *
-     * Ticket BACKLOG TACHE-118 (suggéré) : vérifier si un IdP SSO réel expose
-     * autocomplete="new-password" sur son formulaire de connexion Step 2. Si confirmé,
-     * ajouter une exception de domaine dans Signal 1 de isCreationForm pour les domaines
-     * SSO connus (login.live.com, accounts.google.com, *.okta.com).
+     * Note : si un IdP SSO expose par erreur autocomplete="new-password" sur un
+     * formulaire de connexion Step 2, M7 sera désactivé pour ce champ. Ce cas
+     * exceptionnel est documenté dans D-PM-06. La solution à long terme est d'ajouter
+     * des heuristiques complémentaires (ex: présence d'un champ confirm-password).
      */
     const form = document.createElement('form');
 
@@ -687,8 +687,7 @@ describe('TC-UC01-04 — Filtre isCreationForm sur page SSO Step 2', () => {
     const submitEvent = { isTrusted: true } as unknown as SubmitEvent;
     await handleFormSubmit(submitEvent, pwdInput);
 
-    // Assert documentaire : M7 envoie password_submitted même si autocomplete="new-password"
-    // (isCreationForm s'applique au focus seulement, pas au submit)
+    // Assert T-064 : M7 password_submitted N'est PAS envoyé (filtre isNewPasswordField)
     const m7Messages = capturedMessages.filter(
       (msg) =>
         typeof msg === 'object' &&
@@ -696,9 +695,8 @@ describe('TC-UC01-04 — Filtre isCreationForm sur page SSO Step 2', () => {
         (msg as Record<string, unknown>)['module'] === 'M7' &&
         (msg as Record<string, unknown>)['action'] === 'password_submitted',
     );
-    // Si ce test échoue (m7Messages.length === 0), cela signifie que isCreationForm
-    // est aussi appliquée au submit → signaler comme BUG dans BACKLOG (TACHE-118)
-    expect(m7Messages.length).toBeGreaterThanOrEqual(1);
+    // T-064 : le filtre isNewPasswordField bloque M7 sur autocomplete="new-password"
+    expect(m7Messages.length).toBe(0);
   });
 
   it('TC-UC01-04-C : formulaire avec hint "Create account" type="button" → pas de faux positif Signal 4', async () => {
