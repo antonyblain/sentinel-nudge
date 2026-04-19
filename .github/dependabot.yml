@@ -34,16 +34,36 @@ updates:
     reviewers:
       - "antonyblain"
 
-    # Ignore les bumps majeurs de libs dont la compatibilité MV3 est fragile.
+    # Ignore les bumps majeurs de libs dont la migration nécessite une
+    # planification manuelle dédiée (breaking changes documentés).
     # Justification :
-    #   - vite@v6 : incompatibilités documentées avec vite-plugin-web-extension
+    #   - vite@v6+ : incompatibilités documentées avec vite-plugin-web-extension
     #     et les Service Workers MV3 (lesson LL — feedback_versions_npm.md).
-    #     Un bump majeur doit faire l'objet d'une évaluation manuelle dédiée.
     #   - vite-plugin-web-extension@v5+ : couplé à vite, même raisonnement.
+    #   - vitest@v3+ et @vitest/coverage-v8@v3+ : couplés à vite, breaking changes
+    #     fréquents sur les configs et l'API de tests.
+    #   - eslint@v10+ : migration flat config v2 attendue, breaking config majeur.
+    #   - typescript@v6+ : nouvelles strictness rules + breaking changes API.
+    #   - @typescript-eslint/* @v9+ : couplé à TypeScript major.
+    # Tout bump majeur sur ces libs DOIT passer par une tâche BACKLOG dédiée
+    # (T-160 vite v8, T-161 vitest v4, T-162 eslint v10, T-163 typescript v6).
+    # PR #86 et #89 (Dependabot 2026-04-19) fermées car bumps majors groupés.
     ignore:
       - dependency-name: "vite"
         update-types: ["version-update:semver-major"]
       - dependency-name: "vite-plugin-web-extension"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@typescript-eslint/eslint-plugin"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@typescript-eslint/parser"
         update-types: ["version-update:semver-major"]
 
     commit-message:
