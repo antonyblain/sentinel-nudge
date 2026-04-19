@@ -16,6 +16,8 @@
  * - TC-M7-MIG-EXPIRES-AT-01 : lecture format nouveau (expires_at) → retour direct
  * - TC-M7-RCLI-05 : cross-lifecycle — pending_m7_toast survive au kill SW et est consommable
  * - TC-M7-ADR-04 : double consommation empêchée — deuxième lecture retourne null
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -26,34 +28,17 @@ import type { PasswordHashRecord } from '@/shared/types/storage';
 import type { HeartbeatService } from '@/background/services/heartbeat-service';
 import type { IncidentService } from '@/background/services/incident-service';
 import { PENDING_M7_TOAST_KEY, PENDING_M7_TOAST_TTL_MS } from '@/shared/types/diagnostics';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
-// Mock de chrome.storage.local pour les tests des timestamps de nudge et pending toast
-const mockLocalStorage: Record<string, unknown> = {};
-const removedKeys: string[] = [];
+// ---------------------------------------------------------------------------
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
+// ---------------------------------------------------------------------------
+
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        _keys.forEach((k) => {
-          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
-        });
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((key: string | string[], callback?: () => void) => {
-        const keys = Array.isArray(key) ? key : [key];
-        keys.forEach((k) => {
-          removedKeys.push(k);
-          delete mockLocalStorage[k];
-        });
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     create: vi.fn().mockResolvedValue({}), // MV3 — retourne une Promise native
@@ -67,8 +52,7 @@ global.chrome = {
 // La Map est module-level dans m7-handler.ts — elle persiste entre les tests du même fichier.
 beforeEach(() => {
   recentSubmits.clear();
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
-  removedKeys.length = 0;
+  resetStorage();
   vi.clearAllMocks();
 });
 
@@ -86,7 +70,7 @@ function buildHashRecord(hash: string, domainHash: string, id = 1): PasswordHash
   return {
     id,
     tag: hash.substring(0, 8),
-    value: new ArrayBuffer(32), // Ciphertext factice
+    value: new ArrayBuffer(32), // Ciphertext factice — passé au mock StorageService, pas à chrome.storage
     iv: new Uint8Array(12),
     domain_hash: domainHash,
     first_seen: Date.now() - 1000,
@@ -143,9 +127,9 @@ function createMockServices(): {
 
 describe('createM7Handler — validation du payload', () => {
   it('rejette un hash trop court', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -158,9 +142,9 @@ describe('createM7Handler — validation du payload', () => {
   });
 
   it('rejette un hash avec des caractères non-hex', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -174,9 +158,9 @@ describe('createM7Handler — validation du payload', () => {
   });
 
   it('rejette un domain_hash invalide', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -189,9 +173,9 @@ describe('createM7Handler — validation du payload', () => {
   });
 
   it('rejette une action inconnue', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -206,9 +190,9 @@ describe('createM7Handler — validation du payload', () => {
 
 describe('createM7Handler — logique de détection', () => {
   it('ne montre pas de nudge si aucun hash candidat (premier usage)', async () => {
-    const storage = createMockStorage({ candidates: [] });
+    const mockStorage = createMockStorage({ candidates: [] });
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -220,15 +204,15 @@ describe('createM7Handler — logique de détection', () => {
     expect(response.action).toBe('skip');
     expect(response.reason).toBe('no_reuse');
     // Le hash doit quand même être stocké
-    expect(storage.addPasswordHash).toHaveBeenCalledOnce();
+    expect(mockStorage.addPasswordHash).toHaveBeenCalledOnce();
   });
 
   it('ignore la réutilisation intra-domaine (même domain_hash)', async () => {
     // Hash candidat du MÊME domaine → pas de réutilisation inter-domaines
     const candidate = buildHashRecord(HASH_A, DOMAIN_HASH_1);
-    const storage = createMockStorage({ candidates: [candidate] });
+    const mockStorage = createMockStorage({ candidates: [candidate] });
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -245,11 +229,11 @@ describe('createM7Handler — logique de détection', () => {
     // Simuler que le domaine est supprimé (réutilisation inter-domaines mais supprimé)
     // Note : la comparaison cryptographique est mockée indirectement
     // via isWhitelisted = true
-    const storage = createMockStorage({ candidates: [], isSuppressed: true });
+    const mockStorage = createMockStorage({ candidates: [], isSuppressed: true });
     // Forcer isPasswordReused à retourner true via un candidat sur un autre domaine
     // mais comme SubtleCrypto n'est pas disponible en jsdom, on teste isWhitelisted
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -259,13 +243,13 @@ describe('createM7Handler — logique de détection', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
     expect(response.success).toBe(true);
     // Vérifie que la méthode addPasswordHash a été appelée
-    expect(storage.addPasswordHash).toHaveBeenCalledOnce();
+    expect(mockStorage.addPasswordHash).toHaveBeenCalledOnce();
   });
 
   it('stocke le hash à chaque submission (FIFO géré par StorageService)', async () => {
-    const storage = createMockStorage({ candidates: [] });
+    const mockStorage = createMockStorage({ candidates: [] });
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -273,7 +257,7 @@ describe('createM7Handler — logique de détection', () => {
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
-    expect(storage.addPasswordHash).toHaveBeenCalledWith(
+    expect(mockStorage.addPasswordHash).toHaveBeenCalledWith(
       HASH_A,
       TAG_A,
       DOMAIN_HASH_1,
@@ -282,9 +266,9 @@ describe('createM7Handler — logique de détection', () => {
   });
 
   it('vérifie la pré-filtration par tag (getPasswordHashesByTag appelé avec les 8 premiers chars)', async () => {
-    const storage = createMockStorage({ candidates: [] });
+    const mockStorage = createMockStorage({ candidates: [] });
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -292,15 +276,15 @@ describe('createM7Handler — logique de détection', () => {
     const msg = buildM7Message({ hash: HASH_A, domain_hash: DOMAIN_HASH_1 });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
-    expect(storage.getPasswordHashesByTag).toHaveBeenCalledWith(TAG_A);
+    expect(mockStorage.getPasswordHashesByTag).toHaveBeenCalledWith(TAG_A);
   });
 });
 
 describe('createM7Handler — action toast_action', () => {
   it('enregistre l\'action "acknowledged"', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -312,7 +296,7 @@ describe('createM7Handler — action toast_action', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStorage.logEvent).toHaveBeenCalledWith(
       'M7',
       expect.objectContaining({ action: 'acknowledged' }),
       createFakeKey(),
@@ -320,9 +304,9 @@ describe('createM7Handler — action toast_action', () => {
   });
 
   it('ajoute le domaine à la whitelist pour "suppress_domain"', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -334,8 +318,8 @@ describe('createM7Handler — action toast_action', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_1, 'M7');
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStorage.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_1, 'M7');
+    expect(mockStorage.logEvent).toHaveBeenCalledWith(
       'M7',
       expect.objectContaining({ action: 'suppress_domain' }),
       createFakeKey(),
@@ -343,9 +327,9 @@ describe('createM7Handler — action toast_action', () => {
   });
 
   it('enregistre l\'action "learn_more" et tente d\'ouvrir un onglet', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -357,7 +341,7 @@ describe('createM7Handler — action toast_action', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStorage.logEvent).toHaveBeenCalledWith(
       'M7',
       expect.objectContaining({ action: 'learn_more' }),
       createFakeKey(),
@@ -367,9 +351,9 @@ describe('createM7Handler — action toast_action', () => {
   });
 
   it('rejette un toast_action avec payload invalide', async () => {
-    const storage = createMockStorage({});
+    const mockStorage = createMockStorage({});
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -408,16 +392,18 @@ describe('createM7Handler — cooldown 30 jours', () => {
   it('ne montre pas de nudge si dernier nudge < 30 jours', async () => {
     // Simuler un nudge M7 récent (il y a 1 heure) pour ce domaine
     const recentTimestamp = Date.now() - 60 * 60 * 1000; // 1 heure
-    mockLocalStorage['m7_last_nudge_by_domain'] = {
-      [DOMAIN_HASH_2]: recentTimestamp,
-    };
+    await storage.set({
+      m7_last_nudge_by_domain: {
+        [DOMAIN_HASH_2]: recentTimestamp,
+      },
+    });
 
     // Pas de candidat sur un autre domaine → no_reuse avant le cooldown
     // Ce test vérifie que la logique de cooldown est bien invoquée
     // mais ne peut pas tester la détection réelle (SubtleCrypto absent)
-    const storage = createMockStorage({ candidates: [] });
+    const mockStorage = createMockStorage({ candidates: [] });
     const handler = createM7Handler(
-      storage as StorageService,
+      mockStorage as StorageService,
       createFakeKey(),
       createMockServices().heartbeat as HeartbeatService,
       createMockServices().incident as IncidentService,
@@ -464,10 +450,12 @@ describe('verifyExpiresAt — helper TTL', () => {
 describe('TC-M7-MIG-EXPIRES-AT-01 — pending_m7_toast nouveau format (expires_at)', () => {
   it('lit et retourne un toast au nouveau format valide', async () => {
     const expiresAt = Date.now() + PENDING_M7_TOAST_TTL_MS;
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      expires_at: expiresAt,
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        expires_at: expiresAt,
+      },
+    });
 
     const result = await readPendingM7Toast();
 
@@ -477,26 +465,31 @@ describe('TC-M7-MIG-EXPIRES-AT-01 — pending_m7_toast nouveau format (expires_a
   });
 
   it('retourne null si le toast est expiré (expires_at passé)', async () => {
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      expires_at: Date.now() - 60_000, // expiré il y a 1 minute
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        expires_at: Date.now() - 60_000, // expiré il y a 1 minute
+      },
+    });
 
     const result = await readPendingM7Toast();
 
     expect(result).toBeNull();
-    // Le toast expiré doit être supprimé
-    expect(removedKeys).toContain(PENDING_M7_TOAST_KEY);
+    // Le toast expiré doit être supprimé — vérifier que la clé est absente du store
+    const stored = await storage.get(PENDING_M7_TOAST_KEY);
+    expect(stored[PENDING_M7_TOAST_KEY]).toBeUndefined();
   });
 });
 
 describe('TC-M7-MIG-LEGACY-01 — pending_m7_toast format legacy (timestamp → migration)', () => {
   it('lit un toast legacy (timestamp) et le migre vers expires_at', async () => {
     const legacyTs = Date.now() - 1_000; // créé il y a 1 seconde
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      timestamp: legacyTs,
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        timestamp: legacyTs,
+      },
+    });
 
     const result = await readPendingM7Toast();
 
@@ -506,7 +499,8 @@ describe('TC-M7-MIG-LEGACY-01 — pending_m7_toast format legacy (timestamp → 
     // expires_at doit être timestamp + TTL
     expect(result?.expires_at).toBe(legacyTs + PENDING_M7_TOAST_TTL_MS);
     // Le storage doit être mis à jour en nouveau format (migration)
-    const stored = mockLocalStorage[PENDING_M7_TOAST_KEY] as Record<string, unknown>;
+    const storedResult = await storage.get(PENDING_M7_TOAST_KEY);
+    const stored = storedResult[PENDING_M7_TOAST_KEY] as Record<string, unknown>;
     expect(stored['expires_at']).toBe(legacyTs + PENDING_M7_TOAST_TTL_MS);
     expect(stored['timestamp']).toBeUndefined();
   });
@@ -514,28 +508,34 @@ describe('TC-M7-MIG-LEGACY-01 — pending_m7_toast format legacy (timestamp → 
   it('retourne null si le toast legacy est expiré (timestamp trop ancien)', async () => {
     // Toast créé il y a 15 minutes — TTL 10 minutes → expiré
     const legacyTs = Date.now() - 15 * 60 * 1000;
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      timestamp: legacyTs,
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        timestamp: legacyTs,
+      },
+    });
 
     const result = await readPendingM7Toast();
 
     expect(result).toBeNull();
-    // Toast expiré supprimé
-    expect(removedKeys).toContain(PENDING_M7_TOAST_KEY);
+    // Toast expiré supprimé — clé absente du store
+    const stored = await storage.get(PENDING_M7_TOAST_KEY);
+    expect(stored[PENDING_M7_TOAST_KEY]).toBeUndefined();
   });
 
   it('retourne null si la shape est invalide (ni expires_at ni timestamp)', async () => {
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      unknown_field: 12345,
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        unknown_field: 12345,
+      },
+    });
 
     const result = await readPendingM7Toast();
 
     expect(result).toBeNull();
-    expect(removedKeys).toContain(PENDING_M7_TOAST_KEY);
+    const stored = await storage.get(PENDING_M7_TOAST_KEY);
+    expect(stored[PENDING_M7_TOAST_KEY]).toBeUndefined();
   });
 });
 
@@ -543,13 +543,15 @@ describe('TC-M7-RCLI-05 — cross-lifecycle : pending_m7_toast survit au kill SW
   it('R-CLI-05 : toast écrit avant kill SW, consommable après re-démarrage', async () => {
     // Simuler l'écriture du toast par le handler M7 (avant kill SW)
     const expiresAt = Date.now() + PENDING_M7_TOAST_TTL_MS;
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      expires_at: expiresAt,
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        expires_at: expiresAt,
+      },
+    });
 
     // Simuler le kill SW : les variables en mémoire sont perdues mais
-    // chrome.storage.local (mockLocalStorage) persiste.
+    // chrome.storage.local (wrapper persistentStore) persiste.
     // Après re-démarrage SW, le content script lit le pending toast.
 
     // Lecture après "re-démarrage" SW
@@ -565,10 +567,12 @@ describe('TC-M7-RCLI-05 — cross-lifecycle : pending_m7_toast survit au kill SW
   it('R-CLI-05 : toast legacy survit au kill SW et est migré au re-démarrage', async () => {
     // Cas : toast legacy écrit avant TACHE-091, lu après migration
     const legacyTs = Date.now() - 2_000; // créé il y a 2 secondes
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      timestamp: legacyTs,
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        timestamp: legacyTs,
+      },
+    });
 
     // Lecture après "re-démarrage" SW
     const result = await readPendingM7Toast();
@@ -584,18 +588,19 @@ describe('TC-M7-RCLI-05 — cross-lifecycle : pending_m7_toast survit au kill SW
 describe('TC-M7-ADR-04 — double consommation empêchée (R-ADR-04)', () => {
   it('R-ADR-04 : après lecture du toast, une seconde lecture retourne null (clé absente)', async () => {
     // Écriture du toast
-    mockLocalStorage[PENDING_M7_TOAST_KEY] = {
-      domain_hash: DOMAIN_HASH_1,
-      expires_at: Date.now() + PENDING_M7_TOAST_TTL_MS,
-    };
+    await storage.set({
+      [PENDING_M7_TOAST_KEY]: {
+        domain_hash: DOMAIN_HASH_1,
+        expires_at: Date.now() + PENDING_M7_TOAST_TTL_MS,
+      },
+    });
 
     // Première consommation : lit le toast et le supprime (simulé par suppression manuelle)
     const firstRead = await readPendingM7Toast();
     expect(firstRead).not.toBeNull();
 
     // Simuler la consommation : suppression de la clé (ce que fait le content script)
-    delete mockLocalStorage[PENDING_M7_TOAST_KEY];
-    removedKeys.push(PENDING_M7_TOAST_KEY);
+    await storage.remove(PENDING_M7_TOAST_KEY);
 
     // Deuxième consommation : doit retourner null (toast déjà consommé)
     const secondRead = await readPendingM7Toast();
