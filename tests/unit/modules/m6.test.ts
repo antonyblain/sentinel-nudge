@@ -10,6 +10,8 @@
  * - handleCheckQuiz / handleQuizCompleted / handleToastAction
  * - Cas limites : corpus vide, pool épuisé, recyclage
  * - initBootM6 : boot happy path, install_date corrompu, migration pending_m6_quiz (TACHE-088)
+ *
+ * T-189 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -31,33 +33,17 @@ import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
 import type { IncidentService } from '@/background/services/incident-service';
 import { PENDING_M6_QUIZ_KEY, PENDING_M6_QUIZ_TTL_MS } from '@/shared/types/diagnostics';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mocks
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((keys: string | string[], callback?: () => void) => {
-        const ks = Array.isArray(keys) ? keys : [keys];
-        ks.forEach((k) => delete mockLocalStorage[k]);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     query: vi.fn().mockResolvedValue([{ id: 42, active: true }]),
@@ -203,33 +189,8 @@ function createMockIncidentService(): {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  Object.keys(mockLocalStorage).forEach((k) => {
-    delete mockLocalStorage[k];
-  });
+  resetStorage();
   vi.clearAllMocks();
-  // Réinitialiser les implémentations chrome.storage.local
-  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-      }
-      callback(result);
-    },
-  );
-  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
-  (global.chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string | string[], callback?: () => void) => {
-      const ks = Array.isArray(keys) ? keys : [keys];
-      ks.forEach((k) => delete mockLocalStorage[k]);
-      callback?.();
-    },
-  );
 });
 
 // ---------------------------------------------------------------------------
@@ -414,15 +375,18 @@ describe('M6Handler — toast_action : later', () => {
   it('marque le quiz comme reporté avec pending_m6_quiz (R-CLI-01) et expires_at (R-CLI-03)', async () => {
     // TACHE-088 : renommage m6_quiz_deferred → pending_m6_quiz (R-CLI-01 ADR-002)
     // Le payload est désormais { expires_at: number } (R-CLI-02/R-CLI-03)
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const beforeTs = Date.now();
     await handler(buildM6Message('toast_action', { user_action: 'later' }), mockSender);
 
     // Vérifier la nouvelle clé (R-CLI-01)
-    const pending = mockLocalStorage[PENDING_M6_QUIZ_KEY] as Record<string, unknown>;
+    const pending = (await storage.get(PENDING_M6_QUIZ_KEY))[PENDING_M6_QUIZ_KEY] as Record<
+      string,
+      unknown
+    >;
     expect(pending).toBeDefined();
     // Payload JSON-strict avec expires_at (R-CLI-02 / R-CLI-03)
     expect(typeof pending['expires_at']).toBe('number');
@@ -431,17 +395,17 @@ describe('M6Handler — toast_action : later', () => {
     expect(pending['expires_at'] as number).toBeCloseTo(beforeTs + PENDING_M6_QUIZ_TTL_MS, -3);
 
     // L'ancienne clé ne doit plus être utilisée (migration R-CLI-01)
-    expect(mockLocalStorage['m6_quiz_deferred']).toBeUndefined();
+    expect((await storage.get('m6_quiz_deferred'))['m6_quiz_deferred']).toBeUndefined();
   });
 });
 
 describe('M6Handler — quiz_completed', () => {
   it("enregistre l'événement et calcule la prochaine date", async () => {
-    const storage = createMockStorageService({
+    const stor = createMockStorageService({
       getQuizSessionCount: vi.fn().mockResolvedValue(3),
     });
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(
       buildM6Message('quiz_completed', {
@@ -455,19 +419,20 @@ describe('M6Handler — quiz_completed', () => {
     );
 
     expect(response.success).toBe(true);
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(stor.logEvent).toHaveBeenCalledWith(
       'M6',
       expect.objectContaining({ action: 'quiz_completed' }),
       cryptoKey,
     );
     // La prochaine date doit être stockée
-    expect(mockLocalStorage['m6_next_quiz_date']).toBeGreaterThan(Date.now());
+    const nextDate = (await storage.get('m6_next_quiz_date'))['m6_next_quiz_date'] as number;
+    expect(nextDate).toBeGreaterThan(Date.now());
   });
 
   it('marque quiz incomplet si completed = false', async () => {
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     await handler(
       buildM6Message('quiz_completed', {
@@ -480,13 +445,13 @@ describe('M6Handler — quiz_completed', () => {
       mockSender,
     );
 
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(stor.logEvent).toHaveBeenCalledWith(
       'M6',
       expect.objectContaining({ action: 'quiz_incomplete' }),
       cryptoKey,
     );
     // Pas de prochaine date calculée si incomplet
-    expect(mockLocalStorage['m6_next_quiz_date']).toBeUndefined();
+    expect((await storage.get('m6_next_quiz_date'))['m6_next_quiz_date']).toBeUndefined();
   });
 });
 
@@ -497,9 +462,9 @@ describe('M6Handler — check_quiz : corpus vide', () => {
       status: 404,
     });
 
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('check_quiz'), mockSender);
 
@@ -511,9 +476,9 @@ describe('M6Handler — check_quiz : corpus vide', () => {
 
 describe('M6Handler — action inconnue', () => {
   it('retourne skip unknown_action', async () => {
-    const storage = createMockStorageService();
+    const stor = createMockStorageService();
     const cryptoKey = {} as CryptoKey;
-    const handler = createM6Handler(storage, cryptoKey);
+    const handler = createM6Handler(stor, cryptoKey);
 
     const response = await handler(buildM6Message('unknown_action'), mockSender);
 
@@ -528,9 +493,9 @@ describe('M6Handler — action inconnue', () => {
 // ---------------------------------------------------------------------------
 
 describe('initBootM6 — boot happy path (install_date valide)', () => {
-  it('TC-M6-BOOT-01 : install_date valide → ready=true, pas d\'incident', async () => {
+  it("TC-M6-BOOT-01 : install_date valide → ready=true, pas d'incident", async () => {
     const validInstallDate = Date.now() - 30 * 24 * 60 * 60 * 1000; // il y a 30 jours
-    mockLocalStorage['m6_install_date'] = validInstallDate;
+    await storage.set({ m6_install_date: validInstallDate });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM6(service as IncidentService);
@@ -544,21 +509,24 @@ describe('initBootM6 — boot happy path (install_date valide)', () => {
 
   it('TC-M6-BOOT-02 : diagnostics.m6 persisté avec ready=true', async () => {
     const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    mockLocalStorage['m6_install_date'] = validInstallDate;
+    await storage.set({ m6_install_date: validInstallDate });
 
     const { service } = createMockIncidentService();
     await initBootM6(service as IncidentService);
 
-    const stored = mockLocalStorage['diagnostics.m6'] as Record<string, unknown>;
+    const stored = (await storage.get('diagnostics.m6'))['diagnostics.m6'] as Record<
+      string,
+      unknown
+    >;
     expect(stored).toBeDefined();
     expect(stored['ready']).toBe(true);
     expect(stored['install_date']).toBe(validInstallDate);
     expect(typeof stored['last_boot_ts']).toBe('number');
   });
 
-  it('TC-M6-BOOT-03 : readM6Diagnostics retourne l\'état persisté après boot', async () => {
+  it("TC-M6-BOOT-03 : readM6Diagnostics retourne l'état persisté après boot", async () => {
     const validInstallDate = Date.now() - 14 * 24 * 60 * 60 * 1000;
-    mockLocalStorage['m6_install_date'] = validInstallDate;
+    await storage.set({ m6_install_date: validInstallDate });
 
     const { service } = createMockIncidentService();
     await initBootM6(service as IncidentService);
@@ -590,7 +558,7 @@ describe('initBootM6 — install_date absent', () => {
     const { service } = createMockIncidentService();
     await initBootM6(service as IncidentService);
 
-    const stored = mockLocalStorage['m6_install_date'];
+    const stored = (await storage.get('m6_install_date'))['m6_install_date'];
     expect(typeof stored).toBe('number');
     expect(stored as number).toBeGreaterThan(0);
   });
@@ -608,7 +576,7 @@ describe('initBootM6 — install_date absent', () => {
 
 describe('initBootM6 — install_date corrompu (type invalide)', () => {
   it('TC-M6-BOOT-07 : install_date = string → incident m6_install_date_corrupted', async () => {
-    mockLocalStorage['m6_install_date'] = 'not-a-number';
+    await storage.set({ m6_install_date: 'not-a-number' });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM6(service as IncidentService);
@@ -621,7 +589,7 @@ describe('initBootM6 — install_date corrompu (type invalide)', () => {
   });
 
   it('TC-M6-BOOT-08 : install_date = 0 → invalide → régénération', async () => {
-    mockLocalStorage['m6_install_date'] = 0;
+    await storage.set({ m6_install_date: 0 });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM6(service as IncidentService);
@@ -632,7 +600,7 @@ describe('initBootM6 — install_date corrompu (type invalide)', () => {
 
   it('TC-M6-BOOT-09 : install_date dans le futur lointain → invalide → régénération', async () => {
     // Timestamp futur de 1 heure (dépassant la tolérance de 5 minutes)
-    mockLocalStorage['m6_install_date'] = Date.now() + 60 * 60 * 1000;
+    await storage.set({ m6_install_date: Date.now() + 60 * 60 * 1000 });
 
     const { service, incidents } = createMockIncidentService();
     await initBootM6(service as IncidentService);
@@ -644,38 +612,38 @@ describe('initBootM6 — install_date corrompu (type invalide)', () => {
 describe('initBootM6 — migration clé legacy m6_quiz_deferred', () => {
   it('TC-M6-BOOT-10 : clé legacy m6_quiz_deferred supprimée au boot (migration one-shot)', async () => {
     const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    mockLocalStorage['m6_install_date'] = validInstallDate;
+    await storage.set({ m6_install_date: validInstallDate });
     // Simuler la présence de l'ancienne clé
-    mockLocalStorage['m6_quiz_deferred'] = Date.now() + 86400000;
+    await storage.set({ m6_quiz_deferred: Date.now() + 86400000 });
 
     const { service } = createMockIncidentService();
     await initBootM6(service as IncidentService);
 
     // La clé legacy doit avoir été supprimée
-    expect(mockLocalStorage['m6_quiz_deferred']).toBeUndefined();
+    expect((await storage.get('m6_quiz_deferred'))['m6_quiz_deferred']).toBeUndefined();
   });
 
   it('TC-M6-BOOT-11 : pending_m6_quiz non périmé conservé au boot', async () => {
     const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    mockLocalStorage['m6_install_date'] = validInstallDate;
+    await storage.set({ m6_install_date: validInstallDate });
     // Pending intent valide (non périmé)
     const futureExpiry = Date.now() + PENDING_M6_QUIZ_TTL_MS;
-    mockLocalStorage[PENDING_M6_QUIZ_KEY] = { expires_at: futureExpiry };
+    await storage.set({ [PENDING_M6_QUIZ_KEY]: { expires_at: futureExpiry } });
 
     const { service, incidents } = createMockIncidentService();
     await initBootM6(service as IncidentService);
 
     // Le pending intent non périmé doit être conservé
-    expect(mockLocalStorage[PENDING_M6_QUIZ_KEY]).toBeDefined();
+    expect((await storage.get(PENDING_M6_QUIZ_KEY))[PENDING_M6_QUIZ_KEY]).toBeDefined();
     // Aucun incident quiz_deferred_stale
     expect(incidents.some((i) => i.type === 'quiz_deferred_stale')).toBe(false);
   });
 
   it('TC-M6-BOOT-12 : pending_m6_quiz périmé → incident quiz_deferred_stale (warn) + suppression', async () => {
     const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    mockLocalStorage['m6_install_date'] = validInstallDate;
+    await storage.set({ m6_install_date: validInstallDate });
     // Pending intent périmé (expires_at dans le passé)
-    mockLocalStorage[PENDING_M6_QUIZ_KEY] = { expires_at: Date.now() - 1000 };
+    await storage.set({ [PENDING_M6_QUIZ_KEY]: { expires_at: Date.now() - 1000 } });
 
     const { service, incidents } = createMockIncidentService();
     await initBootM6(service as IncidentService);
@@ -686,34 +654,35 @@ describe('initBootM6 — migration clé legacy m6_quiz_deferred', () => {
     expect(staleIncident?.severity).toBe('warn');
 
     // Clé supprimée (purge one-shot)
-    expect(mockLocalStorage[PENDING_M6_QUIZ_KEY]).toBeUndefined();
+    expect((await storage.get(PENDING_M6_QUIZ_KEY))[PENDING_M6_QUIZ_KEY]).toBeUndefined();
   });
 });
 
 describe('initBootM6 — état initial conservatif', () => {
   it('TC-M6-BOOT-13 : diagnostics.m6 posé à ready=false au début du boot', async () => {
     const validInstallDate = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    mockLocalStorage['m6_install_date'] = validInstallDate;
+    await storage.set({ m6_install_date: validInstallDate });
 
     let conservativeStateObserved = false;
     let callCount = 0;
-    (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-      (items: Record<string, unknown>, callback?: () => void) => {
-        callCount++;
-        if (callCount === 1 && items['diagnostics.m6']) {
-          const diag = items['diagnostics.m6'] as Record<string, unknown>;
-          if (diag['ready'] === false) {
-            conservativeStateObserved = true;
-          }
+
+    // Espionner storage.set pour intercepter le premier appel (état conservatif)
+    const originalSet = storage.set.bind(storage);
+    const spy = vi.spyOn(storage, 'set').mockImplementation(async (items, callback) => {
+      callCount++;
+      if (callCount === 1 && items['diagnostics.m6']) {
+        const diag = items['diagnostics.m6'] as Record<string, unknown>;
+        if (diag['ready'] === false) {
+          conservativeStateObserved = true;
         }
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      },
-    );
+      }
+      return originalSet(items, callback);
+    });
 
     const { service } = createMockIncidentService();
     await initBootM6(service as IncidentService);
 
+    spy.mockRestore();
     expect(conservativeStateObserved).toBe(true);
   });
 
