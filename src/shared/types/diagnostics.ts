@@ -746,6 +746,11 @@ export type IncidentContext =
  * INV-SEC-02 : le champ context est typé IncidentContext (union discriminée)
  * pour empêcher à la compilation l'introduction de données sensibles.
  * CM-ID2 : alignement sur la section 11.3 du mini-DAT.
+ *
+ * T-159 (R-074-02) : expires_at TTL absolue 365 jours (Art. 5.1.e RGPD).
+ * Initialisé à Date.now() + 365 * 86400 * 1000 à chaque log().
+ * Même les incidents severity=error sont purgés après 365j — pas de dérogation
+ * (Art. 5.1.e RGPD strict : limitation de la conservation sans exception de gravité).
  */
 export interface M7IncidentRecord {
   /** Clé primaire autoIncrement (attribuée par IndexedDB) */
@@ -761,4 +766,11 @@ export interface M7IncidentRecord {
    * INV-SEC-02 : aucun plaintext sensible (mot de passe, token, URL complète).
    */
   context: IncidentContext;
+  /**
+   * Timestamp d'expiration (ms since epoch) — T-159 R-074-02.
+   * Calculé : Date.now() + 365 * 86400 * 1000 au moment de log().
+   * Utilisé par purgeOldEntries() pour respecter Art. 5.1.e RGPD (365j maximum).
+   * Pas de dérogation severity : même les error sont purgés après 365j.
+   */
+  expires_at: number;
 }
