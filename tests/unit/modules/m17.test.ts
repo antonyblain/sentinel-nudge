@@ -23,6 +23,8 @@
  * - TC-M17-PENDING-04 : R-CLI-07 — JAMAIS la valeur collée (data_type enum strict)
  * - TC-M17-PENDING-05 : TTL 5 min — toast expiré ignoré
  * - TC-M17-PENDING-06 : handler M17 écrit pending_m17_toast pour credit_card et iban
+ *
+ * T-189 lot 3 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -49,37 +51,17 @@ import {
   PENDING_M17_TOAST_KEY,
   PENDING_M17_TOAST_TTL_MS,
 } from '@/shared/types/diagnostics';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Setup : mock chrome pour les tests du handler
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
-const removedKeys: string[] = [];
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        _keys.forEach((k) => {
-          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
-        });
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((key: string | string[], callback?: () => void) => {
-        const keys = Array.isArray(key) ? key : [key];
-        keys.forEach((k) => {
-          removedKeys.push(k);
-          delete mockLocalStorage[k];
-        });
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     create: vi.fn().mockResolvedValue({}),
@@ -126,8 +108,7 @@ function createMockIncidentService(): Partial<IncidentService> {
 }
 
 beforeEach(() => {
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
-  removedKeys.length = 0;
+  resetStorage();
   vi.clearAllMocks();
 });
 
@@ -309,8 +290,8 @@ describe('detectSensitiveTypes', () => {
 
 describe('createM17Handler — validation du payload', () => {
   it('rejette un type invalide', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'bank_account', all_types: ['bank_account'] });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -319,8 +300,8 @@ describe('createM17Handler — validation du payload', () => {
   });
 
   it('rejette un payload sans type', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ all_types: ['iban'] });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -329,8 +310,8 @@ describe('createM17Handler — validation du payload', () => {
   });
 
   it('rejette une action inconnue', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'credit_card' }, 'unknown_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -345,8 +326,8 @@ describe('createM17Handler — validation du payload', () => {
 
 describe('createM17Handler — sensitive_data_detected', () => {
   it('retourne show pour un type credit_card valide', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -356,8 +337,8 @@ describe('createM17Handler — sensitive_data_detected', () => {
   });
 
   it('retourne show pour un type iban valide', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'iban', all_types: ['iban'] });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -366,8 +347,8 @@ describe('createM17Handler — sensitive_data_detected', () => {
   });
 
   it('retourne show pour un type api_key valide', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'api_key', all_types: ['api_key'] });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -376,12 +357,12 @@ describe('createM17Handler — sensitive_data_detected', () => {
   });
 
   it("enregistre l'événement avec le type détecté (pas la valeur)", async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'iban', all_types: ['iban'] });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStorageService.logEvent).toHaveBeenCalledWith(
       'M17',
       expect.objectContaining({
         action: 'detected',
@@ -392,13 +373,13 @@ describe('createM17Handler — sensitive_data_detected', () => {
   });
 
   it("N'expose jamais de valeur sensible dans le payload logué", async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
     await handler(msg, {} as chrome.runtime.MessageSender);
 
     // Vérifier que logEvent n'a jamais été appelé avec du contenu ressemblant à un numéro de carte
-    const calls = vi.mocked(storage.logEvent!).mock.calls;
+    const calls = vi.mocked(mockStorageService.logEvent!).mock.calls;
     for (const [, payload] of calls) {
       const serialized = JSON.stringify(payload);
       expect(serialized).not.toMatch(/\d{13,19}/);
@@ -412,8 +393,8 @@ describe('createM17Handler — sensitive_data_detected', () => {
 
 describe('createM17Handler — toast_action', () => {
   it("enregistre l'action clipboard_cleared", async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message(
       { user_action: 'clipboard_cleared', data_type: 'credit_card' },
       'toast_action',
@@ -421,7 +402,7 @@ describe('createM17Handler — toast_action', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStorageService.logEvent).toHaveBeenCalledWith(
       'M17',
       expect.objectContaining({ action: 'clipboard_cleared' }),
       expect.anything(),
@@ -429,13 +410,13 @@ describe('createM17Handler — toast_action', () => {
   });
 
   it("enregistre l'action acknowledged", async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ user_action: 'acknowledged', data_type: 'iban' }, 'toast_action');
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStorageService.logEvent).toHaveBeenCalledWith(
       'M17',
       expect.objectContaining({ action: 'acknowledged' }),
       expect.anything(),
@@ -443,8 +424,8 @@ describe('createM17Handler — toast_action', () => {
   });
 
   it("enregistre l'échec du vidage (clipboard_clear_failed)", async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message(
       { user_action: 'clipboard_clear_failed', data_type: 'credit_card' },
       'toast_action',
@@ -452,7 +433,7 @@ describe('createM17Handler — toast_action', () => {
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect(mockStorageService.logEvent).toHaveBeenCalledWith(
       'M17',
       expect.objectContaining({ action: 'clipboard_clear_failed' }),
       expect.anything(),
@@ -460,8 +441,8 @@ describe('createM17Handler — toast_action', () => {
   });
 
   it("ouvre la page d'explication pour learn_more", async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message(
       { user_action: 'learn_more', data_type: 'api_key' },
       'toast_action',
@@ -474,8 +455,8 @@ describe('createM17Handler — toast_action', () => {
   });
 
   it('rejette une action toast inconnue', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message(
       { user_action: 'unknown_toast_action', data_type: 'iban' },
       'toast_action',
@@ -501,7 +482,7 @@ describe('TC-M17-DIAG-READ-01 — readM17Diagnostics retourne valeur par défaut
   });
 
   it('retourne M17_DIAGNOSTICS_DEFAULT si la shape est corrompue', async () => {
-    mockLocalStorage[DIAGNOSTICS_M17_KEY] = { corrupt: true };
+    await storage.set({ [DIAGNOSTICS_M17_KEY]: { corrupt: true } });
 
     const diag = await readM17DiagnosticsService();
 
@@ -511,15 +492,17 @@ describe('TC-M17-DIAG-READ-01 — readM17Diagnostics retourne valeur par défaut
 
   it('lit un diagnostics.m17 avec last_incident', async () => {
     const incidentTs = Date.now() - 3000;
-    mockLocalStorage[DIAGNOSTICS_M17_KEY] = {
-      ready: false,
-      last_action_ts: incidentTs,
-      last_incident: {
-        type: 'm17_handler_error',
-        severity: 'error',
-        ts: incidentTs,
+    await storage.set({
+      [DIAGNOSTICS_M17_KEY]: {
+        ready: false,
+        last_action_ts: incidentTs,
+        last_incident: {
+          type: 'm17_handler_error',
+          severity: 'error',
+          ts: incidentTs,
+        },
       },
-    };
+    });
 
     const diag = await readM17DiagnosticsService();
 
@@ -544,7 +527,7 @@ describe('TC-M17-DIAG-UPDATE-01/02 — updateM17DiagnosticsOnAction', () => {
     expect(result.last_incident).toBeUndefined();
     expect(incidentService.log).not.toHaveBeenCalled();
 
-    const stored = mockLocalStorage[DIAGNOSTICS_M17_KEY] as Record<string, unknown>;
+    const stored = (await storage.get(DIAGNOSTICS_M17_KEY))[DIAGNOSTICS_M17_KEY] as Record<string, unknown>;
     expect(stored['ready']).toBe(true);
   });
 
@@ -576,11 +559,11 @@ describe('TC-M17-DIAG-UPDATE-01/02 — updateM17DiagnosticsOnAction', () => {
 
 describe('TC-M17-DIAG-HANDLER-01/02 — handler M17 avec/sans incidentService', () => {
   it('TC-M17-DIAG-HANDLER-01 : met à jour diagnostics.m17 si incidentService fourni', async () => {
-    const storage = createMockStorage();
+    const mockStorageService = createMockStorage();
     const fakeKey = createFakeKey();
     const incidentService = createMockIncidentService() as IncidentService;
 
-    const handler = createM17Handler(storage as StorageService, fakeKey, incidentService);
+    const handler = createM17Handler(mockStorageService as StorageService, fakeKey, incidentService);
     const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -592,11 +575,11 @@ describe('TC-M17-DIAG-HANDLER-01/02 — handler M17 avec/sans incidentService', 
   });
 
   it('TC-M17-DIAG-HANDLER-02 : fonctionne sans incidentService (rétro-compat)', async () => {
-    const storage = createMockStorage();
+    const mockStorageService = createMockStorage();
     const fakeKey = createFakeKey();
 
     // Sans incidentService — rétro-compat service-worker.ts
-    const handler = createM17Handler(storage as StorageService, fakeKey);
+    const handler = createM17Handler(mockStorageService as StorageService, fakeKey);
     const msg = buildM17Message({ type: 'iban', all_types: ['iban'] });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -614,7 +597,7 @@ describe('TC-M17-PENDING-01 — writePendingM17Toast (format correct, data_type 
     const before = Date.now();
     await writePendingM17Toast('cb', 42);
 
-    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
+    const stored = (await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
     expect(stored['data_type']).toBe('cb');
     expect(typeof stored['expires_at']).toBe('number');
     expect(stored['expires_at'] as number).toBeGreaterThan(before + PENDING_M17_TOAST_TTL_MS - 100);
@@ -627,7 +610,7 @@ describe('TC-M17-PENDING-01 — writePendingM17Toast (format correct, data_type 
   it('écrit pending_m17_toast pour iban sans tab_id', async () => {
     await writePendingM17Toast('iban');
 
-    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
+    const stored = (await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
     expect(stored['data_type']).toBe('iban');
     expect(stored['tab_id']).toBeUndefined();
   });
@@ -637,7 +620,7 @@ describe('TC-M17-PENDING-01 — writePendingM17Toast (format correct, data_type 
     await writePendingM17Toast('invalid_type' as 'cb', 1);
 
     // Rien ne doit être écrit
-    expect(mockLocalStorage[PENDING_M17_TOAST_KEY]).toBeUndefined();
+    expect((await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY]).toBeUndefined();
   });
 });
 
@@ -649,10 +632,12 @@ describe('TC-M17-PENDING-02 — readPendingM17Toast (absent/expiré/corrompu)', 
 
   it('retourne le toast si valide', async () => {
     const expiresAt = Date.now() + PENDING_M17_TOAST_TTL_MS;
-    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
-      data_type: 'iban',
-      expires_at: expiresAt,
-    };
+    await storage.set({
+      [PENDING_M17_TOAST_KEY]: {
+        data_type: 'iban',
+        expires_at: expiresAt,
+      },
+    });
 
     const result = await readPendingM17Toast();
 
@@ -662,43 +647,49 @@ describe('TC-M17-PENDING-02 — readPendingM17Toast (absent/expiré/corrompu)', 
   });
 
   it('retourne null et supprime si expiré', async () => {
-    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
-      data_type: 'cb',
-      expires_at: Date.now() - 60_000,
-    };
+    await storage.set({
+      [PENDING_M17_TOAST_KEY]: {
+        data_type: 'cb',
+        expires_at: Date.now() - 60_000,
+      },
+    });
 
     const result = await readPendingM17Toast();
 
     expect(result).toBeNull();
-    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+    expect((await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY]).toBeUndefined();
   });
 
   it('retourne null et supprime si shape corrompue', async () => {
-    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
-      data_type: 'invalid_enum',
-      expires_at: Date.now() + 60_000,
-    };
+    await storage.set({
+      [PENDING_M17_TOAST_KEY]: {
+        data_type: 'invalid_enum',
+        expires_at: Date.now() + 60_000,
+      },
+    });
 
     const result = await readPendingM17Toast();
 
     expect(result).toBeNull();
-    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+    expect((await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY]).toBeUndefined();
   });
 });
 
 describe('TC-M17-PENDING-03 — consumePendingM17Toast (R-CLI-04 : suppression après lecture)', () => {
   it('retourne le toast et le supprime (consommation atomique)', async () => {
-    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
-      data_type: 'cb',
-      expires_at: Date.now() + PENDING_M17_TOAST_TTL_MS,
-    };
+    await storage.set({
+      [PENDING_M17_TOAST_KEY]: {
+        data_type: 'cb',
+        expires_at: Date.now() + PENDING_M17_TOAST_TTL_MS,
+      },
+    });
 
     const result = await consumePendingM17Toast();
 
     expect(result).not.toBeNull();
     expect(result?.data_type).toBe('cb');
     // La clé doit être supprimée après consommation (R-CLI-04)
-    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+    expect((await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY]).toBeUndefined();
 
     // Deuxième consommation : null (double consommation empêchée)
     const secondResult = await consumePendingM17Toast();
@@ -716,7 +707,7 @@ describe('TC-M17-PENDING-04 — R-CLI-07 : JAMAIS la valeur collée', () => {
     // Vérification exhaustive : aucun champ ne contient de donnée sensible
     await writePendingM17Toast('cb');
 
-    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
+    const stored = (await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY] as Record<string, unknown>;
     const serialized = JSON.stringify(stored);
 
     // Aucun numéro de carte, IBAN, ou valeur longue
@@ -727,8 +718,8 @@ describe('TC-M17-PENDING-04 — R-CLI-07 : JAMAIS la valeur collée', () => {
   });
 
   it('R-002 : handler M17 ne stocke jamais la valeur dans pending_m17_toast', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
 
     // Simuler une détection avec payload incluant potentiellement une valeur (ne doit pas passer)
     const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
@@ -737,7 +728,7 @@ describe('TC-M17-PENDING-04 — R-CLI-07 : JAMAIS la valeur collée', () => {
     // Attendre la résolution du void writePendingM17Toast
     await new Promise((r) => setTimeout(r, 0));
 
-    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
+    const stored = (await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
     if (stored) {
       // Si écrit, vérifier qu'il n'y a pas de valeur sensible
       expect(stored['value']).toBeUndefined();
@@ -760,29 +751,31 @@ describe('TC-M17-PENDING-05 — TTL 5 min (PENDING_M17_TOAST_TTL_MS)', () => {
   it('toast expiré après 5 min est ignoré par readPendingM17Toast', async () => {
     // Simuler un toast créé il y a 6 minutes (> 5 min TTL)
     const oldExpiresAt = Date.now() - 60_000; // expiré il y a 1 minute
-    mockLocalStorage[PENDING_M17_TOAST_KEY] = {
-      data_type: 'iban',
-      expires_at: oldExpiresAt,
-    };
+    await storage.set({
+      [PENDING_M17_TOAST_KEY]: {
+        data_type: 'iban',
+        expires_at: oldExpiresAt,
+      },
+    });
 
     const result = await readPendingM17Toast();
 
     expect(result).toBeNull();
-    expect(removedKeys).toContain(PENDING_M17_TOAST_KEY);
+    expect((await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY]).toBeUndefined();
   });
 });
 
 describe('TC-M17-PENDING-06 — handler M17 écrit pending_m17_toast pour credit_card et iban', () => {
   it('écrit pending_m17_toast (cb) pour credit_card', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'credit_card', all_types: ['credit_card'] });
     await handler(msg, { tab: { id: 5 } } as chrome.runtime.MessageSender);
 
     // Attendre la résolution du void writePendingM17Toast
     await new Promise((r) => setTimeout(r, 10));
 
-    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
+    const stored = (await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
     // Si le pending toast est écrit, il doit être 'cb' (pas 'credit_card')
     if (stored) {
       expect(stored['data_type']).toBe('cb');
@@ -791,39 +784,41 @@ describe('TC-M17-PENDING-06 — handler M17 écrit pending_m17_toast pour credit
   });
 
   it('écrit pending_m17_toast (iban) pour iban', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'iban', all_types: ['iban'] });
     await handler(msg, { tab: { id: 7 } } as chrome.runtime.MessageSender);
 
     await new Promise((r) => setTimeout(r, 10));
 
-    const stored = mockLocalStorage[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
+    const stored = (await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY] as Record<string, unknown> | undefined;
     if (stored) {
       expect(stored['data_type']).toBe('iban');
     }
   });
 
   it('ne crée PAS de pending_m17_toast pour api_key (toast direct suffisant)', async () => {
-    const storage = createMockStorage();
-    const handler = createM17Handler(storage as StorageService, createFakeKey());
+    const mockStorageService = createMockStorage();
+    const handler = createM17Handler(mockStorageService as StorageService, createFakeKey());
     const msg = buildM17Message({ type: 'api_key', all_types: ['api_key'] });
     await handler(msg, { tab: { id: 3 } } as chrome.runtime.MessageSender);
 
     await new Promise((r) => setTimeout(r, 10));
 
     // Pour api_key, pas de pending toast
-    expect(mockLocalStorage[PENDING_M17_TOAST_KEY]).toBeUndefined();
+    expect((await storage.get(PENDING_M17_TOAST_KEY))[PENDING_M17_TOAST_KEY]).toBeUndefined();
   });
 });
 
 // Export réexporté depuis le handler
 describe('readM17Diagnostics — export du handler', () => {
   it('readM17Diagnostics (export handler) est identique à readM17Diagnostics (service)', async () => {
-    mockLocalStorage[DIAGNOSTICS_M17_KEY] = {
-      ready: true,
-      last_action_ts: 777,
-    };
+    await storage.set({
+      [DIAGNOSTICS_M17_KEY]: {
+        ready: true,
+        last_action_ts: 777,
+      },
+    });
 
     const fromHandler = await readM17Diagnostics();
     const fromService = await readM17DiagnosticsService();
