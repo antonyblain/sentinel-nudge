@@ -269,7 +269,7 @@ Pour protéger l'utilisateur contre une éventuelle extraction malveillante, l'e
 
 ## 10. Mesures de sécurité
 
-Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'art, référencées dans le `docs/securite/referentiel-iso27001.md` v1.1 (8 contrôles ISO/IEC 27001:2022 documentés, contrôles A.5.24 / A.5.26 au niveau *Géré* après livraison du runbook de réponse à incident).
+Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'art, référencées dans le `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles ISO/IEC 27001:2022 documentés, contrôles A.5.24 / A.5.26 au niveau *Géré* après livraison du runbook de réponse à incident).
 
 ### 10.1 Mesures techniques
 
@@ -293,7 +293,7 @@ Sentinel Nudge implémente des mesures de sécurité conformes à l'état de l'a
 - **Tests automatisés** (Vitest + Playwright) exécutés en intégration continue à chaque *pull request*.
 - **SBOM** (Software Bill of Materials) généré à chaque release.
 - **Runbook de réponse à incident** formalisé (10 étapes, classification P0-P3) — cf. `docs/securite/runbook-reponse-incident.md`.
-- **Référentiel ISO 27001** formalisé — cf. `docs/securite/referentiel-iso27001.md` v1.1.
+- **Référentiel ISO 27001** formalisé — cf. `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles tracés post-T-166).
 - **Procédure d'escalade DPO en 6 étapes (E1-E6)** pour tout incident touchant la fonctionnalité « Alerte mots de passe réutilisés » (cf. AIPD v1.3 §6.6).
 
 ### 10.3 Limite assumée sur la clé AES
@@ -390,7 +390,7 @@ Les éléments principaux déjà consolidés :
 - Durées de conservation — cf. §7 de la présente politique.
 - Destinataires — cf. §6 (aucun).
 - Transferts hors UE — cf. §9 (aucun).
-- Mesures de sécurité — cf. §10 et `docs/securite/referentiel-iso27001.md` v1.1.
+- Mesures de sécurité — cf. §10 et `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles tracés).
 - AIPD « Alerte mots de passe réutilisés » — cf. `docs/p3-architecture/p3-aipd-m7-v1.3.md` v1.3 du 2026-04-19.
 
 Le statut particulier de l'éditeur (particulier, sans entreprise, sans accès aux données) et le caractère local du traitement (§2) limitent l'étendue du registre à une formalisation synthétique.
@@ -417,7 +417,7 @@ Le statut particulier de l'éditeur (particulier, sans entreprise, sans accès a
 - **AIPD Sentinel Nudge — Alerte mots de passe réutilisés (v1.3)** — `docs/p3-architecture/p3-aipd-m7-v1.3.md`
 - **DAT Sentinel Nudge v1.4** — `docs/p3-architecture/p3-dat-v1.4.md`
 - **Cahier des charges v1.1** — `docs/p1-besoin/p1-cahier-des-charges-v1.1.md`
-- **Référentiel ISO 27001 v1.1** — `docs/securite/referentiel-iso27001.md`
+- **Référentiel ISO 27001 v1.2** — `docs/securite/referentiel-iso27001-v1.2.md`
 - **Runbook réponse à incident** — `docs/securite/runbook-reponse-incident.md`
 - **Registre des traitements Art. 30** — `docs/rgpd/registre-des-traitements-v1.0.md` (à bumper en v1.1 par T-155 pour aligner les durées `weekly_scores`/`quiz_sessions` à 52 semaines et ajouter les intents `pending_*`)
 - **SECURITY.md** — `SECURITY.md` (racine du dépôt)

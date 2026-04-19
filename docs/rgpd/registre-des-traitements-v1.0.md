@@ -172,7 +172,7 @@ Tous les droits s'exercent directement dans l'extension, sans contacter un tiers
 
 ## 6. Mesures de sécurité techniques (récap)
 
-Référence : `docs/securite/referentiel-iso27001.md` v1.1 (8 contrôles explicites + A.5.24/26 Géré).
+Référence : `docs/securite/referentiel-iso27001-v1.2.md` v1.2 (12 contrôles explicites + A.5.24/26 Géré + procédure DPO E1-E6).
 
 - A.5.7 Threat intelligence · A.5.34 Privacy by design
 - A.8.8 Vulnerability management · A.8.10 Data deletion · A.8.11 Data masking
@@ -187,7 +187,7 @@ Référence : `docs/securite/referentiel-iso27001.md` v1.1 (8 contrôles explici
 - Politique de confidentialité v1.0 (docs/rgpd/)
 - AIPD M7 v1.0 (docs/p3-architecture/)
 - Runbook réponse à incident (docs/securite/) — classification P0-P3
-- Référentiel ISO 27001 v1.1
+- Référentiel ISO 27001 v1.2
 - ADR-001 SW-BOOT-CONTRACT + ADR-002 CROSS-LIFECYCLE-INTENT
 - Code source open source GPL v3 (auditabilité publique — post TACHE-112)
 - Canal signalement vulnérabilités : GitHub Security Advisories (SECURITY.md, actif après passage public)
