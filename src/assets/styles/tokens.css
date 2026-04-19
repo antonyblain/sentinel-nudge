@@ -205,6 +205,7 @@
   --sn-color-accent-hover: #245a87;
   --sn-color-accent-muted: #4da8da;
   --sn-color-accent-light: #dbeeff;
+  --sn-color-accent-text: #2e6da4; /* Alias accent en clair — 5.2:1 sur bg #f5f7fa */
 
   --sn-color-success: #1a7a4a;
   --sn-color-success-bg: #e6f4ed;
@@ -252,6 +253,8 @@
   --sn-color-accent-muted: #06b6d4;
   --sn-color-accent-light: rgba(37, 99, 235, 0.15);
   --sn-color-btn-fg: #fff;
+  /* Texte accent sur fond dark : decouple de --sn-color-accent (fond bouton) pour rester AA-safe */
+  --sn-color-accent-text: #60a5fa; /* 7.7:1 sur #0d0d0f — fix axe-core options/onboarding dark */
 
   --sn-color-success: #22c55e;
   --sn-color-success-bg: rgba(34, 197, 94, 0.12);
