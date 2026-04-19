@@ -15,6 +15,9 @@
  * - Dépassement → drop + incident rate_limit_exceeded severity=warn (coalescé CM-DOS2)
  *
  * Référence : DAT §3.3 (MessageRouter, usage dans service-worker.ts), §6.1 (diagramme composants)
+ *
+ * T-103 : IncidentService injecté via constructeur (élimine fenêtre boot ~100ms).
+ * Cf. revue Archi sécu TACHE-070 2026-04-17 point 2.
  */
 
 import { browser } from '@/shared/browser/browser-adapter';
@@ -37,6 +40,10 @@ export type ModuleHandler = (
  *
  * Enregistre les handlers par module et dispatche les messages validés.
  * Chaque module enregistre son handler via registerHandler() au démarrage du SW.
+ *
+ * T-103 : IncidentService est injecté au constructeur. Cela garantit qu'aucun
+ * incident rate_limit_exceeded n'est perdu pendant la fenêtre de boot (~100ms).
+ * Pour les tests qui n'ont pas besoin d'IncidentService, passer `null` explicitement.
  */
 export class MessageRouter {
   private readonly quotaManager: QuotaManager;
@@ -49,19 +56,25 @@ export class MessageRouter {
   private readonly rateLimiter: RateLimiter;
 
   /**
-   * Service d'incidents — optionnel pour rester rétrocompatible avec les tests
-   * existants qui instancient MessageRouter sans incidentService.
+   * Service d'incidents — null autorisé pour les tests unitaires qui ne couvrent pas
+   * le chemin rate_limit → incident. En production, toujours injecter une instance valide.
    */
-  private incidentService: IncidentService | null = null;
+  private incidentService: IncidentService | null;
 
-  constructor(quotaManager: QuotaManager) {
+  /**
+   * @param quotaManager    - Gestionnaire de quota M-002
+   * @param incidentService - Service d'incidents (T-103 : injecté au constructeur).
+   *                          Accepte null pour les tests unitaires sans couverture incident.
+   */
+  constructor(quotaManager: QuotaManager, incidentService: IncidentService | null = null) {
     this.quotaManager = quotaManager;
     this.rateLimiter = new RateLimiter();
+    this.incidentService = incidentService;
   }
 
   /**
-   * Injecte le service d'incidents après l'initialisation de la DB.
-   * Doit être appelé depuis service-worker.ts après storageService.initDB().
+   * @deprecated T-103 — Utiliser le constructeur `new MessageRouter(quota, incidentService)`.
+   * Conservé temporairement pour rétrocompatibilité ; sera supprimé dans un futur cycle.
    *
    * @param svc - Instance IncidentService initialisée
    */
@@ -126,10 +139,8 @@ export class MessageRouter {
     // UC-03 / INV-UC03-05 : rate-limit par (tab.id, module) — 10 msg / 10s
     if (!this.rateLimiter.check(tabId, msg.module)) {
       // Drop + incident coalescé (CM-DOS2 empêche l'amplification R-M7-08).
-      // Note : si un rate-limit se déclenche PENDANT la fenêtre entre le wake SW
-      // et l'appel `setIncidentService()` (quelques ms), l'incident est
-      // silencieusement perdu (guard null). Acceptable car severity=warn et
-      // fenêtre <100ms — cf. revue Archi sécu TACHE-070 2026-04-17 point 2.
+      // T-103 : incidentService est désormais injecté au constructeur — plus de fenêtre
+      // boot où l'incident serait silencieusement perdu (revue Archi sécu TACHE-070 point 2).
       if (this.incidentService) {
         await this.incidentService.log('rate_limit_exceeded', 'warn', {
           type: 'rate_limit_exceeded',
