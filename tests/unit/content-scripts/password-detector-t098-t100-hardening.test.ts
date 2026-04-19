@@ -20,17 +20,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
 // Mock chrome AVANT import
 // ---------------------------------------------------------------------------
 
-const mockStorageLocalGet = vi
-  .fn()
-  .mockImplementation((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-    callback({});
-  });
-const mockStorageOnChangedAddListener = vi.fn();
+// T-189 : storage.local délégué au wrapper createMockChromeStorage() (P-018)
+const { storage, reset: resetStorage } = createMockChromeStorage();
+
 const mockRuntimeSendMessage = vi
   .fn()
   .mockImplementation((_msg: unknown, callback?: (r: unknown) => void) => {
@@ -39,14 +37,9 @@ const mockRuntimeSendMessage = vi
 
 global.chrome = {
   storage: {
-    local: {
-      get: mockStorageLocalGet,
-      set: vi.fn().mockImplementation((_items: unknown, callback?: () => void) => callback?.()),
-      remove: vi.fn().mockImplementation((_keys: unknown, callback?: () => void) => callback?.()),
-      clear: vi.fn().mockImplementation((callback?: () => void) => callback?.()),
-    },
+    local: storage,
     onChanged: {
-      addListener: mockStorageOnChangedAddListener,
+      addListener: vi.fn(),
     },
   },
   runtime: {
@@ -139,6 +132,7 @@ describe('TACHE-098 — Hardening UC-02/UC-05 v1.1', () => {
   beforeEach(() => {
     _snPasswordInputs.clear();
     document.body.innerHTML = '';
+    resetStorage();
     vi.clearAllMocks();
   });
 
@@ -280,17 +274,14 @@ describe('TACHE-098 — Hardening UC-02/UC-05 v1.1', () => {
 // ---------------------------------------------------------------------------
 
 describe('TACHE-100 — Scénarios interaction UC-02 + UC-05', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     _snPasswordInputs.clear();
     document.body.innerHTML = '';
+    resetStorage();
     vi.clearAllMocks();
 
-    // Mock salt présent par défaut
-    mockStorageLocalGet.mockImplementation(
-      (_keys: unknown, callback: (r: Record<string, unknown>) => void) => {
-        callback({ installation_salt: 'c'.repeat(64) });
-      },
-    );
+    // T-189 : salt pré-chargé dans le wrapper (remplace mockImplementation)
+    await storage.set({ installation_salt: 'c'.repeat(64) });
     mockRuntimeSendMessage.mockImplementation((_msg: unknown, callback?: (r: unknown) => void) => {
       callback?.({ success: true, action: 'skip', reason: 'no_reuse' });
     });
@@ -399,12 +390,8 @@ describe('TACHE-100 — Scénarios interaction UC-02 + UC-05', () => {
   // et aucun sendMessage M7.
   // -------------------------------------------------------------------------
   it('SM-SALT-ABSENT-01 : isTrusted=true mais salt absent → return silencieux sans erreur console', async () => {
-    // Arrange : mock storage qui retourne un salt ABSENT
-    mockStorageLocalGet.mockImplementation(
-      (_keys: unknown, callback: (r: Record<string, unknown>) => void) => {
-        callback({}); // Pas de installation_salt
-      },
-    );
+    // Arrange : T-189 — réinitialiser le wrapper pour retirer le salt (absent)
+    resetStorage(); // Vide le wrapper → storage.get retourne {} pour installation_salt
 
     // Espionner console.warn et console.error
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
