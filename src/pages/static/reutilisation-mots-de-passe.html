@@ -4,32 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestionnaire de mots de passe : pourquoi ne pas réutiliser — Sentinel Nudge</title>
+    <!-- T-134 : import centralisé des design tokens v2 (suppression duplication locale) -->
+    <link rel="stylesheet" href="../../assets/styles/tokens.css" />
     <style>
-      :root {
-        --sn-color-bg: #ffffff;
-        --sn-color-fg: #111827;
-        --sn-color-accent: #2563eb;
-        --sn-color-danger: #dc2626;
-        --sn-color-muted: #6b7280;
-        --sn-color-border: #e5e7eb;
-        --sn-font-size-body: 1rem;
-        --sn-font-size-small: 0.875rem;
-        --sn-line-height: 1.6;
-        --sn-radius: 8px;
-        --sn-space-sm: 0.5rem;
-        --sn-space-md: 1rem;
-        --sn-space-lg: 1.5rem;
-        --sn-space-xl: 2rem;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --sn-color-bg: #1f2937;
-          --sn-color-fg: #f9fafb;
-          --sn-color-accent: #60a5fa;
-          --sn-color-border: #374151;
-          --sn-color-muted: #9ca3af;
-        }
-      }
       @media (prefers-reduced-motion: reduce) {
         * {
           animation: none !important;
@@ -42,10 +19,7 @@
         box-sizing: border-box;
       }
       body {
-        font-family:
-          system-ui,
-          -apple-system,
-          sans-serif;
+        font-family: var(--sn-font-body, system-ui, -apple-system, sans-serif);
         font-size: var(--sn-font-size-body);
         line-height: var(--sn-line-height);
         color: var(--sn-color-fg);
@@ -92,6 +66,14 @@
         border-left: 4px solid var(--sn-color-accent);
         padding-left: var(--sn-space-sm);
       }
+      /* T-135 : style du titre de tip-box (h3 sémantique, rendu visuel équivalent à l'ancien <strong>) */
+      h3.tip-box-title,
+      h3.privacy-box-title {
+        font-weight: bold;
+        font-size: var(--sn-font-size-body);
+        margin: 0 0 var(--sn-space-sm);
+        line-height: var(--sn-line-height);
+      }
       p {
         margin: 0 0 var(--sn-space-md);
       }
@@ -104,30 +86,19 @@
         margin-bottom: var(--sn-space-sm);
       }
       .tip-box {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
+        background: var(--sn-color-info-bg, #eff6ff);
+        border: 1px solid var(--sn-color-info-border, #bfdbfe);
         border-radius: var(--sn-radius);
         padding: var(--sn-space-md);
         margin-bottom: var(--sn-space-md);
       }
-      @media (prefers-color-scheme: dark) {
-        .tip-box {
-          background: #1e3a5f;
-          border-color: #2563eb;
-        }
-      }
+      /* T-136 : privacy-box — boîte d'information avec role="note" dans le HTML */
       .privacy-box {
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
+        background: var(--sn-color-success-bg, #f0fdf4);
+        border: 1px solid var(--sn-color-success, #bbf7d0);
         border-radius: var(--sn-radius);
         padding: var(--sn-space-md);
         margin-bottom: var(--sn-space-md);
-      }
-      @media (prefers-color-scheme: dark) {
-        .privacy-box {
-          background: #14532d;
-          border-color: #16a34a;
-        }
       }
       .ref-list {
         list-style: none;
@@ -210,8 +181,10 @@
           calcule une empreinte locale (hash SHA-256) de chaque mot de passe soumis dans un
           formulaire et compare cette empreinte aux précédentes.
         </p>
-        <div class="privacy-box">
-          <strong>Protection de votre vie privée :</strong>
+        <!-- T-136 : role="note" sur la boîte d'information vie privée (M7) -->
+        <div class="privacy-box" role="note">
+          <!-- T-135 : <strong> → <h3 class="privacy-box-title"> pour navigation par headings -->
+          <h3 class="privacy-box-title">Protection de votre vie privée :</h3>
           <ul>
             <li>Les mots de passe en clair ne sont jamais stockés ni transmis.</li>
             <li>
@@ -233,7 +206,8 @@
           Sentinel Nudge recommande uniquement des gestionnaires open-source dont le code est
           auditable publiquement :
         </p>
-        <div class="tip-box">
+        <!-- T-136 : role="note" sur la tip-box -->
+        <div class="tip-box" role="note">
           <ul>
             <li>
               <strong>KeePassXC</strong> — Application locale, hors ligne, multiplateforme. Idéal
