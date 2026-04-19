@@ -2,9 +2,33 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (session 2026-04-19 soir — reprise courte ~19h00, clôture PR cycle convergence + T-167 stub).** Session courte démarrée après feedback Commanditaire sur consommation tokens (26% consommés sur dashboard de démarrage — LL capitalisée). Objectifs limités et atteints.
+
+**Livré ce soir** :
+
+- **LL-032** capitalisée (LESSONS_LEARNED.md) : pattern lenteur pathologique Analyste métier sur gros bumps SFD >1000L ; règle : orchestrateur produit lui-même les stubs + découpage en PR incrémentales.
+- **T-167 SFD v1.2 stub** produit directement par l'orchestrateur — `docs/p2-specifications/p2-sfd-v1.2.md` (renommage v1.1→v1.2 + addendum §9 référençant UC-01 à UC-15 + ARB-061-01/02/03 + ADR-001/002 + roadmap SFD). Corps §1 à §8 intact. PR **#120** en auto-merge (CI verte).
+- **3 PR cycle convergence mergées** : #91 T-028 WAR resserré, #94 revue Fabrique (9 rôles + synthèse), #104 P-025 PDCA checkout branche.
+- **#96 fermée** (SESSION cloture cycle 2 obsolète, contenu avalé par #117 déjà mergée).
+- **Mémoire auto enrichie** : `feedback_demarrage_session_cible.md` — règle lecture ciblée des fichiers de mémoire au démarrage (SESSION.md limit:60, Grep ciblé, pas d'intégral).
+
+**PR laissées en auto-merge (GitHub séquence seul)** : #80 T-120 SBOM anchore SHA-pinned, #120 T-167 SFD v1.2 stub.
+
+**PR Dependabot ouvertes non traitées** : #118 codeql-action v3→v4, #119 dev-deps (4 updates) — à évaluer prochaine session.
+
+## 🔜 Point de reprise prochaine session
+
+1. **Vérifier que #80 et #120 sont bien mergées** (sinon relancer update-branch).
+2. **Traiter Dependabot #118 (codeql-action v4 — breaking ?) et #119 (dev-deps group).**
+3. **Should restants** (prio) : T-179 couverture popup/password-detector, T-175 E2E UC-01 à 05, T-176 12 scénarios TC-M7, T-177 mock chrome.storage JSON-strict.
+4. **Intégration détaillée SFD §2.M7** (enrichissement incrémental §9 → §2 pour ARB-061-01/02/03).
+
+---
+
 **Où on en est (session 2026-04-19 après-midi — finalisation Must revue Fabrique).** 🎯 Reprise post-clôture cycle 4 du matin avec attaque massive des Must restants (T-161/162/165+169/166/167/170/180/188/155 + Should T-RQ-007 partielle). **11 PR mergées sur l'après-midi** + 6 PR cycle convergence finale.
 
 **Tâches livrées après-midi 19/04** :
+
 - **T-161** DAT v1.4 → v1.5 (6 corrections : SFD ref, Annexe B WAR, CRITICAL_MODULES, ADR-002 M7 expires_at, badge dégradé, CodeQL) — PR #108 mergée après rebase
 - **T-162** Checklist a11y v1.0 → v1.1 + scope étendu UI internes (fusion T-168) — PR #109
 - **T-165 + T-169** Politique RGPD v1.2 + AIPD M7 v1.3 (intégration notes T-074/T-115 anti-démultiplication) — PR #110
@@ -19,17 +43,19 @@
 **Triptyque RGPD aligné 4/4** : politique v1.2 ↔ AIPD v1.3 ↔ ISO v1.2 ↔ registre v1.1+ enrichi.
 
 **❌ T-167 SFD v1.2 — REPORTÉ à prochaine session** : 4 tentatives échouées sur le bump SFD :
+
 1. 1ère tentative tuée par BSOD Windows Commanditaire
 2. 2e tentative arrêt silencieux à 59s sans Write (en réalité phase Read très lente)
 3. 3e tentative idem (3+ heures sans Write)
 4. 4e tentative ultra-minimaliste killée à 28s alors qu'elle s'apprêtait à Write
-**Diagnostic** : agent Analyste métier ne crashe pas, mais sa phase de synthèse cognitive sur ce bump (1733 lignes SFD v1.1 + lecture mini-DAT + post-mortem) prend des heures avant de basculer en Write. **Capitalisable en LL-032** : limiter les briefs Analyste sur gros bumps à des stubs minimalistes + multiples PR séparées pour l'enrichissement.
+   **Diagnostic** : agent Analyste métier ne crashe pas, mais sa phase de synthèse cognitive sur ce bump (1733 lignes SFD v1.1 + lecture mini-DAT + post-mortem) prend des heures avant de basculer en Write. **Capitalisable en LL-032** : limiter les briefs Analyste sur gros bumps à des stubs minimalistes + multiples PR séparées pour l'enrichissement.
 
 **Mémoire enrichie** : `feedback_confiance_controle.md` ajouté — principe Commanditaire « confiance n'exclut pas contrôle » : après toute modif (gh api PATCH, edit config, merge), relire/vérifier explicitement l'état effectif via commande inverse. Appliqué systématiquement à T-112 et toutes les actions critiques de la session.
 
 ---
 
 ## 🔜 Point de reprise prochaine session
+
 1. **T-167 SFD v1.2** : faire moi-même (orchestrateur) le stub minimal — pas d'agent Analyste sur ce bump (cf. LL-032 à capitaliser)
 2. **6 PR cycle convergence** restantes (#80/91/93/94/96/104) — vérifier convergence puis cleanup
 3. **Should restants** : T-179 couverture popup/password-detector, T-175 E2E UC-01 à 05, T-176 12 scénarios TC-M7, T-177 mock chrome.storage JSON-strict
@@ -40,6 +66,7 @@
 **Où on en est (session 2026-04-19 matinée — parallélisation maximale + repo PUBLIC).** 🚀 **Session intensive enchaînée sans temps mort I-011** sous direction Commanditaire « parallélise + dis-moi ce que toi tu fais en parallèle ». **Bilan provisoire ~10:30** :
 
 **Tâches terminées matinée 2026-04-19** :
+
 - **T-157** finitions popup (4 sous-tâches a/b/c/d) + hotfix axe-core options/onboarding dark — PR #81 mergée (squash `473ea3b`, CI 4/4 verte). Commanditaire arbitrage Option C bouton Matrix outline cyan transparent + glow (14.2:1 AAA) tranché en début de session. Hotfix axe-core nouveau token sémantique `--sn-color-accent-text` introduit pour découpler texte sur fond dark vs fond bouton primary.
 - **T-041** DAT v1.4 (FNV-1a vs SHA-256) — PR #87 mergée (squash, CI 4/4 verte). Section 17 ~130L documentant le cloisonnement des deux espaces de hash de domaine + matrice ISO 27001 A.8.24 + 7 sites d'usage.
 - **T-074** note DPO compatibilité mini-DAT TACHE-061 / AIPD M7 — Avis FAVORABLE SOUS RÉSERVES (R-074-01/02/03 bloquantes MEP) — PR #82 (en cours merge).
@@ -55,6 +82,7 @@
 **Innovation méthodologique LL-022/023/024 reconfirmée** : 4 agents Fabrique en parallélisation simultanée (Dev T-157 + Archi logiciel T-041 + DPO T-074/115/155 + DevSecOps T-120) puis 2 nouveaux (Dev T-134/135/136 + Archi sécu T-028) sur zones strictement disjointes. Aucun conflit de merge. Cycle hotfix axe-core inséré sans interrompre les agents.
 
 **État courant (~10:30)** :
+
 - 3 PR ouvertes en attente CI verte (post update-branch) : #80 T-120, #82 DPO, #83 Dependabot actions
 - 2 nouveaux agents en background : Dev T-134/135/136 (pages statiques a11y) + Archi sécu T-028 (web_accessible_resources resserrement)
 - Aucun worktree mort. CI verte sur develop tip.
@@ -79,7 +107,8 @@
 
 **12 PR supplémentaires mergées vers `develop`** sur cette session soirée (PR #14 → #25), s'ajoutant aux 13 du matin (PR #3 → #13) = **25 PR mergées sur la journée 2026-04-17** :
 
-*Vague Sécurité OSS + CI (12 PR)* :
+_Vague Sécurité OSS + CI (12 PR)_ :
+
 - PR #14 TACHE-106 intégration `test:e2e` en CI + alignement Node 24 LTS (workflow xvfb sur Ubuntu)
 - PR #15 TACHE-099 règle E2E Playwright `isTrusted` (doc recette)
 - PR #16 TACHE-075 référentiel ISO 27001 v1.0 (8 contrôles, 511 lignes)
@@ -98,6 +127,7 @@
 **Innovation méthodologique capitalisée** : parallélisation intensive d'agents Fabrique en worktrees isolés (jusqu'à 2 agents simultanés sur zones strictement disjointes). 6 agents Fabrique mobilisés ce soir en background. Leçons LL-022/023/024/025/026 opérationnalisées.
 
 **Où on va (reprise prochaine session).** BACKLOG post-chantier A :
+
 - **Chantier Tests & couverture** : TACHE-017 à 024 + TACHE-048 à 053 + TACHE-059/060/063 + objectif 80% (TACHE-026)
 - **UC post-v1** : TACHE-094 à 100 (suivi UC-02/UC-05), TACHE-101 F-UC01-01
 - **Conformité** : TACHE-009 politique confidentialité DPO, TACHE-040 à 043 DPO whitelist M2, TACHE-084 AIPD inventaire console
@@ -110,12 +140,14 @@
 **Règles de flow confirmées & enrichies.** Niveau Exposé : branche courte + PR + `--delete-branch` + cleanup worktree. Format/lint/build/test obligatoires avant chaque commit. `gh pr checks` systématique après push (I-009 + hook automatique). **Nouvelle règle capitalisée LL-023** : check pro-actif `gh pr list` pendant l'attente d'agents background (notifications runtime parfois retardées). **Nouvelle règle LL-025** : diagnostic factuel (gh pr list + git log feature-branch + worktree list) AVANT toute action corrective. **Nouvelle règle LL-026** : ne jamais tenter de récupérer un travail avant d'avoir vérifié 3× qu'il est réellement perdu.
 
 ## Projet
+
 - **Nom** : Sentinel Nudge
 - **Niveau de sensibilité** : Exposé
 - **Dépôt GitHub** : https://github.com/antonyblain/sentinel-nudge
 - **Date de création** : 2026-04-10
 
 ## État courant
+
 - **Phase active** : P5 — Fiabilisation M7 + couverture UC P0 v1 (démarrée 2026-04-16)
 - **Dernière action** : **TACHE-156 refonte pixel-perfect popup** — commit `de154cd` sur `feature/p5-tache-156-popup-pixel-perfect-maquettes`, PR #78 ouverte vers develop, CI 4/4 verte (897/897 tests). TACHE-152/153 passées Terminé dans BACKLOG, TACHE-156 ajoutée Terminé. — 2026-04-18
 - **Action précédente** : **TACHE-061 clôturée** — PR #4 ouverte vers develop (code heartbeat + canary + registre incidents, 239/239 tests, 4 corrections pré-merge appliquées, PV comité v1.0 validé, R-M7-08/09 ajoutés, 9 tâches post-merge TACHE-076 à 084). Mini-DAT v1.1 validé en amont (arbitrages ARB-061-01/02/03, 5 INV-SEC, 5 STRIDE, 8 ISO 27001) — 2026-04-16.
@@ -132,73 +164,74 @@
 
 ## Livrables produits
 
-| Phase | Livrable | Version | Statut | Date |
-|-------|----------|---------|--------|------|
-| P1 | p1-analyse-litterature-nudging-v2.0.md | v2.0 | Validé | 2026-04-11 |
-| P1 | p1-cahier-des-charges-v1.1.md | v1.1 | Validé | 2026-04-11 |
-| P1 | p1-analyse-licences-open-source-v1.0.md | v1.0 | Validé (GPL v3 retenue) | 2026-04-11 |
-| P2 | gouvernance-pv-securite-p2-v1.0.md | v1.0 | Produit | 2026-04-11 |
-| P2 | p2-sfd-v1.1.md | v1.1 | Validé | 2026-04-11 |
-| P3 | p3-dat-v1.3.md | v1.3 | Produit (en attente validation) | 2026-04-17 |
-| P3 | gouvernance-pv-architecture-v1.0.md | v1.0 | Validé | 2026-04-11 |
-| P3 | p3-aipd-m7-v1.0.md | v1.0 | Validé (D-SEC-005 satisfait) | 2026-04-11 |
-| P4 | src/background/handlers/m5-handler.ts | — | Implémenté | 2026-04-12 |
-| P4 | src/content-scripts/ui/toast-m5.ts | — | Implémenté + i18n | 2026-04-12 |
-| P4 | src/background/score-calculator.ts | — | Refondu (5 composantes M3) | 2026-04-12 |
-| P4 | src/background/handlers/m3-handler.ts | — | Implémenté | 2026-04-12 |
-| P4 | src/background/handlers/m6-handler.ts | — | Implémenté | 2026-04-12 |
-| P4 | src/content-scripts/ui/toast-m6.ts | — | Implémenté | 2026-04-12 |
-| P4 | src/content-scripts/ui/overlay-m6.ts | — | Implémenté + i18n (TACHE-014) | 2026-04-12 |
-| P4 | src/content-scripts/ui/overlay-m2.ts | — | Implémenté + i18n (TACHE-014) | 2026-04-12 |
-| P4 | src/content-scripts/ui/overlay-m9.ts | — | Implémenté + i18n (TACHE-014) | 2026-04-12 |
-| P4 | src/content-scripts/ui/toast-m7.ts | — | Implémenté + i18n (TACHE-014) | 2026-04-12 |
-| P4 | src/content-scripts/ui/toast-m17.ts | — | Implémenté + i18n (TACHE-014) | 2026-04-12 |
-| P4 | src/assets/data/quiz-corpus.json | — | 20 questions (15 FR + 5 EN) | 2026-04-12 |
-| P4 | src/background/service-worker.ts | — | M3/M5/M6 intégrés | 2026-04-12 |
-| P4 | src/pages/popup/popup.ts | — | Implémenté | 2026-04-12 |
-| P4 | src/pages/popup/popup.css | — | Implémenté | 2026-04-12 |
-| P4 | src/pages/options/options.ts | — | handleExport() réel + dialog accessible (TACHE-013/015) | 2026-04-12 |
-| P4 | src/pages/options/options.css | — | Implémenté | 2026-04-12 |
-| P4 | src/pages/onboarding/onboarding.ts | — | Implémenté | 2026-04-12 |
-| P4 | src/pages/onboarding/onboarding.css | — | Implémenté | 2026-04-12 |
-| P4 | src/pages/dashboard/dashboard.ts | — | Implémenté | 2026-04-12 |
-| P4 | src/pages/dashboard/dashboard.css | — | Implémenté | 2026-04-12 |
-| P4 | src/pages/static/m2-explication.html | — | Créé (TACHE-012) | 2026-04-12 |
-| P4 | src/pages/static/m3-explication.html | — | Créé (TACHE-012) | 2026-04-12 |
-| P4 | src/pages/static/m5-explication.html | — | Créé (TACHE-012) | 2026-04-12 |
-| P4 | src/pages/static/m6-explication.html | — | Créé (TACHE-012) | 2026-04-12 |
-| P4 | src/pages/static/m7-explication.html | — | Créé (TACHE-012) | 2026-04-12 |
-| P4 | src/pages/static/m9-explication.html | — | Créé (TACHE-012) | 2026-04-12 |
-| P4 | src/pages/static/m17-explication.html | — | Créé (TACHE-012) | 2026-04-12 |
-| P4 | src/assets/data/typosquatting-targets.json | — | Enrichi 20→200 domaines (TACHE-011) | 2026-04-12 |
-| P4 | src/assets/_locales/fr/messages.json | — | Étendu (170+ clés) | 2026-04-12 |
-| P4 | src/assets/_locales/en/messages.json | — | Étendu (170+ clés) | 2026-04-12 |
-| P4 | src/manifest.json | — | web_accessible_resources ajouté | 2026-04-12 |
-| P4 | vite.config.ts | — | additionalInputs dashboard/onboarding | 2026-04-12 |
-| P4 | tests/unit/modules/m5.test.ts | — | 15 tests OK | 2026-04-12 |
-| P4 | tests/unit/modules/m3.test.ts | — | 35 tests OK | 2026-04-12 |
-| P4 | tests/unit/modules/m6.test.ts | — | 23 tests OK | 2026-04-12 |
-| P4' | docs/p4-conception/brand-book-sentinel-nudge.md | v1.0 | Validé — palette Aegis Blue retenue | 2026-04-12 |
-| P4' | docs/p4-conception/brand-book-preview.html | — | Preview interactive 5 palettes | 2026-04-12 |
-| P4' | src/assets/styles/tokens.css | — | Tokens CSS centralisés Aegis Blue + dark mode | 2026-04-13 |
-| P4' | src/assets/icons/icon.svg | — | Logo SVG source (bouclier + S + nudge) | 2026-04-13 |
-| P4' | src/assets/icons/icon{16,48,128}.png | — | Icônes PNG réelles (générées depuis SVG) | 2026-04-13 |
-| P4' | src/assets/icons/icon.svg + icon{16,48,128}.png | — | Logo HD vectorisé via potrace, viewBox maximisé (94.4% densité) | 2026-04-14 |
-| P4' | docs/gouvernance/gouvernance-pv-revue-code-p4prime-v1.0.md | v1.0 | PV comité revue code P4' — 3 revues consolidées | 2026-04-14 |
-| P4' | docs/p4-conception/p4prime-tests-manuels-modules-asynchrones-v1.0.md | v1.0 | Guide tests manuels M3/M5/M6/M7 avec commandes DevTools | 2026-04-14 |
-| P4' | docs/gouvernance/gouvernance-pv-postmortem-m7-v1.0.md | v1.0 | PV post-mortem M7 — 4 profils techniques, PDCA, 15 UC, score 2.0→3.4/5 | 2026-04-14 |
-| P5 | docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md | v1.1 | Validé par Commanditaire — arbitrages ARB-061-01/02/03 tranchés | 2026-04-16 |
-| P5 | docs/gouvernance/gouvernance-pv-revue-code-tache-061-v1.0.md | v1.0 | Validé avec observations | 2026-04-16 |
-| P5 | docs/adr/adr-001-sw-boot-contract.md | v1.0 (Accepted) | Validé — 5 R-BOOT + STRIDE + 5 ISO 27001 | 2026-04-17 |
-| P5 | docs/adr/adr-002-cross-lifecycle-intent.md | v1.0 (Accepted) | Validé — 7 R-CLI + E-CLI-01 + STRIDE + 6 ISO 27001 | 2026-04-17 |
-| P5 | docs/p4-conception/p5-audit-modules-adr-compliance-v1.0.md | v1.0 | Validé avec observations intégrées — 28 écarts, 8 tâches | 2026-04-17 |
+| Phase | Livrable                                                             | Version         | Statut                                                                 | Date       |
+| ----- | -------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------- | ---------- |
+| P1    | p1-analyse-litterature-nudging-v2.0.md                               | v2.0            | Validé                                                                 | 2026-04-11 |
+| P1    | p1-cahier-des-charges-v1.1.md                                        | v1.1            | Validé                                                                 | 2026-04-11 |
+| P1    | p1-analyse-licences-open-source-v1.0.md                              | v1.0            | Validé (GPL v3 retenue)                                                | 2026-04-11 |
+| P2    | gouvernance-pv-securite-p2-v1.0.md                                   | v1.0            | Produit                                                                | 2026-04-11 |
+| P2    | p2-sfd-v1.1.md                                                       | v1.1            | Validé                                                                 | 2026-04-11 |
+| P3    | p3-dat-v1.3.md                                                       | v1.3            | Produit (en attente validation)                                        | 2026-04-17 |
+| P3    | gouvernance-pv-architecture-v1.0.md                                  | v1.0            | Validé                                                                 | 2026-04-11 |
+| P3    | p3-aipd-m7-v1.0.md                                                   | v1.0            | Validé (D-SEC-005 satisfait)                                           | 2026-04-11 |
+| P4    | src/background/handlers/m5-handler.ts                                | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/content-scripts/ui/toast-m5.ts                                   | —               | Implémenté + i18n                                                      | 2026-04-12 |
+| P4    | src/background/score-calculator.ts                                   | —               | Refondu (5 composantes M3)                                             | 2026-04-12 |
+| P4    | src/background/handlers/m3-handler.ts                                | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/background/handlers/m6-handler.ts                                | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/content-scripts/ui/toast-m6.ts                                   | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/content-scripts/ui/overlay-m6.ts                                 | —               | Implémenté + i18n (TACHE-014)                                          | 2026-04-12 |
+| P4    | src/content-scripts/ui/overlay-m2.ts                                 | —               | Implémenté + i18n (TACHE-014)                                          | 2026-04-12 |
+| P4    | src/content-scripts/ui/overlay-m9.ts                                 | —               | Implémenté + i18n (TACHE-014)                                          | 2026-04-12 |
+| P4    | src/content-scripts/ui/toast-m7.ts                                   | —               | Implémenté + i18n (TACHE-014)                                          | 2026-04-12 |
+| P4    | src/content-scripts/ui/toast-m17.ts                                  | —               | Implémenté + i18n (TACHE-014)                                          | 2026-04-12 |
+| P4    | src/assets/data/quiz-corpus.json                                     | —               | 20 questions (15 FR + 5 EN)                                            | 2026-04-12 |
+| P4    | src/background/service-worker.ts                                     | —               | M3/M5/M6 intégrés                                                      | 2026-04-12 |
+| P4    | src/pages/popup/popup.ts                                             | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/pages/popup/popup.css                                            | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/pages/options/options.ts                                         | —               | handleExport() réel + dialog accessible (TACHE-013/015)                | 2026-04-12 |
+| P4    | src/pages/options/options.css                                        | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/pages/onboarding/onboarding.ts                                   | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/pages/onboarding/onboarding.css                                  | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/pages/dashboard/dashboard.ts                                     | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/pages/dashboard/dashboard.css                                    | —               | Implémenté                                                             | 2026-04-12 |
+| P4    | src/pages/static/m2-explication.html                                 | —               | Créé (TACHE-012)                                                       | 2026-04-12 |
+| P4    | src/pages/static/m3-explication.html                                 | —               | Créé (TACHE-012)                                                       | 2026-04-12 |
+| P4    | src/pages/static/m5-explication.html                                 | —               | Créé (TACHE-012)                                                       | 2026-04-12 |
+| P4    | src/pages/static/m6-explication.html                                 | —               | Créé (TACHE-012)                                                       | 2026-04-12 |
+| P4    | src/pages/static/m7-explication.html                                 | —               | Créé (TACHE-012)                                                       | 2026-04-12 |
+| P4    | src/pages/static/m9-explication.html                                 | —               | Créé (TACHE-012)                                                       | 2026-04-12 |
+| P4    | src/pages/static/m17-explication.html                                | —               | Créé (TACHE-012)                                                       | 2026-04-12 |
+| P4    | src/assets/data/typosquatting-targets.json                           | —               | Enrichi 20→200 domaines (TACHE-011)                                    | 2026-04-12 |
+| P4    | src/assets/\_locales/fr/messages.json                                | —               | Étendu (170+ clés)                                                     | 2026-04-12 |
+| P4    | src/assets/\_locales/en/messages.json                                | —               | Étendu (170+ clés)                                                     | 2026-04-12 |
+| P4    | src/manifest.json                                                    | —               | web_accessible_resources ajouté                                        | 2026-04-12 |
+| P4    | vite.config.ts                                                       | —               | additionalInputs dashboard/onboarding                                  | 2026-04-12 |
+| P4    | tests/unit/modules/m5.test.ts                                        | —               | 15 tests OK                                                            | 2026-04-12 |
+| P4    | tests/unit/modules/m3.test.ts                                        | —               | 35 tests OK                                                            | 2026-04-12 |
+| P4    | tests/unit/modules/m6.test.ts                                        | —               | 23 tests OK                                                            | 2026-04-12 |
+| P4'   | docs/p4-conception/brand-book-sentinel-nudge.md                      | v1.0            | Validé — palette Aegis Blue retenue                                    | 2026-04-12 |
+| P4'   | docs/p4-conception/brand-book-preview.html                           | —               | Preview interactive 5 palettes                                         | 2026-04-12 |
+| P4'   | src/assets/styles/tokens.css                                         | —               | Tokens CSS centralisés Aegis Blue + dark mode                          | 2026-04-13 |
+| P4'   | src/assets/icons/icon.svg                                            | —               | Logo SVG source (bouclier + S + nudge)                                 | 2026-04-13 |
+| P4'   | src/assets/icons/icon{16,48,128}.png                                 | —               | Icônes PNG réelles (générées depuis SVG)                               | 2026-04-13 |
+| P4'   | src/assets/icons/icon.svg + icon{16,48,128}.png                      | —               | Logo HD vectorisé via potrace, viewBox maximisé (94.4% densité)        | 2026-04-14 |
+| P4'   | docs/gouvernance/gouvernance-pv-revue-code-p4prime-v1.0.md           | v1.0            | PV comité revue code P4' — 3 revues consolidées                        | 2026-04-14 |
+| P4'   | docs/p4-conception/p4prime-tests-manuels-modules-asynchrones-v1.0.md | v1.0            | Guide tests manuels M3/M5/M6/M7 avec commandes DevTools                | 2026-04-14 |
+| P4'   | docs/gouvernance/gouvernance-pv-postmortem-m7-v1.0.md                | v1.0            | PV post-mortem M7 — 4 profils techniques, PDCA, 15 UC, score 2.0→3.4/5 | 2026-04-14 |
+| P5    | docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md         | v1.1            | Validé par Commanditaire — arbitrages ARB-061-01/02/03 tranchés        | 2026-04-16 |
+| P5    | docs/gouvernance/gouvernance-pv-revue-code-tache-061-v1.0.md         | v1.0            | Validé avec observations                                               | 2026-04-16 |
+| P5    | docs/adr/adr-001-sw-boot-contract.md                                 | v1.0 (Accepted) | Validé — 5 R-BOOT + STRIDE + 5 ISO 27001                               | 2026-04-17 |
+| P5    | docs/adr/adr-002-cross-lifecycle-intent.md                           | v1.0 (Accepted) | Validé — 7 R-CLI + E-CLI-01 + STRIDE + 6 ISO 27001                     | 2026-04-17 |
+| P5    | docs/p4-conception/p5-audit-modules-adr-compliance-v1.0.md           | v1.0            | Validé avec observations intégrées — 28 écarts, 8 tâches               | 2026-04-17 |
 
 ## Actions manuelles en attente
 
-| ID | Titre | Statut |
-|----|-------|--------|
+| ID  | Titre | Statut |
+| --- | ----- | ------ |
 
 ## Notes de session
+
 - Projet open-source d'extension navigateur de cyber-hygiène comportementale
 - 20 modules de nudging catalogués (littérature + propositions Commanditaire + analyste)
 - Lotissement v1 validé : 7 modules (M2, M3, M5, M6, M7, M9, M17)
