@@ -109,7 +109,7 @@ Auto-évaluation qualitative au 2026-04-19 (post-revue Fabrique 19/04 — T-028 
 | Gestion de vulnérabilités | A.8.8 | Implémenté (partiellement dormant) | *Géré* (interne) / *Dormant* (externe) | `SECURITY.md` v1.0 + templates issue livrés (T-107/111, PR #17) — canal GitHub Security Advisories dormant tant que repo privé (T-112 bloquante). Post-mortem M7 éprouvé + SBOM + Dependabot actifs. **v1.2 : ajout cadence revue manuelle `npm audit` trimestrielle (T-174) compensant l'ignore des majors Dependabot pour vite/vite-plugin-web-extension (cf. PR #93).** |
 | Prévention fuite de données | A.8.12 | Implémenté | *Défini* | Factory `logger.ts` livrée (T-083, PR #12) + INV-SEC-02 + Privacy by Design. Migration résiduelle T-104/105. |
 | **Classification information / minimisation surface** | **A.5.15 / A.8.4** | **Implémenté (v1.2)** | **promotion *Initial* → *Défini*** | **v1.2 : T-028 (PR #91 mergeable) — `web_accessible_resources` resserré (variante hybride B+C : 2 resources explicites + matches `http://*/*` + `https://*/*` au lieu de `<all_urls>`). R-MIN-002 résolu. Mesure documentée et opposable en revue.** |
-| Gestion d'incidents | A.5.24 / A.5.26 | **Implémenté (maturité *Géré*)** | *Géré* (depuis v1.1) | Runbook `docs/securite/runbook-reponse-incident.md` v1.0 livré (T-110, PR #18) : classification P0-P3, timeline par sévérité, 10 Steps opérationnels, 5 templates de communication, grille de post-mortem, cadence annuelle de tabletop (T-113). **v1.2 : intégration de la procédure formelle d'escalade DPO E1-E6 (note DPO T-115 v1.0 + AIPD M7 v1.2) — la collaboration DPO/Incident Manager passe d'« informelle » à « 6 étapes typées avec SLA ».** |
+| Gestion d'incidents | A.5.24 / A.5.26 | **Implémenté (maturité *Géré*)** | *Géré* (depuis v1.1) | Runbook `docs/securite/runbook-reponse-incident-v1.0.md` v1.0 livré (T-110, PR #18) : classification P0-P3, timeline par sévérité, 10 Steps opérationnels, 5 templates de communication, grille de post-mortem, cadence annuelle de tabletop (T-113). **v1.2 : intégration de la procédure formelle d'escalade DPO E1-E6 (note DPO T-115 v1.0 + AIPD M7 v1.2) — la collaboration DPO/Incident Manager passe d'« informelle » à « 6 étapes typées avec SLA ».** |
 | **Sécurité chaîne d'approvisionnement / pipelines** | **A.8.30** | **Implémenté (v1.2)** | **promotion *Initial* → *Géré* (en interne)** | **v1.2 : T-118 — toutes les Actions GitHub des workflows (`ci.yml`, `codeql.yml`, `release.yml`) sont SHA-pinned (CWE-829 atténué). T-174 — cadence revue manuelle trimestrielle `npm audit` + `npm outdated` documentée pour compenser l'ignore des majors Dependabot.** |
 | **Supply chain / SBOM** | **A.8.10** | **Implémenté (v1.2)** | **promotion *Reproductible* → *Défini*** | **v1.2 : T-120 (PR #80 mergeable) — installation Syft `curl \| sh` remplacée par `anchore/sbom-action@e22c389...` v0.24.0 SHA-pinned. Élimination de la chaîne d'installation non vérifiable. SBOM SPDX-JSON publié à chaque release.** |
 | **Tests sécurité (SAST en CI)** | **A.8.29** | **Implémenté (v1.2 — observe-only)** | **création *Défini*** | **v1.2 : T-187 (PR #97 mergée) — workflow `.github/workflows/codeql.yml` SHA-pinned, ruleset `security-and-quality` (~200 règles couvrant OWASP Top 10 + CWE Top 25), 0 finding J+0. Mode observe-only (non bloquant) en attente de définition d'un seuil de blocage.** |
@@ -612,7 +612,7 @@ Planifier, préparer et exécuter la réponse aux incidents de sécurité avec d
 
 #### Réponse Sentinel Nudge
 
-**Mesure centrale v1.1** : le runbook **`docs/securite/runbook-reponse-incident.md` v1.0** (TACHE-110, PR #18) matérialise les deux contrôles. Il documente le processus (A.5.24) **et** les procédures de réponse à suivre (A.5.26) de bout en bout.
+**Mesure centrale v1.1** : le runbook **`docs/securite/runbook-reponse-incident-v1.0.md` v1.0** (TACHE-110, PR #18) matérialise les deux contrôles. Il documente le processus (A.5.24) **et** les procédures de réponse à suivre (A.5.26) de bout en bout.
 
 **Mesure centrale v1.2 (NOUVELLE)** : la **procédure formelle d'escalade DPO en six étapes E1-E6** (note DPO TACHE-115 v1.0 : `docs/rgpd/note-dpo-circuit-incidents-m7-v1.0.md` + intégration AIPD M7 **v1.2**) outille la collaboration DPO/Incident Manager pour tout incident M7 (P0 par règle automatique). La procédure passe d'une « collaboration informelle » à un workflow typé avec SLA explicites.
 
@@ -793,7 +793,7 @@ L'audit GitHub configuration v1.0 (TACHE-129, `docs/securite/audit-config-github
 | ADR-002 CROSS-LIFECYCLE-INTENT | `docs/adr/adr-002-cross-lifecycle-intent.md` |
 | Audit modules v1.0 | `docs/p5-decisions/p5-audit-modules-adr-compliance-v1.0.md` |
 | Politique sécurité racine | `SECURITY.md` |
-| Runbook réponse à incident v1.0 | `docs/securite/runbook-reponse-incident.md` |
+| Runbook réponse à incident v1.0 | `docs/securite/runbook-reponse-incident-v1.0.md` |
 | **Note DPO T-115 v1.0 — circuit DPO incidents M7 (procédure E1-E6)** | `docs/rgpd/note-dpo-circuit-incidents-m7-v1.0.md` |
 | Templates issue GitHub | `.github/ISSUE_TEMPLATE/` |
 | AIPD M7 v1.2 | `docs/p3-architecture/p3-aipd-m7-v1.2.md` (ou équivalent post-T-169) |
