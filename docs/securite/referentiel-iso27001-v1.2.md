@@ -152,7 +152,7 @@ Collecter, analyser et exploiter l'information relative aux menaces de sécurit�
 | Mesure | Référence |
 |--------|-----------|
 | STRIDE global du DAT P3 (6 actifs, 5 classes de menace) | `docs/p3-architecture/p3-dat-v1.4.md` section 9 |
-| STRIDE ciblé Heartbeat + Canary + Registre d'incidents (5 sous-sections : spoofing/tampering canary, tampering registre, info disclosure, DoS, EoP régénération clé) | `docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md` section 11 |
+| STRIDE ciblé Heartbeat + Canary + Registre d'incidents (5 sous-sections : spoofing/tampering canary, tampering registre, info disclosure, DoS, EoP régénération clé) | `docs/p5-decisions/p5-minidat-tache-061-heartbeat-m7-v1.1.md` section 11 |
 | STRIDE ADR-001 SW-BOOT-CONTRACT (4 menaces atténuées, 3 hors périmètre documentées) | `docs/adr/adr-001-sw-boot-contract.md` section "Analyse STRIDE" |
 | STRIDE ADR-002 CROSS-LIFECYCLE-INTENT (4 menaces atténuées, 3 hors périmètre documentées) | `docs/adr/adr-002-cross-lifecycle-intent.md` section "Analyse STRIDE" |
 | Consolidation des menaces dans le registre projet RISQUES.md (27+ risques dont R-M7-03 à R-M7-09, R-ADR-01 à R-ADR-07, R-UC02-01, R-UC03-07, R-UC05-01) | `.claude/RISQUES.md` |
@@ -788,10 +788,10 @@ L'audit GitHub configuration v1.0 (TACHE-129, `docs/securite/audit-config-github
 
 | Document | Chemin |
 |----------|--------|
-| Mini-DAT TACHE-061 v1.1 | `docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md` |
+| Mini-DAT TACHE-061 v1.1 | `docs/p5-decisions/p5-minidat-tache-061-heartbeat-m7-v1.1.md` |
 | ADR-001 SW-BOOT-CONTRACT | `docs/adr/adr-001-sw-boot-contract.md` |
 | ADR-002 CROSS-LIFECYCLE-INTENT | `docs/adr/adr-002-cross-lifecycle-intent.md` |
-| Audit modules v1.0 | `docs/p4-conception/p5-audit-modules-adr-compliance-v1.0.md` |
+| Audit modules v1.0 | `docs/p5-decisions/p5-audit-modules-adr-compliance-v1.0.md` |
 | Politique sécurité racine | `SECURITY.md` |
 | Runbook réponse à incident v1.0 | `docs/securite/runbook-reponse-incident.md` |
 | **Note DPO T-115 v1.0 — circuit DPO incidents M7 (procédure E1-E6)** | `docs/rgpd/note-dpo-circuit-incidents-m7-v1.0.md` |

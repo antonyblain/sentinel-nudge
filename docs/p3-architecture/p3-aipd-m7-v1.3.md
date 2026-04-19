@@ -20,7 +20,7 @@
 - `gouvernance-pv-securite-p2-v1.0.md`
 - `docs/rgpd/politique-de-confidentialite-v1.2.md` — §4.1 (Protection contre les sites frauduleux), §4.5 (Alerte mots de passe réutilisés), §8.1 (Particularités export Art. 20), §10.4 (Registre des incidents)
 - `docs/rgpd/registre-des-traitements-v1.0.md` — RT-M2, RT-M7, RT-PARAM (Art. 30 RGPD) — à bumper en v1.1 (T-155)
-- `docs/p4-conception/p5-minidat-tache-061-heartbeat-m7-v1.1.md` — §11.3 registre d'incidents IDB circulaire
+- `docs/p5-decisions/p5-minidat-tache-061-heartbeat-m7-v1.1.md` — §11.3 registre d'incidents IDB circulaire
 - `docs/securite/runbook-reponse-incident.md` — §3.2 règle de montée automatique « tout incident M7 = P0 », §6.5 Template notification utilisateurs
 - RISQUES.md — R-001, R-003, R-007, **R-M7-08** (fuite informationnelle via console)
 
