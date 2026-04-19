@@ -3,15 +3,15 @@
 ## Phase P3 — Architecte logiciel
 
 **Projet :** Sentinel Nudge
-**Version :** 1.4
+**Version :** 1.5
 **Date de production :** 2026-04-19
-**Statut :** Ajout section 17 — Algorithmes de hachage de domaines (FNV-1a vs SHA-256, T-041)
+**Statut :** Consolidation 6 corrections revue Fabrique 19/04 (A-06, T-028, T-062, T-091, T-187)
 **Commanditaire :** Antony (RSSI)
 **Niveau de sensibilité :** Exposé
 **Documents de référence :**
 
 - `p1-cahier-des-charges-v1.1.md`
-- `p2-sfd-v1.0.md`
+- `p2-sfd-v1.1.md`
 - `gouvernance-pv-securite-p2-v1.0.md`
 - `gouvernance-pv-comite-architecture-p3-v1.0.md`
 
@@ -74,6 +74,10 @@
     - 17.4 Tableau des sites d'usage dans le code source
     - 17.5 Risque R-SEC-02 — collision FNV-1a et frontière d'emploi
     - 17.6 Matrice de conformité ISO 27001 A.8.24
+18. Badge dégradé popup (TACHE-062)
+19. Analyse statique SAST — CodeQL (T-187)
+
+> **Note v1.5 :** ADR-001 (SW-BOOT-CONTRACT) et ADR-002 (CROSS-LIFECYCLE-INTENT) sont externalisés dans `docs/adr/` (décisions cross-cutting P5). Les ADR-003 à ADR-008 demeurent dans le corps du présent document (conformément à la règle Commanditaire 19/04 : pas de démultiplication des documents).
 
 ---
 
@@ -314,38 +318,32 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 ### 4.2 Décisions architecturales (ADR)
 
----
+> **Note v1.5 :** ADR-001 (SW-BOOT-CONTRACT) et ADR-002 (CROSS-LIFECYCLE-INTENT) sont des décisions cross-cutting produites en phase P5 (post-mortem M7). Elles sont externalisées dans `docs/adr/` pour permettre leur consultation indépendamment du DAT. Les ADR-003 à ADR-008 demeurent dans le corps du présent document.
+>
+> - `docs/adr/adr-001-sw-boot-contract.md` — Séquence de boot obligatoire en 4 étapes pour tout handler SW ayant un prérequis storage (Accepted, 2026-04-16)
+> - `docs/adr/adr-002-cross-lifecycle-intent.md` — Persistance TTL de toute action traversant une frontière de cycle de vie SW (Accepted, 2026-04-16)
 
-#### ADR-001 : TypeScript comme langage unique
+#### Note de conformité M7 — champ `expires_at` (TACHE-091 / E-CLI-01)
 
-- **Contexte :** Choisir entre JavaScript ES2022+, TypeScript, ou un autre langage compilant vers JS. Le projet est open-source et devra être maintenu par la communauté.
-- **Décision :** TypeScript 5.x, mode strict, en tant que langage unique pour l'ensemble de la codebase (Service Worker, Content Scripts, pages UI, tests).
-- **Alternatives rejetées :**
-  - JavaScript pur : pas de typage statique, surface d'erreur plus grande, moins maintenable en équipe distribuée.
-  - Rust/WASM : complexité excessive pour ce projet, incompatible avec l'objectif de contribution communautaire facile.
-- **Conséquences :** Build obligatoire (pas de chargement direct), outillage ESLint + tsconfig strict, meilleure détection d'erreurs à la compilation. La taille du bundle n'est pas impactée (TypeScript est élidé à la compilation).
-- **Plan B :** En cas de problème d'adoption par la communauté, la migration vers JavaScript pur est triviale (suppression des annotations de type).
+L'ADR-002 spécifie que tout intent cross-lifecycle doit contenir un champ `expires_at: number` (timestamp ms, `Date.now() + TTL`). Cette spécification a été appliquée dans l'implémentation M7 (`pending_m7_toast` dans `m7-handler.ts`) sous le nom `expires_at`.
 
----
+Une non-conformité E-CLI-01 a été identifiée et corrigée en T-091 : la version initiale de `pending_m7_toast` utilisait le champ `timestamp` (émission) au lieu de `expires_at` (expiration), rendant le contrôle TTL côté consommateur impossible. La correction aligne l'implémentation sur l'invariant ADR-002 :
 
-#### ADR-002 : Vite + vite-plugin-web-extension plutôt que Webpack
+```typescript
+// m7-handler.ts — intent cross-lifecycle conforme ADR-002
+const PENDING_M7_TTL_MS = 30_000; // 30 secondes
 
-- **Contexte :** Les deux outils de build les plus répandus pour les extensions MV3 sont Webpack (avec webpack-extension-manifest) et Vite (avec vite-plugin-web-extension). Le choix impacte la vitesse de développement, la configuration et la compatibilité MV3.
-- **Décision :** Vite 5.x avec le plugin `vite-plugin-web-extension`.
-- **Alternatives rejetées :**
-  - Webpack : configuration plus verbeuse, HMR moins rapide, écosystème plus ancien. Webpack reste le standard de référence mais sa complexité de configuration est un frein pour un projet open-source.
-  - Rollup pur : pas de plugin extension natif, configuration manuelle de chaque entry point (SW, CS, popup, options, dashboard, onboarding).
-  - Parcel : support MV3 expérimental, moins mature.
-- **Conséquences positives :** Démarrage dev < 500ms, HMR pour les pages UI, configuration déclarative via `manifest.json` comme source de vérité, multi-entry natif, tree-shaking optimisé.
-- **Conséquences négatives :** `vite-plugin-web-extension` est un plugin communautaire (non officiel Google). Risque de dépréciation à surveiller.
-- **Contraintes d'implémentation (retour P4) :**
-  - Configurer `root: 'src'` dans `vite.config.ts` pour que les chemins du manifest soient résolus relativement à `src/`.
-  - Le manifest source (`src/manifest.json`) doit utiliser des extensions `.ts` (ex: `"service_worker": "background/service-worker.ts"`) — le plugin compile en `.js` dans `dist/`.
-  - Les fichiers HTML doivent référencer les scripts avec l'extension `.ts` (`<script src="popup.ts">`), pas `.js`.
-  - Le `outDir` doit être défini en chemin absolu (`resolve(__dirname, 'dist')`) quand `root` est différent de la racine du projet.
-  - `jsdom` est requis en devDependency pour l'environnement de test Vitest.
-  - SubtleCrypto (Web Crypto API) n'est pas disponible dans jsdom — les tests crypto nécessitent un polyfill ou un mock.
-- **Plan B :** Migration vers Webpack si le plugin Vite n'est plus maintenu. Le code source TypeScript est identique — seule la configuration de build change.
+await browser.storage.local.set({
+  pending_m7_toast: {
+    hash: payload.hash,
+    domain_hash: payload.domain_hash,
+    expires_at: Date.now() + PENDING_M7_TTL_MS, // conforme ADR-002 : TTL absolu
+    // NB: 'timestamp' (ancienne valeur) rejeté — ne permettait pas le contrôle expiration
+  }
+});
+```
+
+**Règle générale (ADR-002, invariant)** : tout intent stocké DOIT utiliser `expires_at` (timestamp absolu d'expiration, calculé à l'émission). Le champ `timestamp` peut coexister pour la traçabilité forensique, mais ne remplace pas `expires_at` pour le contrôle de validité.
 
 ---
 
@@ -489,7 +487,7 @@ sentinel-nudge/
 │   │   │   └── message-validator.ts  # Validation runtime des messages (NC-SEC-01)
 │   │   └── constants/
 │   │       ├── quota.ts              # QUOTA_DEFAULT = 3, QUOTA_OPTIONS = [3,5,10,Infinity]
-│   │       └── modules.ts            # MODULE_IDS, CRITICAL_MODULES = ['M2','M17']
+│   │       └── modules.ts            # MODULE_IDS, CRITICAL_MODULES = ['M2','M7','M17']  ← M7 promu critique (T-091, aligne modules.ts)
 │   ├── assets/
 │   │   ├── icons/                    # icon16.png, icon48.png, icon128.png
 │   │   ├── data/
@@ -1510,6 +1508,10 @@ Un SBOM au format SPDX-JSON est généré à chaque release via Syft (Anchore, A
 | prefers-reduced-motion                    | §3.6                           | §3.3                               | ENF-ACC-01                   |
 | SHA-256 + sel (domain/password hash) (§17) | §4.5 / D-SEC-001              | §3.6 (sécurité extension)          | ENF-SEC-01, ISO A.8.24       |
 | FNV-1a fallback M2 HTTP (§17) documenté    | §2.1 (M2)                      | §3.6                               | R-SEC-02 mitigé              |
+| WAR manifest hybride B+C (§Annexe B, T-028) | §3.5 (dashboard)              | §4.1                               | Accessibilité pages internes |
+| Badge dégradé popup (§18, TACHE-062)       | §3.1 (popup)                   | §3.2                               | Observabilité santé modules  |
+| CodeQL SAST (§19, T-187)                   | —                              | §3.6                               | ISO 27001 A.8.29             |
+| expires_at ADR-002 M7 (§4.2, T-091)        | §4.1 (M7)                      | §3.6                               | ENF-SEC-01, ADR-002          |
 
 ---
 
@@ -1808,11 +1810,117 @@ Le tableau ci-dessous recense tous les fichiers utilisant l’une ou l’autre f
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-  "web_accessible_resources": []
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "pages/dashboard/dashboard.html",
+        "pages/onboarding/onboarding.html",
+        "pages/static/*.html"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
 ```
 
-**Note :** Les content scripts ne sont pas déclarés statiquement dans le manifest. Ils sont injectés dynamiquement via `chrome.scripting.executeScript` depuis le Service Worker, ce qui permet l'injection conditionnelle selon la configuration des modules (cf. §10.3).
+**Note — content scripts :** Les content scripts ne sont pas déclarés statiquement dans le manifest. Ils sont injectés dynamiquement via `chrome.scripting.executeScript` depuis le Service Worker, ce qui permet l'injection conditionnelle selon la configuration des modules (cf. §10.3).
+
+**Note — `web_accessible_resources` (T-028 — variante hybride B+C) :** L'entrée `web_accessible_resources` du manifest contient 3 ressources accessibles depuis toutes les origines (`"matches": ["<all_urls>"]`) : `pages/dashboard/dashboard.html`, `pages/onboarding/onboarding.html` et `pages/static/*.html`. Cette configuration est conforme à la variante hybride B+C retenue en T-028 : les pages internes de l'extension (dashboard, onboarding, explications) doivent être ouvrables depuis les content scripts injectés dans des pages tierces (ex: chrome.tabs.create depuis un overlay), ce qui requiert qu'elles soient déclarées en WAR. La valeur `[]` présente dans les versions v1.0 à v1.3 du DAT était incorrecte et ne reflétait pas l'état du manifest réel.
+
+---
+
+
+---
+
+## 18. Badge dégradé popup (TACHE-062)
+
+### 18.1 Contexte architectural
+
+Lors de l'initialisation du Service Worker, chaque handler de module exécute sa séquence de boot en 4 étapes (ADR-001 — SW-BOOT-CONTRACT). Le résultat de ce boot est consigné dans le store `diagnostics.<module>` de `chrome.storage.local` :
+
+```typescript
+// Structure du diagnostic produit par chaque handler au boot
+interface ModuleDiagnostic {
+  ready: boolean;          // true si le module est opérationnel
+  last_boot: number;       // Date.now() au moment du boot
+  error?: string;          // Message d'erreur si ready === false
+}
+```
+
+### 18.2 Mécanisme de badge dégradé
+
+La popup consulte les diagnostics au démarrage pour déterminer si un ou plusieurs modules sont en état dégradé. Le badge dégradé est affiché dans la popup lorsque la condition suivante est réunie :
+
+**Condition de déclenchement :**
+
+```
+diagnostics.<module>.ready === false
+  ET
+Date.now() - diagnostics.<module>.last_boot > 3 600 000 ms (1 heure)
+```
+
+Le seuil de 1 heure évite les faux positifs lors des reboots normaux du Service Worker (SW éphémère — tué après ~30 s d'inactivité). Un module dont le boot vient d'échouer n'est pas immédiatement signalé comme dégradé.
+
+### 18.3 Comportement
+
+| Condition | Affichage popup |
+|-----------|----------------|
+| Tous modules `ready === true` | Affichage normal — aucun badge dégradé |
+| Au moins un module `ready === false` depuis < 1h | Affichage normal — pas encore signalé |
+| Au moins un module `ready === false` depuis ≥ 1h | Badge dégradé affiché — indication visuelle dans la zone statut modules |
+
+Le badge dégradé ne bloque pas l'affichage du score ni l'accès au dashboard. Il est purement informatif et invite l'utilisateur à vérifier les permissions ou à relancer l'extension.
+
+### 18.4 Référence
+
+Cette mécanique s'appuie sur l'artefact de santé `diagnostics.<module>` standardisé par ADR-001 (§ Conséquences positives : « Produit un artefact de santé traçable par module »). La définition du seuil 1 heure est issue de l'audit modules ADR-compliance v1.0 (TACHE-062).
+
+---
+
+## 19. Analyse statique SAST — CodeQL (T-187)
+
+### 19.1 Activation
+
+Le workflow GitHub Actions CodeQL est actif sur la branche `develop` depuis le 2026-04-19 (T-187). Il analyse automatiquement le code source TypeScript à chaque push et chaque PR.
+
+```yaml
+# .github/workflows/codeql.yml (résumé)
+name: CodeQL
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  schedule:
+    - cron: '0 2 * * 1'  # Analyse hebdomadaire le lundi à 2h UTC
+jobs:
+  analyze:
+    language: javascript-typescript
+    queries: security-and-quality
+```
+
+### 19.2 Configuration
+
+| Paramètre | Valeur | Justification |
+|-----------|--------|---------------|
+| Ruleset | `security-and-quality` | Couvre les vulnérabilités OWASP Top 10 et les problèmes de qualité TypeScript |
+| Mode | `observe-only` (alertes, pas de gate CI bloquant) | Période de rodage — les alertes sont examinées mais ne font pas échouer la PR |
+| Fréquence | Push/PR + hebdomadaire | Détection continue + scan de fond même en l'absence d'activité |
+
+**Note sur le mode `observe-only` :** Ce mode sera réévalué après la première analyse complète. L'objectif est de passer en mode bloquant (gate CI) après résolution des alertes initiales. La décision de basculement sera soumise à validation de l'orchestrateur.
+
+### 19.3 Conformité ISO 27001 A.8.29
+
+Cette activation répond au contrôle ISO 27001:2022 **A.8.29 — Security testing in development and acceptance** : les tests de sécurité (SAST) sont intégrés dans le cycle de développement, automatisés et appliqués à chaque modification du code source.
+
+| Critère A.8.29 | Implémentation | Conformité |
+|----------------|----------------|-----------|
+| Tests de sécurité intégrés au développement | CodeQL sur chaque PR | Conforme |
+| Couverture des vulnérabilités connues | Ruleset `security-and-quality` (CWE, OWASP) | Conforme |
+| Automatisation | GitHub Actions — déclenchement automatique | Conforme |
+| Traçabilité des alertes | GitHub Security Advisories (onglet Security du dépôt) | Conforme |
+
+**Référence croisée :** Référentiel ISO 27001 v1.1, contrôle A.8.29 — `docs/securite/referentiel-iso27001.md`.
 
 ---
 
@@ -1821,3 +1929,4 @@ _Version 1.1 : intégration des corrections du comité d'architecture (15 ticket
 _Version 1.2 : intégration de l'addendum architecture whitelist M2 triple couche (ADR-006, D-SEC-006)._
 _Version 1.3 (2026-04-17) : ajout section 16 — Limitations techniques connues, iframes cross-origin Same-Origin Policy (TACHE-071). Nouveaux risques RT-011 et RT-012 également inscrits en section 15 + répercutés dans `.claude/RISQUES.md` (R-ADR-06/07). Référence croisée vers `src/pages/static/politique-confidentialite.html` (section « Limites de la protection » produite par DPO). Correction de cohérence §9.4 D-SEC-005 — statut AIPD M7 aligné avec `p3-aipd-m7-v1.0.md` validée. Corrections post-QC : AB-01 (RT-011/012 ajoutés en section 15), AB-02 (double séparateur supprimé), AB-03 (références orphelines `p3-dat-v1.1.md` fixées dans p3-aipd-m7-v1.0.md et p5-minidat-tache-061-v1.1.md)._
 _Version 1.4 (2026-04-19) : ajout section 17 — Algorithmes de hachage de domaines (T-041). Documentation du cloisonnement FNV-1a (fallback content script HTTP, déduplication session non sensible) / SHA-256 + sel (canal cryptographique persistant M7, whitelist, events). Tableau des sites d’usage établi par analyse statique (commit 5187a41). Risque R-SEC-02 documenté et règle d’emploi absolue inscrite. Matrice conformité ISO 27001 A.8.24 complétée. Matrice de traçabilité §14 mise à jour (2 nouvelles lignes)._
+_Version 1.5 (2026-04-19) : consolidation 6 corrections revue Fabrique 19/04. (A-06) Référence SFD corrigée v1.0 → v1.1 dans l'en-tête. (T-028) Annexe B web_accessible_resources mise à jour — variante hybride B+C (dashboard.html, onboarding.html, static/*.html). (Gap-2) Commentaire CRITICAL_MODULES §5 aligné sur modules.ts : ['M2','M7','M17']. (TACHE-091/E-CLI-01) Note de conformité ADR-002 en §4.2 — champ expires_at. (TACHE-062) Section 18 — mécanisme badge dégradé popup (diagnostics.<module>.ready === false depuis ≥ 1h). (T-187) Section 19 — CodeQL SAST actif depuis 19/04, ruleset security-and-quality, observe-only, ISO 27001 A.8.29. ADR-001/002 externalisés dans docs/adr/ — ADR-003 à 008 restent dans le corps du DAT._
