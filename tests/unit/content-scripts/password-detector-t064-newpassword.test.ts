@@ -17,27 +17,22 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
 // Mock chrome AVANT l'import du module
 // ---------------------------------------------------------------------------
 
-const mockStorageLocalGet = vi.fn();
-const mockStorageLocalSet = vi.fn().mockResolvedValue(undefined);
-const mockStorageLocalRemove = vi.fn().mockResolvedValue(undefined);
-const mockStorageOnChangedAddListener = vi.fn();
+// T-189 : storage.local délégué au wrapper createMockChromeStorage() (P-018)
+const { storage, reset: resetStorage } = createMockChromeStorage();
+
 const mockRuntimeSendMessage = vi.fn();
 
 global.chrome = {
   storage: {
-    local: {
-      get: mockStorageLocalGet,
-      set: mockStorageLocalSet,
-      remove: mockStorageLocalRemove,
-      clear: vi.fn().mockResolvedValue(undefined),
-    },
+    local: storage,
     onChanged: {
-      addListener: mockStorageOnChangedAddListener,
+      addListener: vi.fn(),
     },
   },
   runtime: {
@@ -121,19 +116,11 @@ function getM7SubmitCalls(): unknown[] {
 }
 
 /**
- * Configure mockStorageLocalGet pour retourner un sel d'installation.
+ * Charge le sel d'installation dans le wrapper storage (T-189).
  * Nécessaire pour que handleFormSubmit progresse jusqu'au bloc M7.
  */
-function setupInstallationSalt(): void {
-  mockStorageLocalGet.mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      if (keys.includes('installation_salt')) {
-        callback({ installation_salt: 'a'.repeat(64) });
-      } else {
-        callback({});
-      }
-    },
-  );
+async function setupInstallationSalt(): Promise<void> {
+  await storage.set({ installation_salt: 'a'.repeat(64) });
 }
 
 // ---------------------------------------------------------------------------
@@ -212,11 +199,12 @@ describe('T-064 — isNewPasswordField() : parsing autocomplete tokens', () => {
 // ---------------------------------------------------------------------------
 
 describe('T-064 — handleFormSubmit : M7 non déclenché sur autocomplete=new-password', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = '';
     _snPasswordInputs.clear();
+    resetStorage();
     vi.clearAllMocks();
-    setupInstallationSalt();
+    await setupInstallationSalt();
   });
 
   afterEach(() => {
@@ -329,11 +317,12 @@ describe('T-064 — handleFormSubmit : M7 non déclenché sur autocomplete=new-p
 // ---------------------------------------------------------------------------
 
 describe('T-064 — M9 reste actif sur autocomplete=new-password', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = '';
     _snPasswordInputs.clear();
+    resetStorage();
     vi.clearAllMocks();
-    setupInstallationSalt();
+    await setupInstallationSalt();
   });
 
   afterEach(() => {
