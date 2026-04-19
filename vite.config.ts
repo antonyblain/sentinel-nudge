@@ -10,8 +10,11 @@ import { resolve } from 'path';
  *
  * Les pages dashboard et onboarding sont déclarées en additionalInputs car elles ne
  * correspondent à aucune propriété standard du manifest MV3 reconnue par le plugin.
- * Elles sont déclarées dans web_accessible_resources du manifest pour être accessibles
- * via chrome.runtime.getURL() depuis le service worker et les pages de l'extension.
+ * Elles sont ouvertes uniquement via tabs.create({ url: chrome.runtime.getURL(...) })
+ * depuis le service worker, ou via des liens internes depuis les pages d'extension
+ * (contexte chrome-extension://) — aucune des deux situations ne nécessite leur
+ * déclaration en web_accessible_resources (WAR ne sert qu'à autoriser les pages web
+ * tierces à charger une ressource d'extension). Voir T-028 pour le resserrement WAR.
  *
  * Alias @/ → src/ pour éviter les chemins relatifs profonds dans les imports.
  */
@@ -20,10 +23,7 @@ export default defineConfig({
   plugins: [
     webExtension({
       manifest: resolve(__dirname, 'src/manifest.json'),
-      additionalInputs: [
-        'pages/dashboard/dashboard.html',
-        'pages/onboarding/onboarding.html',
-      ],
+      additionalInputs: ['pages/dashboard/dashboard.html', 'pages/onboarding/onboarding.html'],
     }),
   ],
   resolve: {

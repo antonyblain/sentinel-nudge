@@ -40,11 +40,10 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "pages/dashboard/dashboard.html",
-        "pages/onboarding/onboarding.html",
-        "pages/static/*.html"
+        "pages/static/donnees-sensibles-presse-papiers.html",
+        "pages/static/sites-suspects.html"
       ],
-      "matches": ["<all_urls>"]
+      "matches": ["http://*/*", "https://*/*"]
     }
   ]
 }
