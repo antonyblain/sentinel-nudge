@@ -1354,12 +1354,12 @@ Then un lien vers la page d'explication correspondante est disponible
 |----------|-------------|---------|
 | ENF-ACC-01 | Navigation clavier complète | Tous les nudges navigables et actionnables au clavier |
 | ENF-ACC-02 | Compatibilité lecteurs d'écran | ARIA labels sur tous les éléments interactifs |
-| ENF-ACC-03 | Contraste couleur | Ratio minimum 4.5:1 (WCAG 2.1 AA) |
+| ENF-ACC-03 | Contraste couleur | Ratio minimum 4.5:1 (WCAG 2.2 AA) |
 | ENF-ACC-04 | Taille des cibles tactiles | Minimum 44×44 px pour tous les boutons |
 | ENF-ACC-05 | Texte redimensionnable | Mise en page fonctionnelle jusqu'à 200 % de zoom |
 | ENF-ACC-06 | Pas de contenu clignotant | Aucune animation > 3 Hz |
 
-Niveau cible : WCAG 2.1 AA.
+Niveau cible : WCAG 2.2 AA (arbitrage Commanditaire 2026-04-20 post-audit T-205 — alignement avec checklist a11y v1.1).
 
 ### 3.4 Internationalisation
 
