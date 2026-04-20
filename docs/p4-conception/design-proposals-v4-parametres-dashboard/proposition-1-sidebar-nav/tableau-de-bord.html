@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de bord — Sentinel Nudge</title>
+    <style>
+      /* ══ Tokens Aegis Light (inline) ══ */
+      :root {
+        --sn-color-bg: #f5f7fa;
+        --sn-color-surface: #ffffff;
+        --sn-color-surface-2: #eef2f7;
+        --sn-color-border: #d0dae8;
+        --sn-color-fg: #1a2733;
+        --sn-color-fg-muted: #5d7080;
+        --sn-color-fg-subtle: #8a9eb0;
+        --sn-color-primary: #1e3a5f;
+        --sn-color-accent: #2e6da4;
+        --sn-color-accent-hover: #245a87;
+        --sn-color-accent-light: #dbeeff;
+        --sn-color-btn-fg: #fff;
+        --sn-color-success: #1a7a4a;
+        --sn-color-success-bg: #e6f4ed;
+        --sn-color-danger: #c0392b;
+        --sn-color-danger-bg: #fdecea;
+        --sn-color-warning: #b45309;
+        --sn-color-warning-bg: #fef3e2;
+        --sn-color-info-bg: #e8f0fa;
+        --sn-color-info-border: #a8c8e8;
+        --sn-gauge-low: #e84040;
+        --sn-gauge-mid: #e09020;
+        --sn-gauge-good: #1a9050;
+        --sn-gauge-track: #d8e4ef;
+        --sn-shadow-sm: 0 1px 4px rgba(30, 58, 95, 0.1);
+        --sn-shadow: 0 4px 12px rgba(30, 58, 95, 0.14);
+        --sn-shadow-lg: 0 8px 28px rgba(30, 58, 95, 0.18);
+        --sn-radius-sm: 4px;
+        --sn-radius: 8px;
+        --sn-radius-lg: 12px;
+        --sn-radius-xl: 20px;
+        --sn-min-target: 44px;
+        --sn-transition: 250ms ease;
+        --sn-font-body:
+          'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --sn-sidebar-width: 260px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* ══ Reset ══ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--sn-font-body);
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--sn-color-fg);
+        background: var(--sn-color-bg);
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      a {
+        color: var(--sn-color-accent);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      a:hover {
+        color: var(--sn-color-accent-hover);
+      }
+      .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 8px;
+        background: var(--sn-color-accent);
+        color: var(--sn-color-btn-fg);
+        padding: 8px 16px;
+        border-radius: var(--sn-radius);
+        text-decoration: none;
+        font-weight: 600;
+        z-index: 100;
+      }
+      .skip-link:focus {
+        top: 8px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--sn-color-accent);
+        outline-offset: 2px;
+        border-radius: var(--sn-radius-sm);
+      }
+
+      /* ══ Layout ══ */
+      .app-shell {
+        display: grid;
+        grid-template-columns: var(--sn-sidebar-width) 1fr;
+        min-height: 100vh;
+      }
+
+      /* ══ Sidebar (identique à parametres.html) ══ */
+      .sidebar {
+        background: var(--sn-color-surface);
+        border-right: 1px solid var(--sn-color-border);
+        padding: 24px 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-brand {
+        padding: 0 24px 24px;
+        border-bottom: 1px solid var(--sn-color-border);
+        margin-bottom: 16px;
+      }
+      .brand-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .brand-logo {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+      .brand-name {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--sn-color-primary);
+        letter-spacing: -0.01em;
+      }
+      .brand-tagline {
+        font-size: 12px;
+        color: var(--sn-color-fg-muted);
+        line-height: 1.4;
+        margin: 0;
+      }
+      .nav-section-label {
+        padding: 12px 24px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--sn-color-fg-subtle);
+      }
+      .nav {
+        list-style: none;
+        margin: 0;
+        padding: 0 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .nav-item a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        min-height: var(--sn-min-target);
+        border-radius: var(--sn-radius);
+        color: var(--sn-color-fg);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 150ms ease;
+      }
+      .nav-item a:hover {
+        background: var(--sn-color-surface-2);
+        color: var(--sn-color-primary);
+      }
+      .nav-item[aria-current='page'] a {
+        background: var(--sn-color-accent-light);
+        color: var(--sn-color-primary);
+        font-weight: 600;
+      }
+      .nav-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        stroke-width: 1.8;
+      }
+      .nav-item .counter {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--sn-color-surface-2);
+        color: var(--sn-color-fg-muted);
+      }
+      .nav-item[aria-current='page'] .counter {
+        background: var(--sn-color-accent);
+        color: var(--sn-color-btn-fg);
+      }
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 16px 24px;
+        border-top: 1px solid var(--sn-color-border);
+        font-size: 12px;
+        color: var(--sn-color-fg-muted);
+      }
+      .version-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: var(--sn-color-success-bg);
+        color: var(--sn-color-success);
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 11px;
+      }
+
+      /* ══ Main ══ */
+      .main {
+        padding: 32px 40px 56px;
+        max-width: 1100px;
+      }
+      .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--sn-color-primary);
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .page-subtitle {
+        color: var(--sn-color-fg-muted);
+        margin: 0 0 28px;
+        max-width: 640px;
+      }
+      .breadcrumb {
+        font-size: 13px;
+        color: var(--sn-color-fg-muted);
+        margin-bottom: 4px;
+      }
+
+      /* ══ Hero — score gauge ══ */
+      .hero {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 32px;
+        padding: 28px 32px;
+        background: var(--sn-color-surface);
+        border: 1px solid var(--sn-color-border);
+        border-radius: var(--sn-radius-xl);
+        margin-bottom: 24px;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, var(--sn-color-accent-light) 0%, transparent 70%);
+        z-index: 0;
+        pointer-events: none;
+      }
+      .gauge-wrap {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        z-index: 1;
+      }
+      .gauge-wrap svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+      .gauge-bg {
+        fill: none;
+        stroke: var(--sn-gauge-track);
+        stroke-width: 14;
+      }
+      .gauge-fill {
+        fill: none;
+        stroke: var(--sn-gauge-mid);
+        stroke-width: 14;
+        stroke-linecap: round;
+        stroke-dasharray: 565;
+        stroke-dashoffset: calc(565 - (565 * 72) / 100);
+      }
+      .gauge-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
+      .gauge-score {
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--sn-color-primary);
+        letter-spacing: -0.04em;
+        line-height: 1;
+      }
+      .gauge-unit {
+        font-size: 14px;
+        color: var(--sn-color-fg-muted);
+        display: block;
+        margin-top: 2px;
+      }
+      .hero-copy {
+        z-index: 1;
+        position: relative;
+      }
+      .hero-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        background: var(--sn-color-warning-bg);
+        color: var(--sn-color-warning);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 10px;
+      }
+      .hero-status::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--sn-color-warning);
+      }
+      .hero h2 {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--sn-color-primary);
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+      }
+      .hero p {
+        color: var(--sn-color-fg-muted);
+        margin: 0 0 16px;
+        max-width: 480px;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      /* ══ Stats grid ══ */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .stat-card {
+        background: var(--sn-color-surface);
+        border: 1px solid var(--sn-color-border);
+        border-radius: var(--sn-radius-lg);
+        padding: 18px 20px;
+      }
+      .stat-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--sn-color-fg-muted);
+        margin-bottom: 10px;
+      }
+      .stat-icon {
+        width: 16px;
+        height: 16px;
+      }
+      .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--sn-color-primary);
+        letter-spacing: -0.02em;
+        line-height: 1;
+        margin-bottom: 6px;
+      }
+      .stat-trend {
+        font-size: 12px;
+        color: var(--sn-color-fg-muted);
+      }
+      .stat-trend.up {
+        color: var(--sn-color-success);
+      }
+      .stat-trend.down {
+        color: var(--sn-color-danger);
+      }
+
+      /* ══ Content grid (modules + nudges) ══ */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .panel {
+        background: var(--sn-color-surface);
+        border: 1px solid var(--sn-color-border);
+        border-radius: var(--sn-radius-lg);
+        overflow: hidden;
+      }
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--sn-color-border);
+      }
+      .panel-head h2 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--sn-color-primary);
+        margin: 0;
+      }
+      .panel-head a {
+        font-size: 13px;
+      }
+      .panel-body {
+        padding: 4px 20px 16px;
+      }
+
+      /* ══ Module list ══ */
+      .module-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .module-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--sn-color-border);
+      }
+      .module-item:last-child {
+        border-bottom: none;
+      }
+      .module-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--sn-radius);
+        background: var(--sn-color-accent-light);
+        color: var(--sn-color-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .module-icon.inactive {
+        background: var(--sn-color-surface-2);
+        color: var(--sn-color-fg-subtle);
+      }
+      .module-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .module-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--sn-color-fg);
+        margin: 0;
+      }
+      .module-meta {
+        font-size: 12px;
+        color: var(--sn-color-fg-muted);
+      }
+      .module-status {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .status-active {
+        background: var(--sn-color-success-bg);
+        color: var(--sn-color-success);
+      }
+      .status-paused {
+        background: var(--sn-color-surface-2);
+        color: var(--sn-color-fg-muted);
+      }
+
+      /* ══ Nudges timeline ══ */
+      .nudge-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .nudge-item {
+        display: grid;
+        grid-template-columns: 40px 1fr auto;
+        gap: 12px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--sn-color-border);
+        align-items: flex-start;
+      }
+      .nudge-item:last-child {
+        border-bottom: none;
+      }
+      .nudge-marker {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .marker-danger {
+        background: var(--sn-color-danger-bg);
+        color: var(--sn-color-danger);
+      }
+      .marker-warning {
+        background: var(--sn-color-warning-bg);
+        color: var(--sn-color-warning);
+      }
+      .marker-info {
+        background: var(--sn-color-info-bg);
+        color: var(--sn-color-accent);
+      }
+      .marker-success {
+        background: var(--sn-color-success-bg);
+        color: var(--sn-color-success);
+      }
+      .nudge-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--sn-color-fg);
+        margin: 0 0 2px;
+      }
+      .nudge-meta {
+        font-size: 12px;
+        color: var(--sn-color-fg-muted);
+      }
+      .nudge-meta code {
+        font-family:
+          ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+        font-size: 11.5px;
+        background: var(--sn-color-surface-2);
+        padding: 1px 6px;
+        border-radius: 3px;
+        color: var(--sn-color-fg);
+      }
+      .nudge-outcome {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      .outcome-acted {
+        background: var(--sn-color-success-bg);
+        color: var(--sn-color-success);
+      }
+      .outcome-ignored {
+        background: var(--sn-color-surface-2);
+        color: var(--sn-color-fg-muted);
+      }
+      .outcome-snoozed {
+        background: var(--sn-color-warning-bg);
+        color: var(--sn-color-warning);
+      }
+
+      /* ══ Buttons ══ */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: var(--sn-min-target);
+        padding: 10px 18px;
+        border-radius: var(--sn-radius);
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 150ms ease;
+        font-family: inherit;
+        text-decoration: none;
+      }
+      .btn-primary {
+        background: var(--sn-color-accent);
+        color: var(--sn-color-btn-fg);
+      }
+      .btn-primary:hover {
+        background: var(--sn-color-accent-hover);
+      }
+      .btn-secondary {
+        background: var(--sn-color-surface);
+        color: var(--sn-color-accent);
+        border-color: var(--sn-color-border);
+      }
+      .btn-secondary:hover {
+        border-color: var(--sn-color-accent);
+        background: var(--sn-color-accent-light);
+      }
+
+      /* ══ Mobile menu ══ */
+      .mobile-menu-btn {
+        display: none;
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 50;
+        min-width: var(--sn-min-target);
+        min-height: var(--sn-min-target);
+        background: var(--sn-color-surface);
+        border: 1px solid var(--sn-color-border);
+        border-radius: var(--sn-radius);
+        box-shadow: var(--sn-shadow-sm);
+        align-items: center;
+        justify-content: center;
+      }
+      .sidebar-scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(26, 39, 51, 0.45);
+        z-index: 55;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 250ms ease;
+      }
+      .sidebar-scrim[data-visible='true'] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      @media (max-width: 960px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+        .mobile-menu-btn {
+          display: inline-flex;
+        }
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: var(--sn-sidebar-width);
+          max-width: 85vw;
+          transform: translateX(-100%);
+          transition: transform 250ms ease;
+          z-index: 60;
+          box-shadow: var(--sn-shadow-lg);
+        }
+        .sidebar[data-open='true'] {
+          transform: translateX(0);
+        }
+        .main {
+          padding: 72px 20px 48px;
+        }
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+        .hero {
+          grid-template-columns: 1fr;
+          text-align: center;
+          padding: 24px;
+        }
+        .gauge-wrap {
+          margin: 0 auto;
+        }
+        .hero-actions {
+          justify-content: center;
+        }
+      }
+      @media (max-width: 520px) {
+        .nudge-item {
+          grid-template-columns: 32px 1fr;
+        }
+        .nudge-outcome {
+          grid-column: 2;
+          justify-self: start;
+          margin-top: 4px;
+        }
+        .page-title {
+          font-size: 24px;
+        }
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+
+    <button
+      class="mobile-menu-btn"
+      aria-label="Ouvrir le menu de navigation"
+      aria-expanded="false"
+      aria-controls="sidebar"
+      id="menu-btn"
+    >
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+    <div class="sidebar-scrim" id="scrim" aria-hidden="true"></div>
+
+    <div class="app-shell">
+      <!-- ══ Sidebar ══ -->
+      <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+        <div class="sidebar-brand">
+          <div class="brand-mark">
+            <svg
+              class="brand-logo"
+              viewBox="0 0 32 32"
+              fill="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M16 2 L28 7 V15 C28 22 22 28 16 30 C10 28 4 22 4 15 V7 Z"
+                fill="#1e3a5f"
+              />
+              <path
+                d="M11 16 L14 19 L21 12"
+                stroke="#dbeeff"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="brand-name">Sentinel Nudge</span>
+          </div>
+          <p class="brand-tagline">Votre gardien discret de cyber-hygiène</p>
+        </div>
+
+        <div class="nav-section-label">Navigation</div>
+        <ul class="nav">
+          <li class="nav-item" aria-current="page">
+            <a href="tableau-de-bord.html">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+                <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+                <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+              </svg>
+              Tableau de bord
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="parametres.html">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                ></path>
+              </svg>
+              Paramètres
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2 L2 7 L2 17 L12 22 L22 17 L22 7 Z"></path>
+                <path d="M2 7 L12 12 L22 7"></path>
+                <path d="M12 12 V22"></path>
+              </svg>
+              Modules
+              <span class="counter">5</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4z"></path>
+              </svg>
+              Journal des nudges
+              <span class="counter">27</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-section-label">Aide</div>
+        <ul class="nav">
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              Documentation
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2 L12 22"></path>
+                <path d="M2 12 L22 12"></path>
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+              Confidentialité
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer">
+          <div><span class="version-pill">v1.0.3 · À jour</span></div>
+          <div style="margin-top: 6px">Traitement 100 % local · aucune télémétrie</div>
+        </div>
+      </aside>
+
+      <!-- ══ Main ══ -->
+      <main class="main" id="main-content" tabindex="-1">
+        <div class="breadcrumb">Accueil › Tableau de bord</div>
+        <h1 class="page-title">Tableau de bord</h1>
+        <p class="page-subtitle">
+          Vue d'ensemble de votre cyber-hygiène — score, modules actifs et derniers rappels reçus.
+        </p>
+
+        <!-- ══ Hero score gauge ══ -->
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="gauge-wrap" role="img" aria-label="Score de cyber-hygiène : 72 sur 100">
+            <svg viewBox="0 0 200 200" aria-hidden="true">
+              <circle class="gauge-bg" cx="100" cy="100" r="90"></circle>
+              <circle class="gauge-fill" cx="100" cy="100" r="90"></circle>
+            </svg>
+            <div class="gauge-center">
+              <div class="gauge-score">72</div>
+              <span class="gauge-unit">/ 100</span>
+            </div>
+          </div>
+          <div class="hero-copy">
+            <span class="hero-status">À consolider</span>
+            <h2 id="hero-title">Vos habitudes progressent</h2>
+            <p>
+              Votre score a gagné <strong>+4 points</strong> cette semaine. Deux axes
+              d'amélioration identifiés : rotation des mots de passe et activation du 2FA sur vos
+              comptes sensibles.
+            </p>
+            <div class="hero-actions">
+              <a href="#recommandations" class="btn btn-primary">Voir les recommandations</a>
+              <a href="parametres.html" class="btn btn-secondary">Ajuster le rythme</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ Stats ══ -->
+        <section class="stats-grid" aria-label="Statistiques de la semaine">
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg
+                class="stat-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+              </svg>
+              Nudges cette semaine
+            </div>
+            <div class="stat-value">27</div>
+            <div class="stat-trend up">↑ 12 % vs semaine -1</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg
+                class="stat-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Actions suivies
+            </div>
+            <div class="stat-value">14</div>
+            <div class="stat-trend up">52 % d'acceptation</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg
+                class="stat-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              Ignorés
+            </div>
+            <div class="stat-value">8</div>
+            <div class="stat-trend">30 % — seuil normal</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg
+                class="stat-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Reportés
+            </div>
+            <div class="stat-value">5</div>
+            <div class="stat-trend">18 % — report actif</div>
+          </div>
+        </section>
+
+        <!-- ══ Content grid ══ -->
+        <div class="content-grid">
+          <section class="panel" aria-labelledby="panel-modules">
+            <div class="panel-head">
+              <h2 id="panel-modules">Modules actifs</h2>
+              <a href="parametres.html">Configurer →</a>
+            </div>
+            <div class="panel-body">
+              <ul class="module-list">
+                <li class="module-item">
+                  <span class="module-icon" aria-hidden="true">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </span>
+                  <div class="module-info">
+                    <p class="module-name">Détecteur mots de passe</p>
+                    <span class="module-meta">14 analyses · il y a 30 min</span>
+                  </div>
+                  <span class="module-status status-active">Actif</span>
+                </li>
+                <li class="module-item">
+                  <span class="module-icon" aria-hidden="true">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </span>
+                  <div class="module-info">
+                    <p class="module-name">Avertissement SSL/TLS</p>
+                    <span class="module-meta">3 sites signalés</span>
+                  </div>
+                  <span class="module-status status-active">Actif</span>
+                </li>
+                <li class="module-item">
+                  <span class="module-icon" aria-hidden="true">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"></path>
+                      <polyline points="12 6 12 12 15 15"></polyline>
+                    </svg>
+                  </span>
+                  <div class="module-info">
+                    <p class="module-name">Rappel mise à jour</p>
+                    <span class="module-meta">1 rappel en attente</span>
+                  </div>
+                  <span class="module-status status-active">Actif</span>
+                </li>
+                <li class="module-item">
+                  <span class="module-icon inactive" aria-hidden="true">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M12 1l9 4v6c0 5-4 9-9 10-5-1-9-5-9-10V5z"></path>
+                    </svg>
+                  </span>
+                  <div class="module-info">
+                    <p class="module-name">Assistant 2FA</p>
+                    <span class="module-meta">Désactivé</span>
+                  </div>
+                  <span class="module-status status-paused">En pause</span>
+                </li>
+                <li class="module-item">
+                  <span class="module-icon inactive" aria-hidden="true">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                  </span>
+                  <div class="module-info">
+                    <p class="module-name">Vérificateur confidentialité</p>
+                    <span class="module-meta">Désactivé</span>
+                  </div>
+                  <span class="module-status status-paused">En pause</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="panel-nudges">
+            <div class="panel-head">
+              <h2 id="panel-nudges">Derniers nudges</h2>
+              <a href="#">Voir le journal →</a>
+            </div>
+            <div class="panel-body">
+              <ul class="nudge-list">
+                <li class="nudge-item">
+                  <span class="nudge-marker marker-danger" aria-hidden="true">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="nudge-title">Mot de passe réutilisé détecté</p>
+                    <span class="nudge-meta"><code>github.com</code> · il y a 2 h</span>
+                  </div>
+                  <span class="nudge-outcome outcome-acted">Suivi</span>
+                </li>
+                <li class="nudge-item">
+                  <span class="nudge-marker marker-warning" aria-hidden="true">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M12 2v6"></path>
+                      <path d="M12 18v4"></path>
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="nudge-title">Navigateur à mettre à jour</p>
+                    <span class="nudge-meta">Chrome 122 → 124 · hier, 19:12</span>
+                  </div>
+                  <span class="nudge-outcome outcome-snoozed">Reporté</span>
+                </li>
+                <li class="nudge-item">
+                  <span class="nudge-marker marker-danger" aria-hidden="true">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="nudge-title">Certificat HTTPS expiré</p>
+                    <span class="nudge-meta"
+                      ><code>example-bank.net</code> · il y a 3 jours</span
+                    >
+                  </div>
+                  <span class="nudge-outcome outcome-acted">Suivi</span>
+                </li>
+                <li class="nudge-item">
+                  <span class="nudge-marker marker-info" aria-hidden="true">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M12 1l9 4v6c0 5-4 9-9 10-5-1-9-5-9-10V5z"></path>
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="nudge-title">Proposition d'activation 2FA</p>
+                    <span class="nudge-meta"><code>banque-en-ligne.fr</code> · il y a 4 jours</span>
+                  </div>
+                  <span class="nudge-outcome outcome-ignored">Ignoré</span>
+                </li>
+                <li class="nudge-item">
+                  <span class="nudge-marker marker-success" aria-hidden="true">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </span>
+                  <div>
+                    <p class="nudge-title">Mot de passe renforcé</p>
+                    <span class="nudge-meta"
+                      ><code>messagerie-pro.com</code> · il y a 5 jours</span
+                    >
+                  </div>
+                  <span class="nudge-outcome outcome-acted">Suivi</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      (function () {
+        var btn = document.getElementById('menu-btn');
+        var sidebar = document.getElementById('sidebar');
+        var scrim = document.getElementById('scrim');
+        function close() {
+          sidebar.dataset.open = 'false';
+          scrim.dataset.visible = 'false';
+          btn.setAttribute('aria-expanded', 'false');
+        }
+        function open() {
+          sidebar.dataset.open = 'true';
+          scrim.dataset.visible = 'true';
+          btn.setAttribute('aria-expanded', 'true');
+        }
+        btn.addEventListener('click', function () {
+          sidebar.dataset.open === 'true' ? close() : open();
+        });
+        scrim.addEventListener('click', close);
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') close();
+        });
+      })();
+    </script>
+  </body>
+</html>
