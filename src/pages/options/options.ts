@@ -245,8 +245,22 @@ function createModuleToggle(
 
   wrapper.appendChild(labelWrapper);
 
-  const switchWrapper = document.createElement('div');
+  // T-197 FIX : le switchWrapper est un <label> contenant la checkbox (relation implicite).
+  // Avant ce fix, le span.toggle-switch visuel n'etait pas cliquable car il n'etait
+  // pas contenu dans un <label> et n'avait aucune relation avec la checkbox.
+  // Maintenant : clic sur le span (ou n'importe quelle zone du label) => bascule la checkbox.
+  // Deux labels pour la meme checkbox sont valides HTML :
+  //   1. label.module-toggle-name (htmlFor=inputId) : clic sur le nom du module
+  //   2. label.toggle-switch-wrapper (relation implicite) : clic sur le toggle visuel
+  //
+  // WCAG aria-hidden-focus : le label wrapper NE doit PAS avoir aria-hidden=true
+  // car il contient un element focusable (l'input). L'input sr-only est deja
+  // visuellement cache mais reste accessible aux AT via le label du nom de module.
+  const switchWrapper = document.createElement('label');
   switchWrapper.className = 'toggle-switch-wrapper';
+  // Pas de htmlFor : relation implicite via contenu (evite double-toggle).
+  // Pas d'aria-hidden : WCAG aria-hidden-focus interdit d'avoir des elements
+  // focusables dans un conteneur aria-hidden.
 
   const input = document.createElement('input');
   input.type = 'checkbox';
@@ -344,6 +358,7 @@ function renderModulesSection(
         modules: { ...config.modules, [id]: value },
       };
       config.modules[id] = value;
+      logger.info('module_toggle', { module_id: id, enabled: value });
       saveConfig(patch, feedbackEl).catch(() => undefined);
     });
     fieldset.appendChild(toggle);
