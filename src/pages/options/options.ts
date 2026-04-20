@@ -1145,6 +1145,16 @@ function renderAboutSection(root: HTMLElement): void {
     'Lire la politique de confidentialité';
   fieldset.appendChild(privacyLink);
 
+  // Lien vers la page état de santé (T-109) — section avancé
+  const healthLink = document.createElement('a');
+  healthLink.href = browser.runtime.getURL('pages/health/health.html');
+  healthLink.target = '_blank';
+  healthLink.rel = 'noopener noreferrer';
+  healthLink.className = 'about-link';
+  healthLink.textContent =
+    browser.i18n.getMessage('options_about_health') || 'État de santé (avancé)';
+  fieldset.appendChild(healthLink);
+
   root.appendChild(section);
 }
 

@@ -1090,5 +1090,9 @@
   "onboarding_hero_desc": {
     "message": "Micro-nudges bases sur la recherche comportementale. Tout traitement local, aucune telemetrie.",
     "description": "Description hero onboarding"
+  },
+  "options_about_health": {
+    "message": "Etat de sante (avance)",
+    "description": "Lien page etat de sante depuis Options - section A propos"
   }
 }
