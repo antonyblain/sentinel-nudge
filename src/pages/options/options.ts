@@ -257,7 +257,12 @@ function createModuleToggle(
 
   wrapper.appendChild(labelWrapper);
 
-  const switchWrapper = document.createElement('div');
+  // T-197 : switchWrapper est un <label> lie au checkbox par htmlFor.
+  // Cela garantit que cliquer sur le switch visuel (span.toggle-switch)
+  // declenche bien le changement d'etat du checkbox -- contrairement a un <div>
+  // qui ne propage pas le clic vers l'input associe.
+  const switchWrapper = document.createElement('label');
+  switchWrapper.htmlFor = inputId;
   switchWrapper.className = 'toggle-switch-wrapper';
 
   const input = document.createElement('input');
