@@ -1,0 +1,354 @@
+/**
+ * health.css — Styles de la page État de santé Sentinel Nudge
+ * Tokens centralisés dans tokens.css (importé via HTML)
+ * Responsive : min-width 600px, max-width 960px
+ * WCAG 2.1 AA : contraste 4.5:1 minimum sur texte courant
+ *
+ * Référence : T-109 (page état de santé)
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--sn-font-body);
+  font-size: var(--sn-font-size-body);
+  line-height: var(--sn-line-height);
+  color: var(--sn-color-fg);
+  background-color: var(--sn-color-bg);
+  min-width: 600px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--sn-space-xl);
+}
+
+/* Lien d'évitement (WCAG 2.4.1 A) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background-color: var(--sn-color-accent);
+  color: var(--sn-color-btn-fg);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  z-index: 9999;
+  text-decoration: none;
+  border-radius: 0 0 var(--sn-radius) 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Masquage visuel accessible — DAT §11.5 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Titre page */
+.page-title {
+  font-size: var(--sn-font-size-display);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-primary);
+  margin-bottom: var(--sn-space-md);
+}
+
+/* Sous-titre / description page */
+.page-subtitle {
+  font-size: var(--sn-font-size-body);
+  color: var(--sn-color-fg-muted);
+  margin-bottom: var(--sn-space-xl);
+}
+
+/* Horodatage du dernier rafraîchissement */
+.refresh-timestamp {
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-fg-subtle);
+  margin-bottom: var(--sn-space-xl);
+}
+
+/* Contenu principal */
+.health-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-space-lg);
+}
+
+/* Section par module / heartbeat / canary */
+.health-section {
+  background-color: var(--sn-color-surface);
+  border: 1px solid var(--sn-color-border);
+  border-left: 4px solid var(--sn-color-border);
+  border-radius: var(--sn-radius-lg);
+  padding: var(--sn-space-lg);
+  transition: border-left-color 0.2s ease;
+}
+
+/* Couleurs de bordure selon l'état */
+.health-section[data-status='ok'] {
+  border-left-color: var(--sn-color-success);
+}
+
+.health-section[data-status='warn'] {
+  border-left-color: var(--sn-color-warning);
+}
+
+.health-section[data-status='error'] {
+  border-left-color: var(--sn-color-danger);
+}
+
+.health-section[data-status='unknown'] {
+  border-left-color: var(--sn-color-fg-subtle);
+}
+
+/* En-tête de section */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-space-md);
+  margin-bottom: var(--sn-space-sm);
+}
+
+/* Icône module (emoji ou SVG) */
+.module-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: center;
+}
+
+/* Titre section module */
+.section-title {
+  font-size: var(--sn-font-size-heading);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-primary);
+  flex: 1;
+}
+
+/* Badge de statut */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  white-space: nowrap;
+}
+
+.status-badge[data-status='ok'] {
+  background-color: var(--sn-color-success-bg, #e6f4ed);
+  color: var(--sn-color-success);
+}
+
+.status-badge[data-status='warn'] {
+  background-color: var(--sn-color-warning-bg, #fff8e6);
+  color: var(--sn-color-warning);
+}
+
+.status-badge[data-status='error'] {
+  background-color: var(--sn-color-danger-bg, #fdecea);
+  color: var(--sn-color-danger);
+}
+
+.status-badge[data-status='unknown'] {
+  background-color: var(--sn-color-surface-2);
+  color: var(--sn-color-fg-muted);
+}
+
+/* Indicateur circulaire de statut */
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot[data-status='ok'] {
+  background-color: var(--sn-color-success);
+}
+
+.status-dot[data-status='warn'] {
+  background-color: var(--sn-color-warning);
+}
+
+.status-dot[data-status='error'] {
+  background-color: var(--sn-color-danger);
+}
+
+.status-dot[data-status='unknown'] {
+  background-color: var(--sn-color-fg-subtle);
+}
+
+/* Méta-données de la section */
+.section-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sn-space-md);
+  margin-top: var(--sn-space-sm);
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-fg-muted);
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.meta-label {
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-fg-subtle);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.meta-value {
+  color: var(--sn-color-fg);
+}
+
+.meta-value[data-status='error'] {
+  color: var(--sn-color-danger);
+  font-weight: var(--sn-font-weight-bold);
+}
+
+/* Bouton détails expand/collapse */
+.btn-details {
+  margin-top: var(--sn-space-sm);
+  background: none;
+  border: 1px solid var(--sn-color-border);
+  border-radius: var(--sn-radius);
+  padding: 0.35rem 0.75rem;
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-accent-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: background-color 0.15s ease;
+  min-height: 44px; /* WCAG 2.5.5 cible tactile 44×44 */
+  min-width: 44px;
+}
+
+.btn-details:hover {
+  background-color: var(--sn-color-accent-light);
+}
+
+.btn-details:focus-visible {
+  outline: 2px solid var(--sn-color-accent);
+  outline-offset: 2px;
+}
+
+/* Chevron bouton détails */
+.btn-chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  font-style: normal;
+}
+
+.btn-chevron[aria-hidden='true'][data-expanded='true'] {
+  transform: rotate(90deg);
+}
+
+/* Bloc JSON diagnostics */
+.details-block {
+  margin-top: var(--sn-space-sm);
+  background-color: var(--sn-color-surface-2);
+  border: 1px solid var(--sn-color-border);
+  border-radius: var(--sn-radius);
+  padding: var(--sn-space-md);
+  overflow-x: auto;
+}
+
+.details-block[hidden] {
+  display: none;
+}
+
+.details-pre {
+  font-family: var(--sn-font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--sn-color-fg);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* État de chargement */
+.loading-text {
+  color: var(--sn-color-fg-muted);
+  font-style: italic;
+  padding: var(--sn-space-lg);
+  text-align: center;
+}
+
+/* Message d'erreur global */
+.error-text {
+  color: var(--sn-color-danger);
+  font-weight: var(--sn-font-weight-bold);
+  padding: var(--sn-space-lg);
+  text-align: center;
+}
+
+/* Alerte heartbeat dégradé */
+.heartbeat-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-space-sm);
+  margin-top: var(--sn-space-sm);
+  padding: var(--sn-space-sm) var(--sn-space-md);
+  background-color: var(--sn-color-warning-bg, #fff8e6);
+  border: 1px solid var(--sn-color-warning);
+  border-radius: var(--sn-radius);
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-fg);
+}
+
+/* Canary states */
+.canary-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sn-space-md);
+  margin-top: var(--sn-space-sm);
+}
+
+.canary-state-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--sn-font-size-small);
+  color: var(--sn-color-fg-muted);
+}
+
+/* Séparateur de section heartbeat / canary */
+.section-separator {
+  margin: var(--sn-space-xl) 0 var(--sn-space-md);
+  border: 0;
+  border-top: 1px solid var(--sn-color-border);
+}
+
+/* Section groupe heartbeat/canary */
+.section-group-title {
+  font-size: var(--sn-font-size-small);
+  font-weight: var(--sn-font-weight-bold);
+  color: var(--sn-color-fg-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--sn-space-sm);
+}

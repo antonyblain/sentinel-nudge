@@ -1090,5 +1090,9 @@
   "onboarding_hero_desc": {
     "message": "Micro-nudges based on behavioral research. All processing is local, no telemetry.",
     "description": "Onboarding hero description"
+  },
+  "options_about_health": {
+    "message": "Health status (advanced)",
+    "description": "Link to health status page from Options - About section"
   }
 }
