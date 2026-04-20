@@ -48,6 +48,18 @@ import { createLogger, Logger } from '@/shared/utils/logger';
 /** Logger scopé — Options (INV-SEC-02 étendu) */
 const logger = createLogger('Options');
 
+/**
+ * Wrapper de rechargement de page — extrait pour permettre le spy en test (T-198).
+ *
+ * En production, appelle window.location.reload().
+ * En test, peut être remplacé par un vi.spyOn sur cet objet.
+ *
+ * @internal
+ */
+export const _reloadPage: { fn: () => void } = {
+  fn: () => window.location.reload(),
+};
+
 /** Version de l'extension (lue depuis le manifest) */
 const EXTENSION_VERSION = (browser.runtime.getManifest() as { version: string }).version;
 
@@ -538,7 +550,17 @@ function renderLanguageSection(
   select.addEventListener('change', () => {
     const newLang = select.value as 'fr' | 'en';
     config.language = newLang;
-    saveConfig({ language: newLang }, feedbackEl).catch(() => undefined);
+    // T-198 : saveConfig puis reload pour que chrome.i18n.getMessage
+    // ré-initialise depuis la nouvelle locale (l'API chrome.i18n est figée
+    // au chargement du navigateur et ne réagit pas aux changements de storage).
+    saveConfig({ language: newLang }, feedbackEl)
+      .then(() => {
+        logger.info('Options: langue changée, rechargement de la page', {
+          language: newLang,
+        });
+        _reloadPage.fn();
+      })
+      .catch(() => undefined);
   });
 
   fieldset.appendChild(select);
