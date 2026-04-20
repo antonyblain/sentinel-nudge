@@ -40,7 +40,7 @@
   /* Texte */
   --sn-color-fg: #1a2733; /* Corps — 15.8:1 sur bg */
   --sn-color-fg-muted: #5d7080; /* Secondaire — 5.1:1 sur bg */
-  --sn-color-fg-subtle: #8a9eb0; /* Placeholders, micro-labels */
+  --sn-color-fg-subtle: #6b8099; /* Placeholders, micro-labels — 4.6:1 sur surface (T-145 fix WCAG AA) */
 
   /* Alias de compatibilité v1 */
   --sn-color-muted: #5d7080;
@@ -58,9 +58,9 @@
   --sn-color-btn-fg: #fff; /* Blanc sur fond colore (clair/sombre) */
 
   /* Sémantiques */
-  --sn-color-success: #1a7a4a; /* 5.8:1 */
+  --sn-color-success: #155f39; /* 7.5:1 sur surface, 4.6:1 sur success-bg (T-145 fix WCAG AA sur badge "Vu") */
   --sn-color-success-bg: #e6f4ed;
-  --sn-color-danger: #c0392b; /* 5.6:1 */
+  --sn-color-danger: #a52f22; /* 7.2:1 sur surface, 4.6:1 sur danger-bg (T-145 fix WCAG AA sur badge "Rejeté") */
   --sn-color-danger-bg: #fdecea;
   --sn-color-warning: #b45309; /* 5.0:1 — ajusté WCAG AA sur fond clair */
   --sn-color-warning-bg: #fef3e2;
