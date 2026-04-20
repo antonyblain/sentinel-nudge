@@ -2,6 +2,58 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (session 2026-04-20 jour — cycle clôture MEP v1.0 + refonte UI + fix bugs recette).** Consigne Commanditaire « enchaine jusqu'à finir tâches résiduelles ou 95% session ». **~18 agents lancés en 6 vagues**, 15 livrés CI verte, 3 stalls kill/relance (pattern LL-034 respecté).
+
+**Livrables majeurs cycle jour** :
+- **Migration tests legacy T-189 finalisée** (6 lots) : M7, M2/M3/M6, M5, M9/M17, background, password-detector (lots 1+2) = ~20 fichiers tests migrés vers wrapper mock-chrome-storage T-060, zéro régression, 1046 tests suite complète
+- **3 réserves DPO bloquantes MEP v1.0 levées** (PV formel 2026-04-20) : T-158 assertNoDomainHashInContext + T-159 TTL 365j purgeOldEntries + T-160 exclusion m7_incidents export. PR #144 + #145 + PV `docs/rgpd/pv-levee-reserves-dpo-r074-v1.0.md` (PR #154)
+- **Petits livrables orchestrateur direct** : T-029 doc MIGRATIONS IDB v2, T-054 obsolète cleanup, T-055 launch.json vers .vscode/ (PR #160 groupée)
+- **Audit a11y maquettes T-145** (PR #155) : 20 anomalies dont 7 critiques transversales (contraste `--fg-subtle` <4.5:1, landmarks HTML5 manquants, toggles div inaccessibles clavier)
+- **Enrichissement SFD §2.M7 v1.2.1** (PR #149) : intégration ARB-061-01/02/03 depuis §9 addendum → corps §2.5.6/7/8, conflit add/add résolu par reset+cherry-pick
+- **Cleanup Option A** (PR #148) : -11572 lignes designs obsolètes v2 + thèmes v3 non retenus + logo-propositions + vectorize.cjs + registre-v1.0 + p4prime-tests
+- **BACKLOG cleanup** (PR #153) : 28 lignes manquantes T-092/T-161-186/T-188 ajoutées + 15 statuts périmés à jour + 4 lignes vides parasites supprimées. **193 IDs T-001 à T-193 sans gap**
+- **5 BUGs recette Commanditaire tracés** : T-197 bouton radio toggle module (FIX livré PR #169), T-198 bascule FR/EN sans effet, T-199 coins popup non arrondis, T-200 baseline Brand Book (FIX livré PR #168), T-201 CTA "Tableau de bord" court (FIX livré PR #168)
+- **3 tâches refonte UI tracées** : T-194/195/196 (propositions Claude Design Paramètres+Dashboard + décliner thèmes sombres + renommer Matrix → Cyber Punk)
+- **3 tâches UI tracées** : T-200/201/202 ajustements popup (baseline/CTA/bouton "Voir la liste de confiance")
+
+**PR mergées cycle jour (estimation ~20-25)** : T-189 lots multiples + T-060 + T-063 + T-064 + T-076 + T-078 + T-082 + T-096 + T-097 + T-102 + T-103 + T-120 + T-145 + T-158/159 + T-160 + T-164 + T-167 + T-191/192/193 + T-042 + T-043 + T-067 + T-080+T-081 + T-109 + T-117 + hotfix prettier + session bilans + BACKLOG cleanup + T-194/195/196 trace + T-197/198/199 BUGs trace + T-200/201/202 UI trace + T-197 FIX + T-200/201 FIX.
+
+**4 nouvelles mémoires auto capitalisées** :
+- `feedback_demarrage_session_cible` — lecture ciblée SESSION.md limit:60, pas intégrale
+- `feedback_prettier_claude_files` — `.prettierignore` exclut `.claude/*.md`
+- `feedback_discipline_pr` — 1 PR SESSION par session, pas intermédiaires
+- `feedback_agents_no_patch_scripts` — agents Edit/Write, pas scripts patch
+- `feedback_dpo_verification_code_avant_pv` — DPO grep code + PR MERGED avant PV levée
+- `feedback_agent_volume_max` — briefs ≤1500L + monitoring 15 min, kill si stall
+
+**Stalls observés cycle jour (4 sur ~18 agents)** : password-detector initial (9 fichiers 4378L), M5/M9/M17 premier tour, BACKLOG cleanup (28 lignes à reconstruire), T-194 Claude Design (kill volontaire car mauvais modèle). Tous rattrapés par kill/relance avec briefs plus petits (règle LL-034). Les re-tentatives ont livré CI verte dès la 1ère tentative.
+
+**Discipline respectée** :
+- LL-022 2 agents max initial, relaxé sur consigne explicite « parallélise au max »
+- LL-031 détecté 6 fois (HEAD déplacée par agents), 0 commit errone (git branch --show-current systématique)
+- LL-033 `.prettierignore` effectif sur `.claude/*.md`
+- LL-034 briefs ≤1500L + monitoring actif
+
+**État Phase P5** : **~95% Must v1.0 couverts**. Restent :
+- T-145 audit a11y : livré, 20 anomalies à corriger → tâches filles à créer
+- T-198 BUG i18n FR/EN → à fixer prochaine session
+- T-199 BUG coins popup → à fixer prochaine session
+- T-202 bouton "Voir la liste de confiance" → implémentation à faire
+- Arbitrage Commanditaire T-194 (2 propositions Claude Design nouvelle session, brief fourni)
+
+## 🔜 Point de reprise prochaine session
+
+1. **Vérifier convergence ~25 PR en file auto-merge** — develop doit recevoir tous les livrables du cycle
+2. **Arbitrage Claude Design** T-194+T-195 (6 propositions Paramètres/Dashboard × 3 thèmes × 2 variantes structurelles) — brief fourni pour nouvelle session dédiée
+3. **Brief Claude Design T-203** 6 variantes thématiques alternatives (3 thèmes × 2) — fourni en fin de session
+4. **FIX BUG restants** : T-198 i18n FR/EN + T-199 coins popup (2 fixes rapides)
+5. **T-202** implémenter bouton "Voir la liste de confiance" (whitelist M2 UI)
+6. **Tâches filles T-145** : créer 7 sous-tâches critiques audit a11y (contraste, landmarks, toggles clavier)
+7. **T-196** renommage taxonomique Matrix → Cyber Punk (tokens + i18n + dossier design)
+8. **Exécuter recette manuelle T-063** sur 6 UC P0 avant MEP v1.0
+
+---
+
 **Où on en est (session 2026-04-19 soir — cycle parallélisation agents Fabrique, ~19h00-21h10).** Session reprise sur consigne Commanditaire « parallélise plusieurs tâches, il faut qu'on avance de façon importante » puis prolongée en autonomie (Commanditaire au match de foot) jusqu'à ~95% budget session. **8 agents Fabrique lancés en 3 vagues successives sur zones disjointes** (LL-022 respecté — 2 agents simultanés max), **tous livrés CI 6/6 dès la première tentative** (aucune régression, aucune itération auto-correction).
 
 **Tâches livrées (8 agents + 1 orchestrateur + 2 hotfix)** :
