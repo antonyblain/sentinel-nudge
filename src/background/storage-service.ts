@@ -807,6 +807,35 @@ export class StorageService {
   }
 
   /**
+   * Compte le nombre d'entrées dans la whitelist pour un module donné.
+   *
+   * Utilisé par le handler M2 pour appliquer le plafond M2_WHITELIST_MAX_ENTRIES (T-043).
+   * Charge toutes les entrées de la whitelist et filtre par module côté JS.
+   * La clé primaire étant composite [domain_hash, module], aucun index module n'existe en v2.
+   *
+   * @param module - Module dont on veut compter les entrées ('M2' ou 'M7')
+   * @returns Nombre d'entrées dans la whitelist pour ce module
+   */
+  async countWhitelistEntries(module: string): Promise<number> {
+    const db = this.getDB();
+    const tx = db.transaction('whitelist', 'readonly');
+    const store = tx.objectStore('whitelist');
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const entries = request.result as Array<{ module: string }>;
+        resolve(entries.filter((e) => e.module === module).length);
+      };
+      request.onerror = () =>
+        reject(
+          new Error(
+            `[StorageService] Échec countWhitelistEntries: ${request.error?.message ?? ''}`,
+          ),
+        );
+    });
+  }
+
+  /**
    * Ajoute un domaine dans la whitelist pour un module donné.
    *
    * @param domainHash - SHA-256(salt + domain)

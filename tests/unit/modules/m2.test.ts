@@ -57,10 +57,14 @@ function buildM2Message(payload: Record<string, unknown>, action = 'risk_detecte
 }
 
 /** Crée un mock de StorageService pour les tests M2 */
-function createMockStorage(options: { isWhitelisted?: boolean }): Partial<StorageService> {
+function createMockStorage(options: {
+  isWhitelisted?: boolean;
+  whitelistCount?: number;
+}): Partial<StorageService> {
   return {
     isWhitelisted: vi.fn().mockResolvedValue(options.isWhitelisted ?? false),
     addToWhitelist: vi.fn().mockResolvedValue(undefined),
+    countWhitelistEntries: vi.fn().mockResolvedValue(options.whitelistCount ?? 0),
     logEvent: vi.fn().mockResolvedValue(1),
   };
 }
@@ -627,5 +631,105 @@ describe('initBootM2 — état initial conservatif', () => {
     expect(diag.ready).toBe(false);
     expect(diag.last_boot_ts).toBe(0);
     expect(diag.whitelist_size).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests : createM2Handler — plafond whitelist M2 (T-043)
+// ---------------------------------------------------------------------------
+
+describe('createM2Handler — plafond whitelist M2 (T-043)', () => {
+  beforeEach(async () => {
+    resetStorage();
+    vi.clearAllMocks();
+    await storage.set({ m2_session_domains: [] });
+  });
+
+  it('TC-M2-WL-01 : ajout sous le plafond (count=1) → addToWhitelist appelé', async () => {
+    // 1 entrée seulement → ajout autorisé (bien en dessous du plafond 10 000)
+    const mockStor = createMockStorage({ whitelistCount: 1 });
+    const { service } = createMockIncidentService();
+    const handler = createM2Handler(
+      mockStor as StorageService,
+      createFakeKey(),
+      service as IncidentService,
+    );
+
+    const msg = buildM2Message(
+      { user_action: 'trusted', domain_hash: DOMAIN_HASH_VALID, signals: ['http', 'hsts_miss'] },
+      'overlay_action',
+    );
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(true);
+    expect(mockStor.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_VALID, 'M2');
+  });
+
+  it('TC-M2-WL-02 : ajout à la 9999e entrée (count=9999) → addToWhitelist appelé', async () => {
+    // 9 999 entrées → encore sous le plafond de 10 000
+    const mockStor = createMockStorage({ whitelistCount: 9999 });
+    const { service } = createMockIncidentService();
+    const handler = createM2Handler(
+      mockStor as StorageService,
+      createFakeKey(),
+      service as IncidentService,
+    );
+
+    const msg = buildM2Message(
+      { user_action: 'trusted', domain_hash: DOMAIN_HASH_VALID, signals: ['http', 'hsts_miss'] },
+      'overlay_action',
+    );
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(true);
+    expect(mockStor.addToWhitelist).toHaveBeenCalledWith(DOMAIN_HASH_VALID, 'M2');
+  });
+
+  it('TC-M2-WL-03 : plafond atteint (count=10000) → rejet + incident m2_whitelist_full severity=warn', async () => {
+    // 10 000 entrées exactement → plafond atteint, ajout rejeté (Option A T-043)
+    const mockStor = createMockStorage({ whitelistCount: 10000 });
+    const { service, incidents } = createMockIncidentService();
+    const handler = createM2Handler(
+      mockStor as StorageService,
+      createFakeKey(),
+      service as IncidentService,
+    );
+
+    const msg = buildM2Message(
+      { user_action: 'trusted', domain_hash: DOMAIN_HASH_VALID, signals: ['http', 'hsts_miss'] },
+      'overlay_action',
+    );
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    // Réponse OK côté utilisateur (pas d'erreur visible)
+    expect(response.success).toBe(true);
+    // addToWhitelist PAS appelé (Option A : rejet silencieux)
+    expect(mockStor.addToWhitelist).not.toHaveBeenCalled();
+    // Incident m2_whitelist_full (severity=warn) enregistré
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0]).toEqual({ type: 'm2_whitelist_full', severity: 'warn' });
+  });
+
+  it('TC-M2-WL-04 : état legacy (count>10000) → rejet sans crash', async () => {
+    // État legacy : whitelist déjà > 10 000 (migration depuis version sans limite)
+    const mockStor = createMockStorage({ whitelistCount: 12345 });
+    const { service, incidents } = createMockIncidentService();
+    const handler = createM2Handler(
+      mockStor as StorageService,
+      createFakeKey(),
+      service as IncidentService,
+    );
+
+    const msg = buildM2Message(
+      { user_action: 'trusted', domain_hash: DOMAIN_HASH_VALID, signals: ['http', 'hsts_miss'] },
+      'overlay_action',
+    );
+    // Ne doit pas lever d'exception même avec un count > plafond
+    const response = await handler(msg, {} as chrome.runtime.MessageSender);
+
+    expect(response.success).toBe(true);
+    expect(mockStor.addToWhitelist).not.toHaveBeenCalled();
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0].type).toBe('m2_whitelist_full');
   });
 });

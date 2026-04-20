@@ -323,7 +323,7 @@ async function purgePendingIntents(): Promise<void> {
  */
 function registerModuleHandlers(cryptoKey: CryptoKey): void {
   // Handler M2 — saisie en contexte risqué (critique — bypass quota automatique)
-  messageRouter.registerHandler('M2', createM2Handler(storageService, cryptoKey));
+  messageRouter.registerHandler('M2', createM2Handler(storageService, cryptoKey, incidentService));
 
   // Handler M3 — score cyber-hygiène hebdomadaire
   messageRouter.registerHandler('M3', createM3Handler(storageService, scoreCalculator, cryptoKey));
