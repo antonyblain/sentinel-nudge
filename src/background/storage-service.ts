@@ -118,6 +118,8 @@ export const MIGRATIONS: Record<number, (db: IDBDatabase) => void> = {
  */
 export class StorageService {
   private db: IDBDatabase | null = null;
+  /** T-081 : garde idempotente — true après initDB() réussi, false si erreur ouverture IDB */
+  private dbReady: boolean = false;
   private readonly crypto: CryptoService;
 
   constructor(crypto: CryptoService) {
@@ -131,10 +133,14 @@ export class StorageService {
    * @throws Error si l'ouverture ou la migration échoue
    */
   async initDB(): Promise<void> {
+    // T-081 : garde idempotente — évite la réouverture lors de races au boot
+    if (this.dbReady) return;
+
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
+        this.dbReady = false;
         reject(
           new Error(
             `[StorageService] Échec ouverture IndexedDB: ${request.error?.message ?? 'Erreur inconnue'}`,
@@ -144,6 +150,7 @@ export class StorageService {
 
       request.onsuccess = () => {
         this.db = request.result;
+        this.dbReady = true;
         resolve();
       };
 
@@ -662,6 +669,76 @@ export class StorageService {
   }
 
   /**
+   * T-080 CM-EOP1 : vérifie la clé AES active en tentant de déchiffrer la plus ancienne
+   * entrée du store password_hashes.
+   *
+   * Utilisé par service-worker.ts lors du chemin canary invalide pour distinguer :
+   * - clé OK + canary corrompu → canary_reinit (severity: warn)
+   * - clé KO ou store vide    → key_regenerated (severity: error)
+   *
+   * Algorithme :
+   * 1. Ouvre une transaction readonly sur password_hashes
+   * 2. Ouvre un curseur sur l'index first_seen (ordre 'next') → plus ancienne entrée
+   * 3. Tente AES-GCM decrypt avec la clé fournie
+   * 4. Retourne true si déchiffrement OK, false si échec (clé invalide / données corrompues)
+   * 5. Retourne null si le store est vide (cas CM-EOP1 canary_reinit non applicable)
+   *
+   * Référence : Mini-DAT TACHE-061 §11.5 (CM-EOP1), ADR-080
+   *
+   * @param key - CryptoKey AES-256-GCM à vérifier
+   * @returns true (clé valide), false (clé invalide), null (store vide)
+   * @throws Error si initDB() n'a pas été appelé ou si la transaction IDB échoue
+   */
+  async verifyKeyAgainstPasswordHashes(key: CryptoKey): Promise<boolean | null> {
+    const db = this.getDB();
+
+    return new Promise<boolean | null>((resolve, reject) => {
+      let txAborted = false;
+      const tx = db.transaction('password_hashes', 'readonly');
+      const store = tx.objectStore('password_hashes');
+      const index = store.index('first_seen');
+      // Curseur ascendant : première entrée = plus ancienne (first_seen minimal)
+      const req = index.openCursor(null, 'next');
+
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) {
+          // Store vide → CM-EOP1 non applicable
+          resolve(null);
+          return;
+        }
+        const rec = cursor.value as { value: ArrayBuffer; iv: Uint8Array | number[] };
+        // Normalisation iv : peut être stocké en Uint8Array ou Array<number>
+        const iv = rec.iv instanceof Uint8Array ? rec.iv : new Uint8Array(rec.iv as number[]);
+        // globalThis.crypto explicite pour compatibilité Node 20/22/24 avec polyfill jsdom (P-021)
+        globalThis.crypto.subtle
+          .decrypt({ name: 'AES-GCM', iv }, key, rec.value)
+          .then(() => resolve(true))
+          .catch(() => resolve(false));
+      };
+
+      req.onerror = () => {
+        txAborted = true;
+        reject(
+          new Error(
+            `[StorageService] Échec verifyKeyAgainstPasswordHashes: ${req.error?.message ?? ''}`,
+          ),
+        );
+      };
+
+      tx.onerror = () => {
+        if (!txAborted) {
+          reject(
+            new Error(
+              `[StorageService] Transaction error verifyKeyAgainstPasswordHashes: ${tx.error?.message ?? ''}`,
+            ),
+          );
+        }
+      };
+    });
+  }
+
+  /**
    * Retourne les métadonnées agrégées du store password_hashes pour l'export RGPD Art. 20.
    *
    * Seules les métadonnées sont retournées — jamais les hashes ni les valeurs chiffrées
@@ -803,6 +880,35 @@ export class StorageService {
       request.onsuccess = () => resolve(request.result !== undefined);
       request.onerror = () =>
         reject(new Error(`[StorageService] Échec isWhitelisted: ${request.error?.message ?? ''}`));
+    });
+  }
+
+  /**
+   * Compte le nombre d'entrées dans la whitelist pour un module donné.
+   *
+   * Utilisé par le handler M2 pour appliquer le plafond M2_WHITELIST_MAX_ENTRIES (T-043).
+   * Charge toutes les entrées de la whitelist et filtre par module côté JS.
+   * La clé primaire étant composite [domain_hash, module], aucun index module n'existe en v2.
+   *
+   * @param module - Module dont on veut compter les entrées ('M2' ou 'M7')
+   * @returns Nombre d'entrées dans la whitelist pour ce module
+   */
+  async countWhitelistEntries(module: string): Promise<number> {
+    const db = this.getDB();
+    const tx = db.transaction('whitelist', 'readonly');
+    const store = tx.objectStore('whitelist');
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const entries = request.result as Array<{ module: string }>;
+        resolve(entries.filter((e) => e.module === module).length);
+      };
+      request.onerror = () =>
+        reject(
+          new Error(
+            `[StorageService] Échec countWhitelistEntries: ${request.error?.message ?? ''}`,
+          ),
+        );
     });
   }
 

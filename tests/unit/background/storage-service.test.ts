@@ -3,9 +3,13 @@
  * @description Tests unitaires du StorageService — IndexedDB via fake-indexeddb.
  *
  * TACHE-018 — couverture initiale 0% sur storage-service.ts.
+ * T-080 — extraction verifyKeyAgainstPasswordHashes (CM-EOP1 testable).
+ * T-081 — initDB() idempotent : flag dbReady + early return.
  *
  * Couvre :
  * - initDB() : creation des 6 stores (v1 → v2), indexes, idempotence (getDB)
+ * - initDB() idempotent (T-081) : premier appel → init, 2e appel → early return
+ * - verifyKeyAgainstPasswordHashes (T-080) : cle valide, invalide, store vide, IDB inaccessible
  * - Migrations v1 + v2 : stores et indexes verifies
  * - Store events : logEvent (ecriture) + getEvents avec timestamp futur (0 resultats)
  * - Store weekly_scores : setWeeklyScore + getWeeklyScore (nominal, absent)
@@ -511,6 +515,92 @@ describe('StorageService — robustesse getDB', () => {
     const db1 = svc.getDB();
     const db2 = svc.getDB();
     // Meme reference → pas de reconnexion inattendue
+    expect(db1).toBe(db2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TC-SS-31/32/33/34 : T-080 — verifyKeyAgainstPasswordHashes
+// ---------------------------------------------------------------------------
+
+describe('StorageService — verifyKeyAgainstPasswordHashes (T-080 CM-EOP1)', () => {
+  it('TC-SS-31 : store vide → retourne null (CM-EOP1 non applicable)', async () => {
+    const svc = createService();
+    await svc.initDB();
+    const key = await generateKey();
+
+    const result = await svc.verifyKeyAgainstPasswordHashes(key);
+    expect(result).toBeNull();
+  });
+
+  it('TC-SS-32 : cle valide → retourne true apres ajout dun hash', async () => {
+    const svc = createService();
+    await svc.initDB();
+    const key = await generateKey();
+
+    await svc.addPasswordHash('a3f2c1b0' + 'x'.repeat(56), 'a3f2c1b0', 'dom1', key);
+
+    const result = await svc.verifyKeyAgainstPasswordHashes(key);
+    expect(result).toBe(true);
+  });
+
+  it('TC-SS-33 : cle invalide (differente) → retourne false', async () => {
+    const svc = createService();
+    await svc.initDB();
+    const keyWrite = await generateKey();
+    const keyWrong = await generateKey(); // cle differente
+
+    await svc.addPasswordHash('b1c2d3e4' + 'x'.repeat(56), 'b1c2d3e4', 'dom2', keyWrite);
+
+    const result = await svc.verifyKeyAgainstPasswordHashes(keyWrong);
+    expect(result).toBe(false);
+  });
+
+  it('TC-SS-34 : IDB inaccessible (initDB non appele) → leve une erreur', async () => {
+    const svc = createService(); // pas de initDB()
+    const key = await generateKey();
+
+    await expect(svc.verifyKeyAgainstPasswordHashes(key)).rejects.toThrow('non initialis');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TC-SS-35/36/37 : T-081 — initDB idempotent
+// ---------------------------------------------------------------------------
+
+describe('StorageService — initDB idempotent (T-081)', () => {
+  it('TC-SS-35 : premier appel initDB() ouvre la base et rend getDB() disponible', async () => {
+    const svc = createService();
+    await svc.initDB();
+    expect(() => svc.getDB()).not.toThrow();
+  });
+
+  it('TC-SS-36 : double appel initDB() → pas de reouverture (indexedDB.open appele 1 seule fois)', async () => {
+    const idbFactory = new IDBFactory();
+    Object.defineProperty(globalThis, 'indexedDB', {
+      value: idbFactory,
+      configurable: true,
+      writable: true,
+    });
+    const openSpy = vi.spyOn(idbFactory, 'open');
+    const crypto = new CryptoService();
+    const svc = new StorageService(crypto);
+
+    await svc.initDB();
+    await svc.initDB(); // deuxieme appel — doit etre early-return
+
+    // indexedDB.open ne doit avoir ete appele qu'une seule fois
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+  });
+
+  it('TC-SS-37 : apres premier initDB() reussi, getDB() retourne la meme instance sur appels consecutifs', async () => {
+    const svc = createService();
+    await svc.initDB();
+    await svc.initDB(); // early return
+
+    const db1 = svc.getDB();
+    const db2 = svc.getDB();
     expect(db1).toBe(db2);
   });
 });
