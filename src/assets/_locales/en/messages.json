@@ -1090,5 +1090,89 @@
   "onboarding_hero_desc": {
     "message": "Micro-nudges based on behavioral research. All processing is local, no telemetry.",
     "description": "Onboarding hero description"
+  },
+  "whitelist_title": {
+    "message": "Trust list",
+    "description": "Title of the whitelist page"
+  },
+  "whitelist_subtitle": {
+    "message": "Domains you have marked as trusted. You can remove them at any time.",
+    "description": "Subtitle of the whitelist page"
+  },
+  "whitelist_empty": {
+    "message": "No trusted domains recorded.",
+    "description": "Message when whitelist is empty"
+  },
+  "whitelist_search_placeholder": {
+    "message": "e.g. example.com",
+    "description": "Placeholder for whitelist search input"
+  },
+  "whitelist_search_label": {
+    "message": "Filter by domain",
+    "description": "Label for whitelist search input"
+  },
+  "whitelist_search_section_label": {
+    "message": "Search",
+    "description": "Aria-label for whitelist search section"
+  },
+  "whitelist_remove_button": {
+    "message": "Remove",
+    "description": "Button to remove a domain from whitelist"
+  },
+  "whitelist_confirm_remove": {
+    "message": "Confirm?",
+    "description": "Confirmation text before removing a whitelist entry"
+  },
+  "whitelist_confirm_yes": {
+    "message": "Yes",
+    "description": "Confirm whitelist removal button"
+  },
+  "whitelist_confirm_no": {
+    "message": "Cancel",
+    "description": "Cancel whitelist removal button"
+  },
+  "whitelist_pagination_previous": {
+    "message": "Previous",
+    "description": "Previous page button whitelist"
+  },
+  "whitelist_pagination_next": {
+    "message": "Next",
+    "description": "Next page button whitelist"
+  },
+  "whitelist_pagination_label": {
+    "message": "Page navigation",
+    "description": "Aria-label for pagination navigation"
+  },
+  "whitelist_list_label": {
+    "message": "Trusted domains",
+    "description": "Aria-label for whitelist list"
+  },
+  "whitelist_entry_singular": {
+    "message": "domain",
+    "description": "Singular for whitelist counter"
+  },
+  "whitelist_entry_plural": {
+    "message": "domains",
+    "description": "Plural for whitelist counter"
+  },
+  "whitelist_loading": {
+    "message": "Loading list...",
+    "description": "Whitelist loading message"
+  },
+  "whitelist_removed_success": {
+    "message": "Domain removed:",
+    "description": "Success toast after whitelist removal"
+  },
+  "whitelist_remove_error": {
+    "message": "Error during removal.",
+    "description": "Error toast during whitelist removal"
+  },
+  "whitelist_back_to_settings": {
+    "message": "Back to settings",
+    "description": "Link back to settings page"
+  },
+  "options_btn_view_whitelist": {
+    "message": "View trust list",
+    "description": "Button to access whitelist page from settings (T-202)"
   }
 }

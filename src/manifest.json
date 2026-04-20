@@ -41,7 +41,8 @@
     {
       "resources": [
         "pages/static/donnees-sensibles-presse-papiers.html",
-        "pages/static/sites-suspects.html"
+        "pages/static/sites-suspects.html",
+        "pages/whitelist/whitelist.html"
       ],
       "matches": ["http://*/*", "https://*/*"]
     }
