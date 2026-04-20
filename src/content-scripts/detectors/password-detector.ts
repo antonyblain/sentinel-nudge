@@ -77,6 +77,22 @@ const DEBOUNCE_MS = 150;
  */
 let _snMutationLogTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Contexte de la dernière mutation type traitée par handleTypeAttributeMutation.
+ * Mis à jour à chaque mutation pertinente (password ↔ text) ; lu par le timer
+ * de coalescing pour produire le log structuré T-067.
+ *
+ * T-067 (UC-05 toggle) : from/to permettent de tracer le sens du toggle ;
+ * hasPasswordHistory indique si l'input était déjà connu avant ce toggle.
+ */
+let _snLastMutationContext: {
+  from: string;
+  to: string;
+  hasPasswordHistory: boolean;
+  inputId: string;
+  inputName: string;
+} | null = null;
+
 /** Délai de détection gestionnaire de mots de passe après focus (ms) */
 const PASSWORD_MANAGER_DETECT_MS = 500;
 
@@ -183,22 +199,44 @@ function handleTypeAttributeMutation(mutations: MutationRecord[]): void {
     if (!(target instanceof HTMLInputElement)) continue;
 
     const newType = target.type;
+    // T-067 : oldValue fourni par attributeOldValue:true dans l'observer.
+    // Fallback 'unknown' si le navigateur ne le fournit pas (INV-SEC-02 : valeur safe).
+    const oldType: string = mutation.oldValue ?? 'unknown';
+
     // Cas A : type → "text" (toggle show — l'input était password)
     // Cas B : type → "password" (toggle hide ou démarrage text → password)
     // Dans les deux cas, on enregistre pour couvrir INV-UC05-01 et INV-UC05-02
     if (newType === 'text' || newType === 'password') {
+      // T-067 : capturer l'historique AVANT l'enregistrement pour hasPasswordHistory.
+      // hasPasswordHistory = true si l'input était déjà connu comme password avant ce toggle.
+      const hadPasswordHistory = _snPasswordInputs.has(target);
       registerPasswordInput(target);
+
       // M-SEC-02 : coalescing 100ms — évite le spam de logs lors des toggles rapides.
       // Le log est différé et coalescé : N mutations dans une fenêtre de 100ms
       // produisent UN seul logger.info au lieu de N (rate-limiting).
+      // T-067 : stocker le contexte de la dernière mutation pour le log structuré.
+      _snLastMutationContext = {
+        from: oldType,
+        to: newType,
+        hasPasswordHistory: hadPasswordHistory,
+        inputId: target.id || '(none)',
+        inputName: target.name || '(none)',
+      };
       if (_snMutationLogTimer !== null) {
         clearTimeout(_snMutationLogTimer);
       }
       _snMutationLogTimer = setTimeout(() => {
         _snMutationLogTimer = null;
+        const ctx = _snLastMutationContext;
+        _snLastMutationContext = null;
         logger.info('UC-05: type attribute mutation registered', {
           module: 'M7',
-          hint: `input_id=${target.id || '(none)'} name=${target.name || '(none)'} new_type=${newType}`,
+          // T-067 : champs structurés from/to/hasPasswordHistory pour m5_toggle_detected
+          from: ctx?.from ?? 'unknown',
+          to: ctx?.to ?? 'unknown',
+          hasPasswordHistory: ctx?.hasPasswordHistory ?? false,
+          hint: `input_id=${ctx?.inputId ?? '(none)'} name=${ctx?.inputName ?? '(none)'}`,
         });
       }, 100);
     }
@@ -1749,6 +1787,9 @@ function observeDynamicForms(): void {
     // les toggles show/hide (type="password" ↔ type="text") — mini-DAT §2.3
     attributes: true,
     attributeFilter: ['type'],
+    // T-067 : attributeOldValue permet de récupérer mutation.oldValue dans
+    // handleTypeAttributeMutation pour tracer le sens du toggle (from → to).
+    attributeOldValue: true,
   });
 }
 
