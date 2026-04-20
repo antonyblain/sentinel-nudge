@@ -1090,5 +1090,89 @@
   "onboarding_hero_desc": {
     "message": "Micro-nudges bases sur la recherche comportementale. Tout traitement local, aucune telemetrie.",
     "description": "Description hero onboarding"
+  },
+  "whitelist_title": {
+    "message": "Liste de confiance",
+    "description": "Titre de la page liste de confiance M2"
+  },
+  "whitelist_subtitle": {
+    "message": "Domaines que vous avez marques comme de confiance. Vous pouvez en retirer a tout moment.",
+    "description": "Sous-titre de la page liste de confiance M2"
+  },
+  "whitelist_empty": {
+    "message": "Aucun domaine de confiance enregistre.",
+    "description": "Message quand la whitelist est vide"
+  },
+  "whitelist_search_placeholder": {
+    "message": "ex: example.com",
+    "description": "Placeholder du champ de recherche whitelist"
+  },
+  "whitelist_search_label": {
+    "message": "Filtrer par domaine",
+    "description": "Label du champ de recherche whitelist"
+  },
+  "whitelist_search_section_label": {
+    "message": "Recherche",
+    "description": "Aria-label de la section recherche whitelist"
+  },
+  "whitelist_remove_button": {
+    "message": "Retirer",
+    "description": "Bouton retirer un domaine de la whitelist"
+  },
+  "whitelist_confirm_remove": {
+    "message": "Confirmer ?",
+    "description": "Texte de confirmation avant suppression d un domaine whitelist"
+  },
+  "whitelist_confirm_yes": {
+    "message": "Oui",
+    "description": "Bouton confirmer la suppression whitelist"
+  },
+  "whitelist_confirm_no": {
+    "message": "Annuler",
+    "description": "Bouton annuler la suppression whitelist"
+  },
+  "whitelist_pagination_previous": {
+    "message": "Precedent",
+    "description": "Bouton page precedente whitelist"
+  },
+  "whitelist_pagination_next": {
+    "message": "Suivant",
+    "description": "Bouton page suivante whitelist"
+  },
+  "whitelist_pagination_label": {
+    "message": "Navigation par pages",
+    "description": "Aria-label navigation pagination whitelist"
+  },
+  "whitelist_list_label": {
+    "message": "Domaines de confiance",
+    "description": "Aria-label de la liste whitelist"
+  },
+  "whitelist_entry_singular": {
+    "message": "domaine",
+    "description": "Singulier pour le compteur whitelist"
+  },
+  "whitelist_entry_plural": {
+    "message": "domaines",
+    "description": "Pluriel pour le compteur whitelist"
+  },
+  "whitelist_loading": {
+    "message": "Chargement de la liste...",
+    "description": "Message de chargement whitelist"
+  },
+  "whitelist_removed_success": {
+    "message": "Domaine retire :",
+    "description": "Toast succes apres suppression whitelist"
+  },
+  "whitelist_remove_error": {
+    "message": "Erreur lors de la suppression.",
+    "description": "Toast erreur lors de la suppression whitelist"
+  },
+  "whitelist_back_to_settings": {
+    "message": "Retour aux parametres",
+    "description": "Lien retour vers la page parametres"
+  },
+  "options_btn_view_whitelist": {
+    "message": "Voir la liste de confiance",
+    "description": "Bouton acces a la page liste de confiance depuis les parametres (T-202)"
   }
 }

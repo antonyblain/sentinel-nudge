@@ -999,6 +999,18 @@ function renderDataSection(root: HTMLElement, config: StoredConfig): void {
   });
   fieldset.appendChild(btnResetWhitelist);
 
+  // Bouton "Voir la liste de confiance" (T-202)
+  const btnViewWhitelist = document.createElement('button');
+  btnViewWhitelist.type = 'button';
+  btnViewWhitelist.className = 'btn btn-secondary data-btn';
+  btnViewWhitelist.textContent =
+    browser.i18n.getMessage('options_btn_view_whitelist') || 'Voir la liste de confiance';
+  btnViewWhitelist.addEventListener('click', () => {
+    const whitelistUrl = browser.runtime.getURL('pages/whitelist/whitelist.html');
+    chrome.tabs.create({ url: whitelistUrl });
+  });
+  fieldset.appendChild(btnViewWhitelist);
+
   // --- Bouton Suppression RGPD Art. 17 + encart inline ---
 
   const btnDelete = document.createElement('button');

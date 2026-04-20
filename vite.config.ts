@@ -23,7 +23,7 @@ export default defineConfig({
   plugins: [
     webExtension({
       manifest: resolve(__dirname, 'src/manifest.json'),
-      additionalInputs: ['pages/dashboard/dashboard.html', 'pages/onboarding/onboarding.html'],
+      additionalInputs: ['pages/dashboard/dashboard.html', 'pages/onboarding/onboarding.html', 'pages/whitelist/whitelist.html'],
     }),
   ],
   resolve: {
@@ -95,6 +95,7 @@ export default defineConfig({
         'pages/dashboard/**',
         'pages/onboarding/**',
         'pages/options/**',
+        'pages/whitelist/**',
       ],
       // -----------------------------------------------------------------------
       // TACHE-026 : seuils bloquants activés sur le périmètre couvert.
