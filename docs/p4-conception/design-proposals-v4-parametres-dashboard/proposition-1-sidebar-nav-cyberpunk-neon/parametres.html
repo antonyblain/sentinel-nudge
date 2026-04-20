@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="fr" data-theme="matrix">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paramètres — Sentinel Nudge</title>
+    <style>
+      /* Tokens Cyberpunk Neon (inline, auto-suffisant). */
+      :root {
+        --sn-color-bg: #0a0a14;
+        --sn-color-surface: #0e0e1c;
+        --sn-color-surface-2: #14142a;
+        --sn-color-border: #1e1e3f;
+        --sn-color-fg: #e8e8ff; /* 21:1 sur bg */
+        --sn-color-fg-muted: #8888cc; /* 6.8:1 sur bg */
+        --sn-color-fg-subtle: #444480;
+        --sn-color-primary: #00d4ff; /* Cyan electrique — 14.2:1 sur bg */
+        --sn-color-accent: #ff2d78; /* Magenta — 6.8:1 sur bg */
+        --sn-color-accent-hover: #ff5599;
+        --sn-color-accent-light: rgba(255, 45, 120, 0.12);
+        --sn-color-accent-text: #00d4ff; /* Texte accent cyan sur fond sombre — 14.2:1 */
+        --sn-color-btn-fg: #0a0a14; /* Noir sur fond colore — 5.6:1 sur magenta AA */
+        --sn-color-success: #00ff87; /* Vert neon */
+        --sn-color-success-bg: rgba(0, 255, 135, 0.1);
+        --sn-color-danger: #ff2d78;
+        --sn-color-danger-bg: rgba(255, 45, 120, 0.12);
+        --sn-color-warning: #ffd700; /* Or — 9.8:1 sur bg */
+        --sn-color-warning-bg: rgba(255, 215, 0, 0.1);
+        --sn-color-info-bg: rgba(0, 212, 255, 0.08);
+        --sn-color-info-border: rgba(0, 212, 255, 0.3);
+        --sn-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 212, 255, 0.15);
+        --sn-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 16px rgba(255, 45, 120, 0.2);
+        --sn-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.8);
+        --sn-radius-sm: 2px;
+        --sn-radius: 4px;
+        --sn-radius-lg: 8px;
+        --sn-radius-xl: 12px;
+        --sn-min-target: 44px;
+        --sn-transition-fast: 150ms ease;
+        --sn-transition: 250ms ease;
+        --sn-font-body:
+          ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+        --sn-sidebar-width: 260px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* ══ Reset minimal ══ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--sn-font-body);
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--sn-color-fg);
+        background: var(--sn-color-bg);
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      a {
+        color: var(--sn-color-accent);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      a:hover {
+        color: var(--sn-color-accent-hover);
+      }
+
+      /* ══ Skip link accessibilité ══ */
+      .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 8px;
+        background: var(--sn-color-accent);
+        color: var(--sn-color-btn-fg);
+        padding: 8px 16px;
+        border-radius: var(--sn-radius);
+        text-decoration: none;
+        font-weight: 600;
+        z-index: 100;
+      }
+      .skip-link:focus {
+        top: 8px;
+      }
+
+      /* ══ Focus-visible uniforme ══ */
+      :focus-visible {
+        outline: 3px solid var(--sn-color-accent);
+        outline-offset: 2px;
+        border-radius: var(--sn-radius-sm);
+      }
+
+      /* ══ Layout principal (sidebar + content) ══ */
+      .app-shell {
+        display: grid;
+        grid-template-columns: var(--sn-sidebar-width) 1fr;
+        min-height: 100vh;
+      }
+
+      /* ══ Sidebar ══ */
+      .sidebar {
+        background: var(--sn-color-surface);
+        border-right: 1px solid var(--sn-color-border);
+        padding: 24px 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-brand {
+        padding: 0 24px 24px;
+        border-bottom: 1px solid var(--sn-color-border);
+        margin-bottom: 16px;
+      }
+      .brand-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .brand-logo {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+      .brand-name {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--sn-color-primary);
+        letter-spacing: -0.01em;
+      }
+      .brand-tagline {
+        font-size: 12px;
+        color: var(--sn-color-fg-muted);
+        line-height: 1.4;
+        margin: 0;
+      }
+
+      .nav-section-label {
+        padding: 12px 24px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--sn-color-fg-subtle);
+      }
+      .nav {
+        list-style: none;
+        margin: 0;
+        padding: 0 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .nav-item a,
+      .nav-item button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        min-height: var(--sn-min-target);
+        border-radius: var(--sn-radius);
+        color: var(--sn-color-fg);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+        transition: background var(--sn-transition-fast);
+      }
+      .nav-item a:hover,
+      .nav-item button:hover {
+        background: var(--sn-color-surface-2);
+        color: var(--sn-color-primary);
+      }
+      .nav-item.active a,
+      .nav-item[aria-current='page'] a {
+        background: var(--sn-color-accent-light);
+        color: var(--sn-color-primary);
+        font-weight: 600;
+      }
+      .nav-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        stroke-width: 1.8;
+      }
+      .nav-item .counter {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--sn-color-surface-2);
+        color: var(--sn-color-fg-muted);
+      }
+      .nav-item.active .counter,
+      .nav-item[aria-current='page'] .counter {
+        background: var(--sn-color-accent);
+        color: var(--sn-color-btn-fg);
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 16px 24px;
+        border-top: 1px solid var(--sn-color-border);
+        font-size: 12px;
+        color: var(--sn-color-fg-muted);
+      }
+      .version-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: var(--sn-color-success-bg);
+        color: var(--sn-color-success);
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 11px;
+      }
+
+      /* ══ Main content ══ */
+      .main {
+        padding: 32px 40px 56px;
+        max-width: 920px;
+      }
+      .main-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 8px;
+      }
+      .breadcrumb {
+        font-size: 13px;
+        color: var(--sn-color-fg-muted);
+        margin-bottom: 4px;
+      }
+      .page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--sn-color-primary);
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+      }
+      .page-subtitle {
+        color: var(--sn-color-fg-muted);
+        margin: 0 0 28px;
+        max-width: 640px;
+      }
+
+      /* ══ Settings sections ══ */
+      .settings-section {
+        background: var(--sn-color-surface);
+        border: 1px solid var(--sn-color-border);
+        border-radius: var(--sn-radius-lg);
+        margin-bottom: 20px;
+        overflow: hidden;
+      }
+      .section-head {
+        padding: 20px 24px 8px;
+        border-bottom: 1px solid var(--sn-color-border);
+      }
+      .section-head h2 {
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--sn-color-primary);
+        margin: 0 0 4px;
+      }
+      .section-head p {
+        font-size: 13px;
+        color: var(--sn-color-fg-muted);
+        margin: 0 0 12px;
+      }
+      .section-body {
+        padding: 8px 24px 20px;
+      }
+
+      /* ══ Setting row ══ */
+      .setting-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--sn-color-border);
+      }
+      .setting-row:last-child {
+        border-bottom: none;
+      }
+      .setting-info h3 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--sn-color-fg);
+        margin: 0 0 4px;
+      }
+      .setting-info p {
+        font-size: 13px;
+        color: var(--sn-color-fg-muted);
+        margin: 0;
+        max-width: 560px;
+      }
+      .setting-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+      .badge-active {
+        background: var(--sn-color-success-bg);
+        color: var(--sn-color-success);
+      }
+      .badge-beta {
+        background: var(--sn-color-warning-bg);
+        color: var(--sn-color-warning);
+      }
+
+      /* ══ Toggle switch ══ */
+      .toggle {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .toggle input {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+      }
+      .toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: #c3d1df;
+        border-radius: 999px;
+        transition: background var(--sn-transition);
+        border: 1px solid var(--sn-color-border);
+      }
+      .toggle-slider::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform var(--sn-transition);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+      .toggle input:checked + .toggle-slider {
+        background: var(--sn-color-accent);
+        border-color: var(--sn-color-accent);
+      }
+      .toggle input:checked + .toggle-slider::before {
+        transform: translateX(20px);
+      }
+      .toggle input:focus-visible + .toggle-slider {
+        outline: 3px solid var(--sn-color-accent);
+        outline-offset: 2px;
+      }
+      /* Cible tactile 44px autour du toggle */
+      .toggle-target {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: var(--sn-min-target);
+        min-height: var(--sn-min-target);
+        padding: 10px;
+      }
+
+      /* ══ Select, Input ══ */
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-width: 320px;
+      }
+      .form-field label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--sn-color-fg);
+      }
+      select,
+      input[type='text'],
+      input[type='number'] {
+        min-height: var(--sn-min-target);
+        padding: 10px 14px;
+        border: 1px solid var(--sn-color-border);
+        border-radius: var(--sn-radius);
+        background: var(--sn-color-surface);
+        color: var(--sn-color-fg);
+        font-family: inherit;
+        font-size: 14px;
+        transition: border-color var(--sn-transition-fast);
+      }
+      select:hover,
+      input:hover {
+        border-color: var(--sn-color-accent);
+      }
+      select:focus-visible,
+      input:focus-visible {
+        outline: 3px solid var(--sn-color-accent);
+        outline-offset: 1px;
+        border-color: var(--sn-color-accent);
+      }
+
+      /* ══ Radio group — thème ══ */
+      .theme-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .theme-option {
+        position: relative;
+      }
+      .theme-option input[type='radio'] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+      .theme-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 16px;
+        border: 2px solid var(--sn-color-border);
+        border-radius: var(--sn-radius);
+        background: var(--sn-color-surface);
+        transition: all var(--sn-transition-fast);
+        min-height: var(--sn-min-target);
+      }
+      .theme-option input[type='radio']:checked + .theme-card {
+        border-color: var(--sn-color-accent);
+        background: var(--sn-color-accent-light);
+        box-shadow: var(--sn-shadow-sm);
+      }
+      .theme-option input[type='radio']:focus-visible + .theme-card {
+        outline: 3px solid var(--sn-color-accent);
+        outline-offset: 2px;
+      }
+      .theme-swatch {
+        display: flex;
+        gap: 2px;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: inset 0 0 0 1px var(--sn-color-border);
+      }
+      .theme-swatch span {
+        width: 20px;
+        height: 32px;
+      }
+      .theme-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--sn-color-fg);
+      }
+      .theme-desc {
+        font-size: 11px;
+        color: var(--sn-color-fg-muted);
+        text-align: center;
+      }
+
+      /* ══ Boutons ══ */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: var(--sn-min-target);
+        padding: 10px 18px;
+        border-radius: var(--sn-radius);
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all var(--sn-transition-fast);
+        font-family: inherit;
+      }
+      .btn-primary {
+        background: var(--sn-color-accent);
+        color: var(--sn-color-btn-fg);
+      }
+      .btn-primary:hover {
+        background: var(--sn-color-accent-hover);
+      }
+      .btn-secondary {
+        background: var(--sn-color-surface);
+        color: var(--sn-color-accent);
+        border-color: var(--sn-color-border);
+      }
+      .btn-secondary:hover {
+        border-color: var(--sn-color-accent);
+        background: var(--sn-color-accent-light);
+      }
+      .btn-danger {
+        background: var(--sn-color-surface);
+        color: var(--sn-color-danger);
+        border-color: var(--sn-color-border);
+      }
+      .btn-danger:hover {
+        background: var(--sn-color-danger-bg);
+        border-color: var(--sn-color-danger);
+      }
+
+      /* ══ Info panel ══ */
+      .info-panel {
+        background: var(--sn-color-info-bg);
+        border: 1px solid var(--sn-color-info-border);
+        border-left: 3px solid var(--sn-color-accent);
+        padding: 14px 16px;
+        border-radius: var(--sn-radius);
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--sn-color-fg);
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .info-panel strong {
+        color: var(--sn-color-primary);
+      }
+
+      /* ══ Actions bar (sticky bottom) ══ */
+      .actions-bar {
+        position: sticky;
+        bottom: 0;
+        background: var(--sn-color-surface);
+        border-top: 1px solid var(--sn-color-border);
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin: 32px -24px -20px;
+        border-radius: 0 0 var(--sn-radius-lg) var(--sn-radius-lg);
+      }
+      .actions-status {
+        font-size: 13px;
+        color: var(--sn-color-fg-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--sn-color-success);
+      }
+      .actions-buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      /* ══ Mobile menu toggle ══ */
+      .mobile-menu-btn {
+        display: none;
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 50;
+        min-width: var(--sn-min-target);
+        min-height: var(--sn-min-target);
+        background: var(--sn-color-surface);
+        border: 1px solid var(--sn-color-border);
+        border-radius: var(--sn-radius);
+        box-shadow: var(--sn-shadow-sm);
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ══ Responsive ══ */
+      @media (max-width: 960px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+        .mobile-menu-btn {
+          display: inline-flex;
+        }
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: var(--sn-sidebar-width);
+          max-width: 85vw;
+          transform: translateX(-100%);
+          transition: transform var(--sn-transition);
+          z-index: 60;
+          box-shadow: var(--sn-shadow-lg);
+        }
+        .sidebar[data-open='true'] {
+          transform: translateX(0);
+        }
+        .main {
+          padding: 72px 20px 48px;
+          max-width: 100%;
+        }
+        .sidebar-scrim {
+          position: fixed;
+          inset: 0;
+          background: rgba(26, 39, 51, 0.45);
+          z-index: 55;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity var(--sn-transition);
+        }
+        .sidebar-scrim[data-visible='true'] {
+          opacity: 1;
+          pointer-events: auto;
+        }
+      }
+      @media (max-width: 520px) {
+        .setting-row {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 12px;
+        }
+        .actions-bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .actions-buttons {
+          justify-content: stretch;
+        }
+        .actions-buttons .btn {
+          flex: 1;
+        }
+        .page-title {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+
+    <button
+      class="mobile-menu-btn"
+      aria-label="Ouvrir le menu de navigation"
+      aria-expanded="false"
+      aria-controls="sidebar"
+      id="menu-btn"
+    >
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+    <div class="sidebar-scrim" id="scrim" aria-hidden="true"></div>
+
+    <div class="app-shell">
+      <!-- ══ Sidebar ══ -->
+      <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+        <div class="sidebar-brand">
+          <div class="brand-mark">
+            <svg
+              class="brand-logo"
+              viewBox="0 0 32 32"
+              fill="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M16 2 L28 7 V15 C28 22 22 28 16 30 C10 28 4 22 4 15 V7 Z"
+                fill="#1e3a5f"
+              />
+              <path
+                d="M11 16 L14 19 L21 12"
+                stroke="#dbeeff"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="brand-name">Sentinel Nudge</span>
+          </div>
+          <p class="brand-tagline">Votre gardien discret de cyber-hygiène</p>
+        </div>
+
+        <div class="nav-section-label">Navigation</div>
+        <ul class="nav">
+          <li class="nav-item">
+            <a href="tableau-de-bord.html">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+                <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+                <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+              </svg>
+              Tableau de bord
+            </a>
+          </li>
+          <li class="nav-item" aria-current="page">
+            <a href="parametres.html">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                ></path>
+              </svg>
+              Paramètres
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2 L2 7 L2 17 L12 22 L22 17 L22 7 Z"></path>
+                <path d="M2 7 L12 12 L22 7"></path>
+                <path d="M12 12 V22"></path>
+              </svg>
+              Modules
+              <span class="counter">5</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4z"></path>
+              </svg>
+              Journal des nudges
+              <span class="counter">27</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="nav-section-label">Aide</div>
+        <ul class="nav">
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              Documentation
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <svg
+                class="nav-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 2 L12 22"></path>
+                <path d="M2 12 L22 12"></path>
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+              Confidentialité
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer">
+          <div><span class="version-pill">v1.0.3 · À jour</span></div>
+          <div style="margin-top: 6px">Traitement 100 % local · aucune télémétrie</div>
+        </div>
+      </aside>
+
+      <!-- ══ Main content ══ -->
+      <main class="main" id="main-content" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="tableau-de-bord.html">Accueil</a> › Paramètres
+        </div>
+        <div class="main-header">
+          <div>
+            <h1 class="page-title">Paramètres</h1>
+            <p class="page-subtitle">
+              Configurez vos modules, votre thème et le rythme des nudges. Toutes les préférences
+              sont stockées localement sur votre poste.
+            </p>
+          </div>
+        </div>
+
+        <form id="settings-form">
+          <!-- ══ Section Modules ══ -->
+          <section class="settings-section" aria-labelledby="sec-modules">
+            <div class="section-head">
+              <h2 id="sec-modules">Modules de protection</h2>
+              <p>
+                Activez ou désactivez les détecteurs comportementaux. Chaque module fonctionne
+                indépendamment et peut être suspendu temporairement.
+              </p>
+            </div>
+            <div class="section-body">
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>
+                    Détecteur de mots de passe faibles
+                    <span class="setting-badge badge-active">Actif</span>
+                  </h3>
+                  <p>
+                    Analyse localement les champs de mot de passe pour détecter la réutilisation, la
+                    faible entropie ou la présence dans des fuites connues (via k-anonymat).
+                  </p>
+                </div>
+                <label class="toggle-target">
+                  <span class="toggle">
+                    <input
+                      type="checkbox"
+                      checked
+                      aria-label="Activer le détecteur de mots de passe faibles"
+                    />
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>
+                    Avertissement SSL/TLS
+                    <span class="setting-badge badge-active">Actif</span>
+                  </h3>
+                  <p>
+                    Affiche un nudge discret lorsqu'un site utilise un certificat expiré,
+                    auto-signé, ou une version TLS obsolète.
+                  </p>
+                </div>
+                <label class="toggle-target">
+                  <span class="toggle">
+                    <input type="checkbox" checked aria-label="Activer l'avertissement SSL/TLS" />
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>
+                    Rappel de mise à jour navigateur
+                    <span class="setting-badge badge-active">Actif</span>
+                  </h3>
+                  <p>
+                    Rappelle en douceur lorsqu'une mise à jour de sécurité du navigateur est
+                    disponible depuis plus de 7 jours.
+                  </p>
+                </div>
+                <label class="toggle-target">
+                  <span class="toggle">
+                    <input
+                      type="checkbox"
+                      checked
+                      aria-label="Activer le rappel de mise à jour navigateur"
+                    />
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>
+                    Assistant 2FA
+                    <span class="setting-badge badge-beta">Bêta</span>
+                  </h3>
+                  <p>
+                    Suggère l'activation de l'authentification à deux facteurs sur les services
+                    sensibles détectés (banque, email, stockage).
+                  </p>
+                </div>
+                <label class="toggle-target">
+                  <span class="toggle">
+                    <input type="checkbox" aria-label="Activer l'assistant 2FA" />
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>Vérificateur de confidentialité</h3>
+                  <p>
+                    Détecte les formulaires demandant trop d'informations personnelles et propose
+                    une checklist de prudence.
+                  </p>
+                </div>
+                <label class="toggle-target">
+                  <span class="toggle">
+                    <input type="checkbox" aria-label="Activer le vérificateur de confidentialité" />
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══ Section Apparence ══ -->
+          <section class="settings-section" aria-labelledby="sec-theme">
+            <div class="section-head">
+              <h2 id="sec-theme">Apparence</h2>
+              <p>Choisissez le thème visuel appliqué aux pages et aux nudges de l'extension.</p>
+            </div>
+            <div class="section-body">
+              <fieldset style="border: none; margin: 0; padding: 0">
+                <legend
+                  style="
+                    font-size: 13px;
+                    font-weight: 500;
+                    color: var(--sn-color-fg);
+                    padding: 0;
+                    margin-bottom: 4px;
+                  "
+                >
+                  Thème
+                </legend>
+                <div class="theme-selector" role="radiogroup" aria-label="Sélection du thème">
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="light" checked />
+                    <span class="theme-card">
+                      <span class="theme-swatch" aria-hidden="true">
+                        <span style="background: #f5f7fa"></span>
+                        <span style="background: #2e6da4"></span>
+                        <span style="background: #1e3a5f"></span>
+                      </span>
+                      <span class="theme-label">Aegis Light</span>
+                      <span class="theme-desc">Clair, bleu acier</span>
+                    </span>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="dark" />
+                    <span class="theme-card">
+                      <span class="theme-swatch" aria-hidden="true">
+                        <span style="background: #0d0d0f"></span>
+                        <span style="background: #2563eb"></span>
+                        <span style="background: #818cf8"></span>
+                      </span>
+                      <span class="theme-label">Midnight Obsidian</span>
+                      <span class="theme-desc">Sombre Material You</span>
+                    </span>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="matrix" />
+                    <span class="theme-card">
+                      <span class="theme-swatch" aria-hidden="true">
+                        <span style="background: #0a0a14"></span>
+                        <span style="background: #ff2d78"></span>
+                        <span style="background: #00d4ff"></span>
+                      </span>
+                      <span class="theme-label">Cyberpunk Neon</span>
+                      <span class="theme-desc">Synthwave néon</span>
+                    </span>
+                  </label>
+                  <label class="theme-option">
+                    <input type="radio" name="theme" value="auto" />
+                    <span class="theme-card">
+                      <span class="theme-swatch" aria-hidden="true">
+                        <span style="background: #f5f7fa"></span>
+                        <span style="background: #0d0d0f"></span>
+                        <span
+                          style="background: linear-gradient(90deg, #f5f7fa 50%, #0d0d0f 50%)"
+                        ></span>
+                      </span>
+                      <span class="theme-label">Automatique</span>
+                      <span class="theme-desc">Suit votre OS</span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="setting-row" style="margin-top: 8px">
+                <div class="setting-info">
+                  <h3>Réduire les animations</h3>
+                  <p>
+                    Respecte déjà automatiquement <code>prefers-reduced-motion</code>. Force le
+                    comportement même si l'OS ne le demande pas.
+                  </p>
+                </div>
+                <label class="toggle-target">
+                  <span class="toggle">
+                    <input type="checkbox" aria-label="Forcer la réduction des animations" />
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══ Section Rythme ══ -->
+          <section class="settings-section" aria-labelledby="sec-rythme">
+            <div class="section-head">
+              <h2 id="sec-rythme">Rythme des nudges</h2>
+              <p>
+                Ajustez la fréquence et l'intensité des rappels. Un rythme respectueux est plus
+                efficace qu'un flot d'alertes.
+              </p>
+            </div>
+            <div class="section-body">
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>Intensité</h3>
+                  <p>
+                    Nombre maximum de nudges par jour et par domaine. <strong>Doux</strong> limite
+                    à 1 rappel par 24h pour un même site.
+                  </p>
+                </div>
+                <div class="form-field">
+                  <label for="intensity" class="sr-only">Intensité des nudges</label>
+                  <select id="intensity" name="intensity">
+                    <option>Doux — 1/jour/domaine</option>
+                    <option selected>Modéré — 3/jour/domaine</option>
+                    <option>Actif — 5/jour/domaine</option>
+                    <option>Personnalisé…</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>Plage horaire</h3>
+                  <p>Fenêtre durant laquelle les nudges s'affichent. En dehors, silence total.</p>
+                </div>
+                <div class="form-field">
+                  <label for="schedule" class="sr-only">Plage horaire</label>
+                  <select id="schedule" name="schedule">
+                    <option>À tout moment</option>
+                    <option selected>Heures ouvrées (9h–18h)</option>
+                    <option>Heures personnelles (18h–22h)</option>
+                    <option>Personnalisée…</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>Mode focus</h3>
+                  <p>
+                    Suspend tous les nudges lorsque vous êtes en plein écran ou en présentation.
+                  </p>
+                </div>
+                <label class="toggle-target">
+                  <span class="toggle">
+                    <input type="checkbox" checked aria-label="Activer le mode focus" />
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══ Section Données & confidentialité ══ -->
+          <section class="settings-section" aria-labelledby="sec-data">
+            <div class="section-head">
+              <h2 id="sec-data">Données & confidentialité</h2>
+              <p>Sentinel Nudge ne collecte aucune donnée. Tout reste chez vous.</p>
+            </div>
+            <div class="section-body">
+              <div class="info-panel">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                  style="flex-shrink: 0; color: var(--sn-color-accent); margin-top: 1px"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>
+                  <strong>Privacy by design.</strong> Aucun nudge, aucun score, aucun domaine visité
+                  ne quitte votre navigateur. Aucune télémétrie, aucun identifiant, aucun cookie
+                  tiers. Le code source est auditable sur GitHub.
+                </span>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>Exporter mes préférences</h3>
+                  <p>Téléchargez un fichier JSON contenant vos réglages pour les réimporter.</p>
+                </div>
+                <button type="button" class="btn btn-secondary">Exporter</button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <h3>Réinitialiser</h3>
+                  <p>Remet toutes les préférences à leurs valeurs par défaut. Irréversible.</p>
+                </div>
+                <button type="button" class="btn btn-danger">Réinitialiser</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ══ Actions bar ══ -->
+          <div class="settings-section" style="margin-top: 32px">
+            <div class="actions-bar" role="region" aria-label="Actions">
+              <div class="actions-status">
+                <span class="status-dot" aria-hidden="true"></span>
+                Enregistré automatiquement à l'instant
+              </div>
+              <div class="actions-buttons">
+                <button type="button" class="btn btn-secondary">Annuler</button>
+                <button type="submit" class="btn btn-primary">Appliquer</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <script>
+      // Toggle sidebar mobile
+      (function () {
+        var btn = document.getElementById('menu-btn');
+        var sidebar = document.getElementById('sidebar');
+        var scrim = document.getElementById('scrim');
+        function close() {
+          sidebar.dataset.open = 'false';
+          scrim.dataset.visible = 'false';
+          btn.setAttribute('aria-expanded', 'false');
+        }
+        function open() {
+          sidebar.dataset.open = 'true';
+          scrim.dataset.visible = 'true';
+          btn.setAttribute('aria-expanded', 'true');
+        }
+        btn.addEventListener('click', function () {
+          sidebar.dataset.open === 'true' ? close() : open();
+        });
+        scrim.addEventListener('click', close);
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') close();
+        });
+      })();
+
+      // Empêcher le submit de fuir (mock)
+      document.getElementById('settings-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+      });
+    </script>
+  </body>
+</html>
