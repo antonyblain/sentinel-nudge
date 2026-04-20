@@ -432,8 +432,8 @@
     "description": "Aria-label de la section statut de la popup"
   },
   "popup_btn_dashboard": {
-    "message": "Voir le tableau de bord",
-    "description": "Bouton d'accès au dashboard depuis la popup"
+    "message": "Tableau de bord",
+    "description": "Bouton d'accès au dashboard depuis la popup (T-201)"
   },
   "popup_btn_settings": {
     "message": "Paramètres",
@@ -956,8 +956,8 @@
     "description": "Option thème Matrix (Cyberpunk Neon)"
   },
   "popup_tagline": {
-    "message": "Score de cyber-hygiene",
-    "description": "Tagline dans le header de la popup"
+    "message": "Votre gardien discret de cyber-hygiène",
+    "description": "Tagline officielle Brand Book dans le header de la popup (T-200)"
   },
   "popup_modules_section_title": {
     "message": "Modules actifs",

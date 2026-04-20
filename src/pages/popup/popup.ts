@@ -598,8 +598,7 @@ function renderActionsSection(container: HTMLElement): void {
   const btnDashboard = document.createElement('button');
   btnDashboard.type = 'button';
   btnDashboard.className = 'btn btn-primary';
-  btnDashboard.textContent =
-    browser.i18n.getMessage('popup_btn_dashboard') || 'Voir le tableau de bord';
+  btnDashboard.textContent = browser.i18n.getMessage('popup_btn_dashboard') || 'Tableau de bord';
   btnDashboard.addEventListener('click', () => {
     const dashboardUrl = browser.runtime.id
       ? `chrome-extension://${browser.runtime.id}/pages/dashboard/dashboard.html`
@@ -687,7 +686,8 @@ async function initPopup(): Promise<void> {
 
   const tagline = document.createElement('p');
   tagline.className = 'popup-tagline';
-  tagline.textContent = browser.i18n.getMessage('popup_tagline') || 'Score de cyber-hygiène';
+  tagline.textContent =
+    browser.i18n.getMessage('popup_tagline') || 'Votre gardien discret de cyber-hygiène';
   headerText.appendChild(tagline);
 
   popupHeader.appendChild(headerText);

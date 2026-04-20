@@ -44,6 +44,8 @@
  *   INV-UC01-04 : isCreationForm retourne false sur page de connexion SSO standard
  *
  * Référence : mini-DAT TACHE-068 v1.1 §3, §12 ; ADR-002 R-CLI-03 ; TACHE-091 ; TACHE-124
+ *
+ * T-189 : mock inline storage.local remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -57,44 +59,22 @@ import type { HeartbeatService } from '@/background/services/heartbeat-service';
 import type { IncidentService } from '@/background/services/incident-service';
 import type { PasswordHashRecord } from '@/shared/types/storage';
 import { PENDING_M7_TOAST_KEY, PENDING_M7_TOAST_TTL_MS } from '@/shared/types/diagnostics';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ===========================================================================
 // Mock chrome.storage.local global — partagé par tous les tests
 //
-// Utilise une closure sur mockLocalStorage pour que les implémentations
-// persistent après vi.clearAllMocks() (qui efface .mock.calls mais pas les
-// implémentations définies via vi.fn(impl)).
+// T-189 : mock inline remplacé par le wrapper JSON-strict createMockChromeStorage().
+// Le wrapper valide les valeurs (P-018 : ArrayBuffer/types non-JSON lèvent TypeError).
+// La variable est nommée `chromeStorage` pour éviter tout conflit avec les variables
+// locales `storage` (createMockStorage — StorageService mock) dans les describe ci-dessous.
 // ===========================================================================
 
-const mockLocalStorage: Record<string, unknown> = {};
-const removedKeys: string[] = [];
+const { storage: chromeStorage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        _keys.forEach((k) => {
-          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
-        });
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((key: string | string[], callback?: () => void) => {
-        const keys = Array.isArray(key) ? key : [key];
-        keys.forEach((k) => {
-          removedKeys.push(k);
-          delete mockLocalStorage[k];
-        });
-        callback?.();
-      }),
-      clear: vi.fn((callback?: () => void) => {
-        callback?.();
-      }),
-    },
+    local: chromeStorage,
     onChanged: {
       addListener: vi.fn(),
     },
@@ -126,37 +106,9 @@ global.chrome = {
 
 beforeEach(() => {
   recentSubmits.clear();
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
-  removedKeys.length = 0;
+  resetStorage();
   vi.clearAllMocks();
-  // Restaurer les implémentations closure après vi.clearAllMocks()
-  // clearAllMocks() efface .mock.calls mais aussi l'implémentation des vi.fn(impl).
-  // On réaffecte les implémentations pour garantir leur persistance.
-  vi.mocked(chrome.storage.local.get).mockImplementation(
-    (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      _keys.forEach((k) => {
-        if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
-      });
-      callback(result);
-    },
-  );
-  vi.mocked(chrome.storage.local.set).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
-  vi.mocked(chrome.storage.local.remove).mockImplementation(
-    (key: string | string[], callback?: () => void) => {
-      const keys = Array.isArray(key) ? key : [key];
-      keys.forEach((k) => {
-        removedKeys.push(k);
-        delete mockLocalStorage[k];
-      });
-      callback?.();
-    },
-  );
+  // Restaurer l'implémentation sendMessage après vi.clearAllMocks()
   vi.mocked(chrome.runtime.sendMessage).mockImplementation(
     (_msg: unknown, callback?: (r: unknown) => void) => {
       callback?.({ success: true, action: 'skip', reason: 'no_reuse' });
@@ -395,9 +347,9 @@ describe('TC-UC01-02 — Microsoft cross-hostname : hash rattaché à login.live
     );
 
     // pending_m7_toast écrit dans chrome.storage.local (INV-UC01-03, ADR-002)
-    const pendingToast = mockLocalStorage[PENDING_M7_TOAST_KEY] as
-      | Record<string, unknown>
-      | undefined;
+    // T-189 : lecture via wrapper chromeStorage.get() au lieu de mockLocalStorage[key]
+    const gotResult = await chromeStorage.get([PENDING_M7_TOAST_KEY]);
+    const pendingToast = gotResult[PENDING_M7_TOAST_KEY] as Record<string, unknown> | undefined;
     expect(pendingToast).toBeDefined();
     // domain_hash = login.live.com (Step 2), jamais login.microsoftonline.com (Step 1)
     expect(pendingToast?.['domain_hash']).toBe(DOMAIN_HASH_LIVE);
@@ -462,12 +414,8 @@ describe('TC-UC01-03 — Deep link Step 2 direct : détection M7 active sans Ste
     form.appendChild(pwdInput);
     document.body.appendChild(form);
 
-    // Mock salt disponible (SW initialisé)
-    vi.mocked(chrome.storage.local.get).mockImplementationOnce(
-      (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        callback({ installation_salt: 'c'.repeat(64) });
-      },
-    );
+    // T-189 : salt pré-chargé dans le wrapper avant cet appel
+    await chromeStorage.set({ installation_salt: 'c'.repeat(64) });
 
     // Capturer les messages envoyés au SW
     const capturedMessages: unknown[] = [];
@@ -515,11 +463,8 @@ describe('TC-UC01-03 — Deep link Step 2 direct : détection M7 active sans Ste
     form.appendChild(pwdInput);
     document.body.appendChild(form);
 
-    vi.mocked(chrome.storage.local.get).mockImplementationOnce(
-      (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        callback({ installation_salt: 'd'.repeat(64) });
-      },
-    );
+    // T-189 : salt pré-chargé dans le wrapper avant cet appel
+    await chromeStorage.set({ installation_salt: 'd'.repeat(64) });
 
     const capturedMessages: unknown[] = [];
     vi.mocked(chrome.runtime.sendMessage).mockImplementation(
@@ -611,11 +556,8 @@ describe('TC-UC01-04 — Filtre isCreationForm sur page SSO Step 2', () => {
 
     document.body.appendChild(form);
 
-    vi.mocked(chrome.storage.local.get).mockImplementationOnce(
-      (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        callback({ installation_salt: 'e'.repeat(64) });
-      },
-    );
+    // T-189 : salt pré-chargé dans le wrapper avant cet appel
+    await chromeStorage.set({ installation_salt: 'e'.repeat(64) });
     const capturedMessages: unknown[] = [];
     vi.mocked(chrome.runtime.sendMessage).mockImplementation(
       (msg: unknown, callback?: (r: unknown) => void) => {
@@ -671,11 +613,8 @@ describe('TC-UC01-04 — Filtre isCreationForm sur page SSO Step 2', () => {
 
     document.body.appendChild(form);
 
-    vi.mocked(chrome.storage.local.get).mockImplementationOnce(
-      (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        callback({ installation_salt: 'f'.repeat(64) });
-      },
-    );
+    // T-189 : salt pré-chargé dans le wrapper avant cet appel
+    await chromeStorage.set({ installation_salt: 'f'.repeat(64) });
     const capturedMessages: unknown[] = [];
     vi.mocked(chrome.runtime.sendMessage).mockImplementation(
       (msg: unknown, callback?: (r: unknown) => void) => {
@@ -741,11 +680,8 @@ describe('TC-UC01-04 — Filtre isCreationForm sur page SSO Step 2', () => {
 
     document.body.appendChild(form);
 
-    vi.mocked(chrome.storage.local.get).mockImplementationOnce(
-      (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        callback({ installation_salt: 'a0'.repeat(32) });
-      },
-    );
+    // T-189 : salt pré-chargé dans le wrapper avant cet appel
+    await chromeStorage.set({ installation_salt: 'a0'.repeat(32) });
     const capturedMessages: unknown[] = [];
     vi.mocked(chrome.runtime.sendMessage).mockImplementation(
       (msg: unknown, callback?: (r: unknown) => void) => {
@@ -932,11 +868,8 @@ describe('TC-UC01-01 — Google SPA : correctif F-UC01-01 TACHE-101 + détection
         registerPasswordInput(pwdInput);
         expect(_snPasswordInputs.has(pwdInput)).toBe(true);
 
-        vi.mocked(chrome.storage.local.get).mockImplementationOnce(
-          (_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-            callback({ installation_salt: 'b1'.repeat(32) });
-          },
-        );
+        // T-189 : salt pré-chargé dans le wrapper avant cet appel
+        await chromeStorage.set({ installation_salt: 'b1'.repeat(32) });
 
         const capturedMessages: unknown[] = [];
         vi.mocked(chrome.runtime.sendMessage).mockImplementation(
@@ -1071,9 +1004,9 @@ describe('TC-UC01-01 — Google SPA : correctif F-UC01-01 TACHE-101 + détection
         );
 
         // pending_m7_toast écrit dans chrome.storage.local (INV-UC01-03, ADR-002)
-        const pendingToast = mockLocalStorage[PENDING_M7_TOAST_KEY] as
-          | Record<string, unknown>
-          | undefined;
+        // T-189 : lecture via wrapper chromeStorage.get() au lieu de mockLocalStorage[key]
+        const gotResult = await chromeStorage.get([PENDING_M7_TOAST_KEY]);
+        const pendingToast = gotResult[PENDING_M7_TOAST_KEY] as Record<string, unknown> | undefined;
         expect(pendingToast).toBeDefined();
 
         // domain_hash = accounts.google.com (hostname SPA stable — INV-UC01-01)
