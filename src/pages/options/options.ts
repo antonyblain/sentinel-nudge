@@ -252,11 +252,15 @@ function createModuleToggle(
   // Deux labels pour la meme checkbox sont valides HTML :
   //   1. label.module-toggle-name (htmlFor=inputId) : clic sur le nom du module
   //   2. label.toggle-switch-wrapper (relation implicite) : clic sur le toggle visuel
+  //
+  // WCAG aria-hidden-focus : le label wrapper NE doit PAS avoir aria-hidden=true
+  // car il contient un element focusable (l'input). L'input sr-only est deja
+  // visuellement cache mais reste accessible aux AT via le label du nom de module.
   const switchWrapper = document.createElement('label');
   switchWrapper.className = 'toggle-switch-wrapper';
-  // Pas de htmlFor : relation implicite via contenu (evite double-toggle avec le label explicit).
-  // aria-hidden=true : masque ce label des AT (le label de nom de module porte le sens).
-  switchWrapper.setAttribute('aria-hidden', 'true');
+  // Pas de htmlFor : relation implicite via contenu (evite double-toggle).
+  // Pas d'aria-hidden : WCAG aria-hidden-focus interdit d'avoir des elements
+  // focusables dans un conteneur aria-hidden.
 
   const input = document.createElement('input');
   input.type = 'checkbox';

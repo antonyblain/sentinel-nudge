@@ -136,9 +136,9 @@ function createModuleToggleFixed(
   wrapper.appendChild(labelWrapper);
 
   // T-197 FIX : switchWrapper est un <label> (relation implicite) — clic => bascule la checkbox
+  // Pas d'aria-hidden : WCAG aria-hidden-focus interdit des elements focusables dans aria-hidden.
   const switchWrapper = document.createElement('label');
   switchWrapper.className = 'toggle-switch-wrapper';
-  switchWrapper.setAttribute('aria-hidden', 'true');
 
   const input = document.createElement('input');
   input.type = 'checkbox';
