@@ -47,13 +47,13 @@ Ce protocole formalise la recette manuelle de Sentinel Nudge v1 pour les six cas
 
 **Ce que ce protocole ne couvre pas** :
 
-- Les tests unitaires et d'integration automatises (cf. rapports TU/TI dans `docs/p5-tests/`)
-- Les modules M2/M3/M5/M6/M9/M17 hors contexte UC-01 a UC-06 (couverts dans `docs/p5-recette/plan-tests-manuels-consolide-v1.0.md`)
+- Les tests unitaires et d integration automatises (cf. tests unitaires Vitest dans `tests/unit/`, tests d integration dans `tests/integration/`, tests E2E Playwright dans `tests/e2e/` — 1133 tests total verifies en CI)
+- Les modules M2/M3/M5/M6/M9/M17 hors contexte UC-01 a UC-06 (couverts dans les §11 a §16 du present document, consolides depuis l ancien `plan-tests-manuels-consolide-v1.0.md`, archive dans `docs/p5-recette/archive/`)
 - La recette CI/E2E Playwright (TACHE-059) — le present protocole est complementaire et ne se substitue pas aux tests automatises ; toute anomalie decouverte ici doit generer un test de regression automatise
 
 **Relation avec les documents existants** :
 
-- `docs/p5-recette/plan-tests-manuels-consolide-v1.0.md` : document de reference pour les autres modules (M2/M3/M5/M6/M9/M17) — ne pas dupliquer ici
+- Vue d ensemble TU + TI + E2E + Manuel : [`docs/p5-recette/plan-de-tests-global-v1.0.md`](./plan-de-tests-global-v1.0.md) — document pivot recensant la couverture exhaustive
 - `docs/p5-recette/p5-matrice-compatibilite-providers-m7-v1.0.md` : liste des providers UC-01 testee — referenciee en Annexe A
 
 ---
@@ -2478,7 +2478,7 @@ La v2.0 (2026-04-20, TACHE-204) consolide **7 fichiers** precedents (archives da
 | Source | Contribution au master v2.0 |
 | --- | --- |
 | `p5-protocole-recette-manuelle-v1.0.md` (T-063, PR #127) | Structure generale §1-4, chapitres UC-03/04/05 |
-| `plan-tests-manuels-consolide-v1.0.md` | Chapitres modules §11-16, commandes DevTools §17.1 |
+| `plan-tests-manuels-consolide-v1.0.md` (archive) | Chapitres modules §11-16, commandes DevTools §17.1 — **integralement fusionne dans ce master v2.0** ; archive dans `docs/p5-recette/archive/`, non perdu |
 | `p5-matrice-compatibilite-providers-m7-v1.0.md` | Annexe A §18 |
 | `p5-uc01-login-multietape-scenarios-v1.0.md` | Chapitre UC-01 §5 (version detaillee) |
 | `p5-uc02-password-managers-scenarios-v1.0.md` | Chapitre UC-02 §6 (version detaillee) |
