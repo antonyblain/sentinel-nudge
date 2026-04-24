@@ -11,10 +11,12 @@
 | ---------------- | ------------------------------------------------------------------------------------- |
 | Date de recette  | `2026-04-24`                                                                          |
 | SHA commit teste | `c70f06c`                                                                             |
-| Version build    | `1.0.0 (c70f06c, 2026-04-24 14:37)`                                                   |
+| Version build    | `1.0.0 (c70f06c, 2026-04-24 16:37 heure locale Paris / 14:37 UTC)`                    |
 | Version Chrome   | `147.0.7727.117 (Build officiel, 64 bits) — canal Stable`                             |
 | Testeur          | `Antony BLAIN (RSSI, Commanditaire)`                                                  |
 | Environnement    | Extension chargee en mode developpeur (`chrome://extensions/`), Windows 11 Home 26200 |
+
+> **Note temporelle** : tous les timestamps des logs cites dans le corps du PV sont en **UTC** (issus directement des champs `timestamp` des logs JSON Chrome au format ISO 8601 avec suffixe `Z`). Heure locale du testeur = **Paris UTC+2** (DST actif fin avril). Ajouter +2h pour conversion : ex. log `2026-04-24T13:13:30Z` UTC = 15:13:30 heure locale Paris.
 
 ---
 
@@ -22,7 +24,7 @@
 
 Cocher chaque item avant de commencer :
 
-- [x] Extension chargee et activee (`chrome://extensions/`) — reinstallation propre 2026-04-24 14:37
+- [x] Extension chargee et activee (`chrome://extensions/`) — reinstallation propre 2026-04-24 16:37 (heure locale Paris)
 - [x] Icone Sentinel visible dans la barre Chrome
 - [x] `chrome.storage.local` reinitialise — reinstallation extension = reset complet (boot_count: 3 observe en SW console, normal apres reveils SW)
 - [x] Aucune autre extension de gestion de mots de passe active — Dashlane desactive ; Chrome Password Manager natif reste actif (a desactiver scenario par scenario si interference)
