@@ -2,6 +2,61 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (session 2026-04-24 après-midi/soir — Recette manuelle MEP v1 T-068, ~14:48-16:10 heure locale Paris).** Recette manuelle express conduite directement par le Commanditaire (testeur unique), build `1.0.0 (c70f06c, 2026-04-24 16:37 Paris)` + Chrome 147.0.7727.117 sur profil Chrome dédié (créé pour la recette, Dashlane désactivé, écart §4.2-3 levé). **Mode A (express ciblé) choisi après détection FAIL P0 GG-01** confirmant que la release serait BLOQUÉE de toute façon — objectif redéfini : identifier exhaustivement les bugs P0/P1 pour **1 sprint correctif consolidé** plutôt que 2-3 sprints successifs.
+
+**Verdict : MEP v1 🔴 BLOQUÉE** — 2 scénarios P0 en FAIL reproductibles invalident la promesse fonctionnelle principale (alerter sur réutilisation password sur sites multi-étape / SPA modernes).
+
+**8 scénarios exécutés sur 31 + 1 TEST-DIAG-001 ad-hoc** :
+
+- ✅ **MS-01** (Microsoft `login.live.com`) : SW M7Handler reçoit `password_submitted`, traitement `no_reuse` silencieux conforme spec ([m7-handler.ts:449](../src/background/handlers/m7-handler.ts:449))
+- ✅ **TEST-DIAG-001 (github.com/login)** : même password réutilisé → toast « Mot de passe déjà utilisé » affiché correctement avec 3 boutons d'action — **preuve M7 fonctionnel en conditions normales**
+- ✅ **S-UC06-01** (fixture React useEffect localhost:8080) : tous logs `Global submit captured` + `M7/M9: submit event captured` + hash envoyé + toast rendu
+- ✅ **TC-M17-01** (DuckDuckGo, IBAN collé) : toast « Données sensibles détectées — IBAN/RIB » + invariant R-CLI-07 ADR-002 respecté (pas de valeur en clair)
+- ✅ **TC-M5-02** (Chrome à jour) : pas de toast MAJ = comportement attendu
+- ✅ **TC-M2-02 + TC-UC04-02 + TC-M9-02 + TC-M17-03** PASS implicites (aucune fausse alerte sur sites légitimes pendant la session)
+- 🔴 **GG-01 + GG-02** (Google `accounts.google.com/signin/v2/challenge/pwd`) **FAIL P0** : SW reste dormant après soumission, aucun log `M7Handler: message reçu`, aucun toast. Champ password orphelin + fallback Enter+click défaillant sur bouton « Suivant » Google → INC-001
+- 🔴 **SC-UC05-01** (LinkedIn `linkedin.com/login`) **FAIL P0** : MutationObserver UC-05 capture parfaitement le toggle show/hide (`from=password to=text` à 13:22:44 UTC), mais aucun log `password_submitted` après clic « S'identifier ». Preuve serveur du POST réel (LinkedIn renvoie « Adresse e-mail ou mot de passe incorrect »). Hypothèse : submit AJAX moderne (`event.preventDefault()` + `fetch()`) qui ne déclenche pas l'event submit DOM classique → INC-006
+- ⏭️ **7 P0 SKIP documentés** (UC-02 PM tiers absents, UC-03 fixture absente, UC-05-02 bloqué par UC-05-01, UC-06-02/03 express)
+- ⏭️ **13 P1 SKIP** (audit accessibilité, modules M3/M6 console SW bloqués, M2 environnement test, autres express)
+
+**8 anomalies consignées (INC-001 à INC-009, INC-004 saute)** :
+
+- 2 bugs P0 bloquants : INC-001 (Google) + INC-006 (LinkedIn)
+- 2 bugs P1 UX : INC-003 (overlay M9 force-mdp activé à tort sur écran login Google + chevauche les éléments adjacents) + INC-008 (UC-05 type-attribute MutationObserver — spam de 27 logs identiques en 17s sur DuckDuckGo searchbox + faux positif `hasPasswordHistory=true` sur input recherche)
+- 4 écarts documentaires protocole v2.0 : INC-002 (format logs JSON `{"scope":"PasswordDetector"...}` vs prefixe « Sentinel Nudge XXX: » obsolète) + INC-005 (toast « Nouveau site » décrit dans §5.2 #6 mais inexistant dans le code) + INC-007 (snippet `chrome.runtime.sendMessage` depuis console SW bugué — « Could not establish connection ») + INC-009 (§15 TC-M9-01 « Détection saisie IBAN clavier » décrit comportement non implémenté, pattern IBAN seulement dans `paste-detector.ts` sur événement `paste`)
+
+**5 TACHE BACKLOG ouvertes** :
+
+- **TACHE-220** : bump protocole recette v2.1 (consolide INC-002/005/007/009)
+- **TACHE-221** : BUG **P0** Google M7 capture sur `/challenge/pwd` (bloquant MEP)
+- **TACHE-222** : BUG P1 overlay M9 force-mdp Google
+- **TACHE-223** : BUG **P0** LinkedIn submit AJAX non capté (bloquant MEP)
+- **TACHE-224** : BUG P1 UC-05 spam logs + faux positif tracking M7
+- **TACHE-225** : feature post-v1 détection saisie sensible clavier (Could)
+
+**Livrables session** :
+
+- `docs/p5-recette/pv-recette-v1-2026-04-24.md` (nouveau, ~170L après format Prettier) — PV signé Commanditaire, verdict BLOQUÉE motivé
+- `.claude/BACKLOG.md` (+6 lignes : TACHE-220 à TACHE-225)
+
+**PR #185** : `feature/T-068-pv-recette-2026-04-24 → develop`, 2 commits (`75bbd6c` PV+BACKLOG + `66e1cd0` fix timezone TZ Paris/UTC), **CI 6/6 ✅** (CodeQL ×2, Qualité ×2, Tests E2E Playwright ×2). En attente merge Commanditaire — [https://github.com/antonyblain/sentinel-nudge/pull/185](https://github.com/antonyblain/sentinel-nudge/pull/185)
+
+**Synthèse technique pour le sprint correctif** :
+
+- **Sites OÙ M7 fonctionne nominalement** (validations) : github.com (form classique, submit DOM standard), Microsoft `login.live.com` (form `<form>` + submit détecté via mutation observer), fixture React useEffect locale
+- **Sites OÙ M7 échoue P0** : Google `/challenge/pwd` (champ orphelin + bouton Suivant non capté) + LinkedIn `/login` (submit AJAX moderne)
+
+## 🔜 Point de reprise prochaine session
+
+1. **Vérifier que PR #185 est mergée** par le Commanditaire (sinon le rappeler).
+2. **Convoquer le Développeur + Architecte logiciel** sur **TACHE-221 (Google) + TACHE-223 (LinkedIn)** — sprint correctif consolidé. Brief possible : analyser `password-detector.ts` autour de la fonction `handleFormSubmit` (l. 1167+), du fallback orphan Enter+click, et de l'écouteur `submit` DOM. Pour LinkedIn : explorer un intercepteur `fetch`/`XHR` ou hook sur les boutons `[type=submit]` avec snapshot des champs password adjacents.
+3. **Convoquer Analyste métier + Testeur QA** sur **TACHE-220** (bump protocole recette v2.1) en parallèle — corrige 4 écarts documentaires (logs JSON, toast Nouveau site, snippet M5, M9 IBAN clavier).
+4. **TACHE-222** (overlay M9 Google) + **TACHE-224** (UC-05 spam) à programmer en P1 dans le même sprint si capacité.
+5. **2e session recette** uniquement après merge des 2 PR de correctifs P0 + bump protocole v2.1.
+6. **R-018 paiement 5 USD Chrome Web Store** = **BLOQUÉ** jusqu'à recette PASS post-correctifs (inutile de payer maintenant).
+
+---
+
 **Où on en est (session 2026-04-19 soir — cycle parallélisation agents Fabrique, ~19h00-21h10).** Session reprise sur consigne Commanditaire « parallélise plusieurs tâches, il faut qu'on avance de façon importante » puis prolongée en autonomie (Commanditaire au match de foot) jusqu'à ~95% budget session. **8 agents Fabrique lancés en 3 vagues successives sur zones disjointes** (LL-022 respecté — 2 agents simultanés max), **tous livrés CI 6/6 dès la première tentative** (aucune régression, aucune itération auto-correction).
 
 **Tâches livrées (8 agents + 1 orchestrateur + 2 hotfix)** :
