@@ -2,6 +2,31 @@
 
 ## Fil rouge (narration courte)
 
+**Où on en est (session 2026-04-20 nuit — cycle MEP RGPD + T-189 extension massive, ~00h00-01h30).** Consigne Commanditaire « en avant, parallélise » puis « parallélise au max ». **~13 agents Fabrique en 5 vagues**, **10 livrés CI verte** (3 stalls kill/relance brief réduit).
+
+**Livrables majeurs** :
+- **3 réserves DPO bloquantes MEP v1.0 levées** : T-158 (`assertNoDomainHashInContext`) + T-159 (TTL 365j `purgeOldEntries`) PR #144 + T-160 (exclusion export `m7_incidents`) PR #145 + traçage T-164 PR #142 + sous-tâches T-191/192/193
+- **T-189 migration tests legacy vers wrapper T-060** : 6 lots livrés = **~18 fichiers migrés** (M7, M2/M3/M6, M5, M9/M17, background, password-detector Lot 1+2) sans régression
+- **T-190 E2E Playwright** filtre autocomplete=new-password (7 scénarios) PR #141
+- **Cleanup Option A** designs obsolètes (17 fichiers, -11572L) PR #148 mergée
+- **SFD §2.M7 enrichissement v1.2.1** PR #149 (conflit à résoudre)
+
+**Stalls observés + LL-034 capitalisée** : 3 agents sur 13 stall (M5/M9/M17 initial 3 fichiers 4000L, password-detector initial 9 fichiers 4378L, BACKLOG cleanup 28 lignes à reconstruire). Cause racine : volume d'entrée >1500L → synthèse cognitive trop longue. Règle : **briefs ≤1500L + monitoring actif à 15 min**. Mémoire auto `feedback_agent_volume_max.md`.
+
+**Nouvelles mémoires auto (4)** : `feedback_discipline_pr`, `feedback_agents_no_patch_scripts`, `feedback_dpo_verification_code_avant_pv`, `feedback_agent_volume_max`.
+
+**PR en file auto-merge (~6)** : #151, #147, #146, #141, #134, #123. **#149 conflit** à rebase prochaine session.
+
+## 🔜 Point de reprise prochaine session
+
+1. **Résoudre conflit PR #149** (SFD §2.M7 vs cleanup Option A)
+2. **BACKLOG cleanup 28 lignes manquantes** (T-092, T-161-186, T-188) — **orchestrateur direct** avec script Python via Write (NE PAS déléguer agent = stall garanti)
+3. **Statuts BACKLOG périmés** à corriger : T-059/060/063/064/076/078/082/096/097/102/103/158/159/160 marqués À faire mais livrés
+4. **Relancer agent DPO** pour PV T-191/192/193 (code T-158/T-159 désormais sur develop)
+5. **Should restants prio** : T-145 (audit a11y maquettes), T-071 (UC-04 cross-origin doc), T-027 (E2E extension réelle), T-029 (MIGRATIONS IDB v2)
+
+---
+
 **Où on en est (session 2026-04-19 soir — cycle parallélisation agents Fabrique, ~19h00-21h10).** Session reprise sur consigne Commanditaire « parallélise plusieurs tâches, il faut qu'on avance de façon importante » puis prolongée en autonomie (Commanditaire au match de foot) jusqu'à ~95% budget session. **8 agents Fabrique lancés en 3 vagues successives sur zones disjointes** (LL-022 respecté — 2 agents simultanés max), **tous livrés CI 6/6 dès la première tentative** (aucune régression, aucune itération auto-correction).
 
 **Tâches livrées (8 agents + 1 orchestrateur + 2 hotfix)** :
