@@ -128,6 +128,18 @@ const m9Contexts = new WeakMap<HTMLInputElement, M9Context>();
 /** Set des champs déjà soumis (pour éviter le double traitement) */
 const submittedFields = new WeakSet<HTMLInputElement>();
 
+/**
+ * Snapshot de la dernière valeur non-vide saisie dans chaque champ password.
+ * Alimenté sur les événements input et blur via attachPasswordValueSnapshots().
+ * Permet de récupérer la valeur après un submit AJAX (LinkedIn, etc.) où
+ * le champ peut être vidé avant que handleFormSubmit soit invoqué.
+ * (TACHE-221/TACHE-223 — Stratégie snapshot anti-AJAX-reset)
+ *
+ * Sécurité : valeur stockée uniquement en mémoire content script (pas en storage),
+ * nullifiée dans handleFormSubmit après hachage (< 5ms).
+ */
+const _snPasswordLastValue = new WeakMap<HTMLInputElement, string>();
+
 // ---------------------------------------------------------------------------
 // UC-05 — Registre des inputs ayant présenté type="password" (TACHE-072)
 // ARB-072-01 : pas de purge active — le Set vit avec le document
@@ -1226,6 +1238,32 @@ function isNewPasswordField(input: HTMLInputElement): boolean {
   return tokens.includes('new-password');
 }
 
+/**
+ * Detects whether the current page is a sign-in page (login), as opposed
+ * to a sign-up / account creation page.
+ *
+ * Used by the M7 filter to override the autocomplete="new-password" heuristic
+ * on sites (e.g. Google /challenge/pwd) that incorrectly set that attribute on
+ * their login pages. If this returns true, isNewPasswordField alone should NOT
+ * be sufficient to skip M7.
+ *
+ * Signals (fail-open: uncertain -> false, M7 stays active):
+ *  1. URL path matches known login patterns (/login, /signin, /challenge, /auth...)
+ *  2. Exactly one password field visible (creation forms have 2: pwd + confirm)
+ *
+ * @returns true if the page is identified as a sign-in context
+ */
+function isSignInContext(): boolean {
+  const path = window.location.pathname.toLowerCase();
+  // URL-based detection only (fail-open: if uncertain -> false, M7 stays active).
+  // TACHE-221 : Google /challenge/pwd, /signin/v2/challenge/pwd, /ServiceLogin, etc.
+  // LinkedIn /login. Pattern 2 (single pwd field heuristic) removed — too broad,
+  // causes false positives in unit tests and on simple change-password pages.
+  return /\/(login|signin|sign[-_]in|challenge|auth|session|identify|identifier|servicelogin)([\/?#]|$)/.test(
+    path,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Module M7 — hash et envoi au submit
 // ---------------------------------------------------------------------------
@@ -1313,21 +1351,50 @@ async function handleFormSubmit(
     m9Ctx.overlayControls?.hide();
   }
 
-  // UC-07/UC-08 (D-PM-06) : exclure M7 si autocomplete="new-password".
-  // Ce token HTML W3C indique un formulaire de création / changement de mot de passe.
-  // La réutilisation inter-domaines ne peut pas être détectée sur un nouveau mot de passe
-  // → faux positif, M7 est ignoré. M9 (force) reste actif — bloc précédent non concerné.
-  if (isNewPasswordField(pwdField)) {
-    logger.info('M7: skipped — autocomplete=new-password detected', {
-      event: 'm7_filter_new_password',
+  // UC-07/UC-08 (D-PM-06) : exclure M7 sur les formulaires de création de mot de passe.
+  //
+  // TACHE-221 fix : le filtre isNewPasswordField (autocomplete="new-password") est désormais
+  // court-circuité si isSignInContext() détecte que la page est une page de CONNEXION.
+  // Motivation : Google /challenge/pwd utilise autocomplete="new-password" à tort sur son
+  // écran de connexion → l'ancien filtre causait un faux-positif qui masquait toutes les
+  // soumissions sur cet écran.
+  //
+  // Logique :
+  //   - isNewPasswordField(field) = true ET isSignInContext() = false → skip M7 (création)
+  //   - isNewPasswordField(field) = true ET isSignInContext() = true  → M7 actif (connexion)
+  //   - isCreationForm() sans autocomplete (URL register/signup, 2+ champs) → skip M7
+  //
+  // M9 (évaluation de force) reste actif sur les champs new-password (bloc précédent).
+  const fieldIsNewPassword = isNewPasswordField(pwdField);
+  // autocomplete="current-password" est un signal explicite de connexion :
+  // M7 doit s'activer même si isCreationForm() retourne true (ex. form change-password
+  // avec 2 inputs dont l'un est current-password + l'autre new-password).
+  const fieldIsCurrentPassword =
+    pwdField
+      .getAttribute('autocomplete')
+      ?.toLowerCase()
+      .split(/\s+/)
+      .includes('current-password') ?? false;
+  const pageIsSignIn = fieldIsNewPassword ? isSignInContext() : false;
+  const shouldSkipM7 = fieldIsCurrentPassword
+    ? false // current-password est toujours une connexion → M7 actif
+    : fieldIsNewPassword
+      ? !pageIsSignIn // new-password : M7 actif seulement si page de connexion
+      : isCreationForm(pwdField); // pas d'autocomplete → détection multi-signal
+  if (shouldSkipM7) {
+    logger.info('M7: skipped — creation form or new-password field on creation page', {
+      event: 'm7_filter_creation',
       selector: `#${pwdField.id || ''}[name="${pwdField.name || ''}"]`,
-      reason: 'autocomplete_new_password',
+      reason: fieldIsNewPassword ? 'new_password_autocomplete' : 'creation_form_heuristic',
+      sign_in_context: pageIsSignIn,
     });
     return;
   }
 
   // --- M7 : hachage et envoi ---
-  const passwordValue = pwdField.value;
+  // TACHE-223 fix : utiliser le snapshot _snPasswordLastValue si pwdField.value
+  // est vide (cas LinkedIn AJAX submit qui peut vider le champ avant capture).
+  const passwordValue = pwdField.value || _snPasswordLastValue.get(pwdField) || '';
 
   // Ignorer si le champ est vide (SFD §2.5.4)
   if (passwordValue.length === 0) return;
@@ -1577,22 +1644,72 @@ function showToastM7(domainHash: string): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Fallback pour les cas ou un input[type="password"] n'est pas dans un <form>.
- * Pattern tres courant sur WordPress, React SPA, Vue, etc. — le bouton submit
- * est un <button> avec un handler JS qui fait un appel AJAX, sans form natif.
+ * Attache les listeners input/blur sur tous les champs password de la page
+ * pour maintenir un snapshot de la derniere valeur non-vide saisie.
+ *
+ * Objectif (TACHE-221/TACHE-223) : capturer la valeur du password en continu
+ * afin de ne pas la perdre si le DOM est modifie avant le declenchement de
+ * handleFormSubmit (ex. submit AJAX LinkedIn qui peut vider le champ).
+ *
+ * Securite :
+ * - La valeur est stockee uniquement en memoire content script (WeakMap).
+ * - Jamais envoyee au SW, jamais loggee (R-074-01, INV-SEC-04b).
+ * - Nullifiee dans handleFormSubmit apres hachage (< 5ms).
+ * - La WeakMap ne retient pas les elements DOM apres suppression du document.
+ *
+ * @param scope - Element racine a surveiller (document par defaut)
+ */
+function attachPasswordValueSnapshots(scope: Document | HTMLElement = document): void {
+  // Ecouteur delegue en capture sur le scope pour capturer TOUS les inputs password
+  // (presents maintenant ou ajoutes dynamiquement via SPA).
+  scope.addEventListener(
+    'input',
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.type !== 'password' && !_snPasswordInputs.has(target)) return;
+      // Ne pas logguer la valeur (R-074-01)
+      if (target.value.length > 0) {
+        _snPasswordLastValue.set(target, target.value);
+      }
+    },
+    { capture: true },
+  );
+  scope.addEventListener(
+    'blur',
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.type !== 'password' && !_snPasswordInputs.has(target)) return;
+      if (target.value.length > 0) {
+        _snPasswordLastValue.set(target, target.value);
+      }
+    },
+    { capture: true },
+  );
+}
+
+/**
+ * Fallback pour les cas ou un input[type="password"] n'est pas dans un <form>
+ * ou pour les sites dont le submit est AJAX (LinkedIn, etc.).
+ * Pattern tres courant sur WordPress, React SPA, Vue, etc.
  * Cf. P-017 dans PROBLEMES.md.
  *
- * Strategie :
- *  - keydown Enter dans un input password orphelin avec valeur non vide -> trigger
- *  - click sur un bouton proche d'un input password orphelin -> trigger
+ * Strategies (P-017 etendu — TACHE-221 + TACHE-223) :
+ *  S1 (existant) : keydown Enter dans un input password orphelin -> trigger
+ *  S2 (existant) : click sur un bouton proche d'un input password orphelin -> trigger
+ *  S3 (TACHE-221/223) : click sur TOUT bouton submit adjacent a un champ password
+ *                       (orphelin OU dans un <form>) — couvre les AJAX submit
+ *                       (LinkedIn type="submit" dans un <form> avec fetch override)
+ *                       et les boutons "Suivant" Google (type="button" sans texte EN)
  *
  * Le listener est pose en capture phase sur document pour intercepter avant
  * que l'eventuel framework JS consomme l'event.
  */
 function attachOrphanPasswordListeners(): void {
-  // Declencher handleFormSubmit sur Enter dans un input password orphelin.
-  // UC-05 (TACHE-072) : vérifier également dans _snPasswordInputs pour capturer
-  // les inputs togglés en type="text" (INV-UC05-01).
+  // Strategie 1 : keydown Enter dans un input password (orphelin ou dans form).
+  // UC-05 (TACHE-072) : verifier egalement dans _snPasswordInputs pour capturer
+  // les inputs toggles en type="text" (INV-UC05-01).
   document.addEventListener(
     'keydown',
     (event) => {
@@ -1600,16 +1717,18 @@ function attachOrphanPasswordListeners(): void {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
       // UC-05 : accepter aussi les inputs dans le registre _snPasswordInputs
-      // (couvre les inputs togglés de type="password" à type="text")
+      // (couvre les inputs toggles de type="password" a type="text")
       if (target.type !== 'password' && !_snPasswordInputs.has(target)) return;
       if (target.form) return; // Deja gere par le listener submit du form
-      if (target.value.length === 0) return;
-      // UC-07/UC-08 (D-PM-06) : exclure M7 sur les champs autocomplete="new-password"
-      if (isNewPasswordField(target)) {
-        logger.info('M7: orphan Enter skipped — autocomplete=new-password', {
-          event: 'm7_filter_new_password',
+      if (target.value.length === 0 && !_snPasswordLastValue.has(target)) return;
+      // UC-07/UC-08 : exclure M7 uniquement sur les formulaires de creation.
+      // TACHE-221 : appliquer la meme logique isSignInContext que handleFormSubmit —
+      // si la page est une page de connexion, ne pas filtrer meme si new-password.
+      if (isCreationForm(target) && !isSignInContext()) {
+        logger.info('M7: orphan Enter skipped — creation form', {
+          event: 'm7_filter_creation_form',
           selector: `#${target.id || ''}[name="${target.name || ''}"]`,
-          reason: 'autocomplete_new_password',
+          reason: 'creation_form',
         });
         return;
       }
@@ -1622,7 +1741,11 @@ function attachOrphanPasswordListeners(): void {
     { capture: true },
   );
 
-  // Declencher handleFormSubmit sur click d'un bouton proche d'un input password orphelin.
+  // Strategies 2+3 : click sur un bouton submit — couvre orphelins ET champs dans <form>.
+  // TACHE-221 : bouton Google "Suivant" = type="button", texte "Suivant" (non EN)
+  //   → regex etendue + suppression du filtre orphan-only.
+  // TACHE-223 : LinkedIn "S'identifier" = type="submit" dans un <form> avec AJAX fetch
+  //   → le form submit event n'est jamais declenche → on capte via click ici.
   // IMPORTANT : event.target est souvent un element interieur au bouton (span, i, svg).
   // Il faut remonter via closest() pour trouver le bouton reel.
   document.addEventListener(
@@ -1637,50 +1760,71 @@ function attachOrphanPasswordListeners(): void {
       );
       if (!btn) return;
 
-      // Filtrer les faux positifs : ignore les <button type="button"> explicites
-      // (souvent boutons annuler/close/toggle), mais accepter tout le reste
+      // Filtrer les faux positifs : ignorer les <button type="button"> SAUF si
+      // le texte ou les attributs ressemblent a un bouton de soumission.
+      // TACHE-221 : regex etendue pour inclure "suivant", "next", "weiter",
+      // "siguiente", "continuer", "proceed" — couvre les boutons multi-langue.
       if (btn.tagName === 'BUTTON' && (btn as HTMLButtonElement).type === 'button') {
-        // Exception : si le texte contient submit/login/sign/connect, on accepte
-        const txt = (btn.textContent ?? '').toLowerCase();
-        const looksLikeSubmit = /submit|login|log\s*in|sign\s*in|connect|entrer|valider/.test(txt);
+        const txt = (btn.textContent ?? '').toLowerCase().trim();
+        const ariaId = (
+          (btn.getAttribute('aria-label') ?? '') +
+          (btn.id ?? '') +
+          (btn.getAttribute('data-testid') ?? '')
+        ).toLowerCase();
+        const looksLikeSubmit =
+          /submit|login|log\s*in|sign\s*in|connect|entrer|valider|suivant|next|weiter|siguiente|continuer|proceed|s'identifier|anmelden|accedi|ingresar/.test(
+            txt,
+          ) || /submit|login|sign|connect|next|suivant/.test(ariaId);
         if (!looksLikeSubmit) return;
       }
 
-      // UC-05 (TACHE-072) : chercher les orphelins via collectPasswordInputs
-      // pour inclure les inputs togglés en type="text" (INV-UC05-01)
-      const orphans = collectPasswordInputs(document).filter((f) => !f.form && f.value.length > 0);
-      if (orphans.length === 0) return;
+      // Chercher tous les champs password avec valeur dans la page :
+      // UC-05 (TACHE-072) : inclure les inputs toggles (via _snPasswordInputs)
+      // TACHE-223 : inclure les champs DANS un <form> (plus seulement les orphelins)
+      // pour couvrir LinkedIn (form + AJAX fetch override).
+      const allPwdFields = collectPasswordInputs(document).filter((f) => {
+        const val = f.value || _snPasswordLastValue.get(f) || '';
+        return val.length > 0;
+      });
+      if (allPwdFields.length === 0) return;
 
-      // Prendre le premier orphelin visible avec valeur
-      const pwdField = orphans[0];
+      // Priorite aux orphelins (Strategie 2) puis aux champs dans un form (Strategie 3).
+      const orphans = allPwdFields.filter((f) => !f.form);
+      const pwdField = orphans.length > 0 ? orphans[0] : allPwdFields[0];
       if (!pwdField) return;
 
-      // UC-07/UC-08 (D-PM-06) : exclure M7 sur les champs autocomplete="new-password"
-      if (isNewPasswordField(pwdField)) {
-        logger.info('M7: orphan click skipped — autocomplete=new-password', {
-          event: 'm7_filter_new_password',
+      // Exclure les formulaires de creation (isCreationForm — multi-signal).
+      // TACHE-221 : appliquer la meme logique isSignInContext que handleFormSubmit.
+      if (isCreationForm(pwdField) && !isSignInContext()) {
+        logger.info('M7: click skipped — creation form', {
+          event: 'm7_filter_creation_form',
           selector: `#${pwdField.id || ''}[name="${pwdField.name || ''}"]`,
-          reason: 'autocomplete_new_password',
+          reason: 'creation_form',
         });
         return;
       }
-      logger.info('M7/M9: orphan password click-submit', {
+
+      // On laisse handleFormSubmit gerer la deduplication via submittedFields WeakSet.
+      logger.info('M7/M9: password click-submit (S2/S3)', {
         module: 'M7',
-        hint: `btn_id=${btn.id || '(none)'} btn_tag=${btn.tagName.toLowerCase()} pwd_field_id=${pwdField.id || '(none)'}`,
+        hint: `btn_id=${btn.id || '(none)'} btn_tag=${btn.tagName.toLowerCase()} pwd_in_form=${!!pwdField.form} field_id=${pwdField.id || '(none)'}`,
       });
       void handleFormSubmit(event, pwdField);
     },
     { capture: true },
   );
 
-  // Log compteur de pwd inputs orphelins au demarrage
+  // Log compteur de pwd inputs au demarrage (orphelins + dans forms)
   const orphanCount = Array.from(
     document.querySelectorAll<HTMLInputElement>('input[type="password"]'),
   ).filter((f) => !f.form).length;
-  if (orphanCount > 0) {
-    logger.info('Orphan password inputs detected (no <form> parent)', {
+  const inFormCount = Array.from(
+    document.querySelectorAll<HTMLInputElement>('input[type="password"]'),
+  ).filter((f) => !!f.form).length;
+  if (orphanCount > 0 || inFormCount > 0) {
+    logger.info('Password inputs detected for click/Enter fallback', {
       module: 'M7',
-      hint: `count=${orphanCount} strategy=fallback-Enter+click`,
+      hint: `orphans=${orphanCount} in_forms=${inFormCount} strategy=S1-Enter+S2-orphan-click+S3-form-click`,
     });
   }
 }
@@ -1918,6 +2062,10 @@ function initPasswordDetector(): void {
     { capture: true },
   );
 
+  // Snapshots de valeur password en continu (TACHE-221/TACHE-223 — Strategie snapshot).
+  // Permet de recuperer la valeur apres un submit AJAX qui viderait le champ.
+  attachPasswordValueSnapshots();
+
   // Fallback pour les formulaires SANS balise <form> (pattern WordPress/SPA moderne,
   // cf. P-017). Detecte les input[type="password"] orphelins et attache :
   //  - keydown Enter -> trigger handleFormSubmit directement sur le champ
@@ -1966,11 +2114,15 @@ if (isExtensionContext()) {
 export {
   _snIsSameOriginOrTop,
   _snPasswordInputs,
+  _snPasswordLastValue,
   registerPasswordInput,
   collectPasswordInputs,
   handleTypeAttributeMutation,
   handleFormSubmit,
+  attachPasswordValueSnapshots,
+  attachOrphanPasswordListeners,
   observeDynamicForms,
   initPasswordDetector,
   isNewPasswordField,
+  isSignInContext,
 };

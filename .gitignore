@@ -24,6 +24,7 @@ test-results/
 # Cf. feedback_agents_no_patch_scripts.md — les agents utilisent Edit/Write,
 # pas des scripts Python de patch persistants dans le repo.
 scripts/patch_*.py
+scripts/edit_*.py
 
 # Verrous tmp skill scheduled-tasks
 .claude/scheduled_tasks.lock
