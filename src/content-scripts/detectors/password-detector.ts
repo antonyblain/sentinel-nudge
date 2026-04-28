@@ -215,10 +215,19 @@ function handleTypeAttributeMutation(mutations: MutationRecord[]): void {
     // Fallback 'unknown' si le navigateur ne le fournit pas (INV-SEC-02 : valeur safe).
     const oldType: string = mutation.oldValue ?? 'unknown';
 
+    // TACHE-224 (a) — court-circuit si l'attribut n'a pas réellement changé.
+    // Élimine le spam "from=text to=text" observé sur DuckDuckGo searchbox
+    // (27 mutations identiques en 17s — INC-008, PV recette 2026-04-24).
+    if (oldType === newType) continue;
+
     // Cas A : type → "text" (toggle show — l'input était password)
     // Cas B : type → "password" (toggle hide ou démarrage text → password)
-    // Dans les deux cas, on enregistre pour couvrir INV-UC05-01 et INV-UC05-02
-    if (newType === 'text' || newType === 'password') {
+    // TACHE-224 (b) — n'enregistrer que si password est impliqué dans la transition.
+    // Garantit qu'un input type="search" ne rejoindra jamais _snPasswordInputs.
+    if (
+      (newType === 'text' || newType === 'password') &&
+      (oldType === 'password' || newType === 'password')
+    ) {
       // T-067 : capturer l'historique AVANT l'enregistrement pour hasPasswordHistory.
       // hasPasswordHistory = true si l'input était déjà connu comme password avant ce toggle.
       const hadPasswordHistory = _snPasswordInputs.has(target);
@@ -841,17 +850,6 @@ function initM9ForField(field: HTMLInputElement): void {
 }
 
 /**
- * Synchronise la largeur de l'indicateur M9 avec celle du champ parent.
- *
- * @param field - Champ parent
- * @param host  - Élément host de l'indicateur
- */
-function syncM9Width(field: HTMLInputElement, host: HTMLDivElement): void {
-  const rect = field.getBoundingClientRect();
-  host.style.width = `${rect.width}px`;
-}
-
-/**
  * Crée l'indicateur de force de mot de passe M9 directement en DOM + Shadow DOM.
  * Résout le bug "Illegal constructor" des Custom Elements en content script MV3.
  *
@@ -891,10 +889,26 @@ function createStrengthIndicator(
     'm9_anssi_recommended',
   ] as const;
 
-  // Conteneur hôte — display:block pour rester dans le flux
+  // TACHE-222 (b) — positionnement fixed via getBoundingClientRect().
+  // La stratégie insertAdjacentElement('afterend') chevauche la case « Afficher le mot de passe »
+  // sur le layout Google /challenge/pwd (layout dense). L'Option 1 (fixed) est retenue :
+  // plus robuste sur layouts denses et pages scrollables que le décalage margin-top (Option 2).
+  //  • Le host est inséré dans document.body (hors flux, z-index élevé).
+  //  • Position recalculée à chaque show() + scroll + resize.
+  //  • P-014 : toujours createElement + attachShadow, jamais customElements.define().
   const host = document.createElement('div');
-  host.style.cssText = 'display:none; width:100%; box-sizing:border-box; margin-top:4px;';
-  field.insertAdjacentElement('afterend', host);
+  // Défaut display:none — positionnement calculé au show()
+  host.style.cssText =
+    'display:none; position:fixed; z-index:2147483647; box-sizing:border-box; pointer-events:none;';
+  document.body.appendChild(host);
+
+  /** Repositionne le host en fixed sous le champ (bottom-left aligné avec le champ). */
+  function positionHost(): void {
+    const rect = field.getBoundingClientRect();
+    host.style.top = rect.bottom + 4 + 'px';
+    host.style.left = rect.left + 'px';
+    host.style.width = rect.width + 'px';
+  }
 
   // Shadow DOM pour isolation CSS
   const shadow = host.attachShadow({ mode: 'open' });
@@ -965,9 +979,10 @@ function createStrengthIndicator(
 
   shadow.appendChild(containerEl);
 
-  // Synchroniser la largeur initiale et au resize
-  syncM9Width(field, host);
-  window.addEventListener('resize', () => syncM9Width(field, host));
+  // TACHE-222 (b) — repositionnement initial + scroll/resize pour fixed overlay.
+  positionHost();
+  window.addEventListener('scroll', positionHost, { passive: true, capture: true });
+  window.addEventListener('resize', positionHost, { passive: true });
 
   const controls = {
     host,
@@ -989,6 +1004,8 @@ function createStrengthIndicator(
       suggestionEl.textContent = getM9Suggestion(score, value, mode);
     },
     show(): void {
+      // TACHE-222 (b) — recalculer position avant affichage (scroll entre-temps possible).
+      positionHost();
       host.style.display = 'block';
     },
     hide(): void {
@@ -1178,6 +1195,12 @@ async function handleFocusOnPasswordField(field: HTMLInputElement): Promise<void
   const isCreation = isCreationForm(field);
 
   if (isCreation) {
+    // TACHE-222 (a) — ne pas activer M9 force-mdp sur une page de CONNEXION.
+    // Google /challenge/pwd met autocomplete="new-password" à tort sur son champ login.
+    // isSignInContext() détecte ces URLs et court-circuite l'activation M9.
+    // Sur une page de connexion, l'utilisateur saisit son password EXISTANT, pas un nouveau.
+    if (isSignInContext()) return;
+
     // Formulaire de création → M9 (pas M2 selon SFD §2.1.5)
     // Vérification remplissage automatique dans les 500ms
     const valueAtFocus = field.value;
