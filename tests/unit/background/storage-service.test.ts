@@ -3,6 +3,7 @@
  * @description Tests unitaires du StorageService — IndexedDB via fake-indexeddb.
  *
  * TACHE-018 — couverture initiale 0% sur storage-service.ts.
+ * T-189 — migration vers wrapper mock-chrome-storage (JSON-strict, P-018).
  *
  * Couvre :
  * - initDB() : creation des 6 stores (v1 → v2), indexes, idempotence (getDB)
@@ -30,6 +31,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { StorageService, DB_VERSION, MIGRATIONS } from '@/background/storage-service';
 import { CryptoService } from '@/background/crypto-service';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -57,47 +59,20 @@ async function generateKey(): Promise<CryptoKey> {
 }
 
 // ---------------------------------------------------------------------------
-// Mock chrome.storage.local
+// Mock chrome.storage.local — T-189 : wrapper JSON-strict (P-018)
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-    },
+    local: storage,
   },
 } as unknown as typeof chrome;
 
 beforeEach(() => {
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
+  resetStorage();
   vi.clearAllMocks();
-  (global.chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-      }
-      callback(result);
-    },
-  );
-  (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
 });
 
 afterEach(() => {
