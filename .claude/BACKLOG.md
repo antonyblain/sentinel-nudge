@@ -1,5 +1,32 @@
 # BACKLOG — Tâches et demandes de changement
 
+> **⚠ Note de désynchronisation statuts — 2026-04-20 (post-audit T-205)**
+>
+> Plusieurs tâches affichent encore le statut « À faire » dans le tableau ci-dessous alors qu'elles ont été **effectivement livrées** via des PR mergées. Le nettoyage ligne-par-ligne est planifié (cf. session suivante). En attendant, **considérer comme `Terminé` les IDs suivants** (référence PR entre parenthèses) :
+>
+> - **T-027** Tests E2E Playwright extension réelle (PR #128 et suivantes — multiples specs whitelist, uc06, accessibility-themes)
+> - **T-029** Migrations IndexedDB v2 prévues (PR #160 — `chore: T-029 + T-054 + T-055 petites taches`)
+> - **T-042** Fusion whitelist chrome.storage + IDB export Art. 20 (PR #166)
+> - **T-043** Plafond whitelist M2 10 000 entrées (PR #159)
+> - **T-054 / T-055** Documentation pngjs/potrace + déplacement launch.json (PR #160)
+> - **T-067** MutationObserver type password UC-05 (PR #156)
+> - **T-080 / T-081** Extraction `verifyKeyAgainstPasswordHashes` + `StorageService.initDB()` idempotent (PR #158)
+> - **T-108 / T-187** CodeQL SAST JS/TS en CI (PR #97 — ruleset security-and-quality, 0 finding)
+> - **T-109** Page « état de santé Sentinel Nudge » diagnostics 7 modules (PR #157)
+> - **T-145** Audit accessibilité maquettes HTML retenues (PR #155 audit, PR #173 T-145-01 fix contrastes)
+> - **T-190** Couverture E2E Playwright T-064 filtre `autocomplete="new-password"` — 7 scénarios (PR #141)
+> - **T-191 / T-192 / T-193** Levée formelle 3 réserves DPO R-074-01/02/03 (PR #181 — PV formel `docs/rgpd/pv-levee-formelle-reserves-dpo-r074-v1.0.md`, FAVORABLE SANS RÉSERVE)
+> - **T-197** BUG bouton radio désactivation module (PR #179 — fix `<div>` → `<label for>` + 11 tests unitaires)
+> - **T-207** Alignement debounce M9 DAT v1.5 → 150ms (PR #181)
+> - **T-209** Alignement version WCAG 2.1 AA → 2.2 AA CdC + SFD (PR #181)
+> - **T-211** CodeQL seuil bloquant — required check branch protection develop + main (activé 2026-04-20 via `gh api PATCH`, pas de PR)
+>
+> **Bloquants MEP v1 levés** : T-197 + T-191/192/193 + couverture DPO complète (FAVORABLE SANS RÉSERVE). Reste prérequis personnels : T-068 recette UC-01 Google/Microsoft (action manuelle) + R-018 frais Chrome Web Store 5 USD.
+>
+> **Vraies tâches résiduelles À faire** (audit T-205 filtrage) : T-071 (doc UC-04 cross-origin), T-105 (migration console.* CS+UI), T-113 (tabletop sécu), T-117 (maintenance matrice M7 trimestriel), T-123 (vérif autocomplete IdP SSO), T-125/126 (E2E M3/M5/M6 + plan étendu providers), T-144 (SVG icône v2), T-175 (E2E UC-01..05 Should v1.1), T-189 (migration tests legacy wrapper), T-206 (tests export Art. 20, agent en cours), T-208 (nettoyage RISQUES.md R-ADR refs), T-210 (mention `pending_*` politique confidentialité).
+
+
+
 | ID        | Type  | Titre                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Priorité        | Statut     | Phase | Responsable                       | Origine                                                   |
 | --------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ---------- | ----- | --------------------------------- | --------------------------------------------------------- |
 | TACHE-001 | TÂCHE | Exploration littérature nudging cyber-hygiène                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Must            | Terminé    | P1    | Analyste métier                   | Commanditaire                                             |
