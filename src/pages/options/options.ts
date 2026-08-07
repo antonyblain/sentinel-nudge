@@ -44,6 +44,7 @@ import type {
 import type { ModuleId } from '@/shared/types/modules';
 import type { M7IncidentRecord } from '@/shared/types/diagnostics';
 import { createLogger, Logger } from '@/shared/utils/logger';
+import { mergeWhitelists } from '@/shared/utils/whitelist-merge';
 
 /** Logger scopé — Options (INV-SEC-02 étendu) */
 const logger = createLogger('Options');
@@ -754,7 +755,8 @@ async function handleExport(config: StoredConfig, includeIncidents = false): Pro
 
     const quizSessions: QuizSession[] = quizResponse?.success ? (quizResponse.sessions ?? []) : [];
 
-    // Récupération de la whitelist via le SW
+    // T-042 — Fusion whitelist IDB + chrome.storage.local['m2_whitelist'] (Art. 20 RGPD)
+    // 1. Entrées IDB (source courante — domain_hash, module, added_at)
     const whitelistResponse = (await browser.runtime.sendMessage({
       module: 'EXPORT',
       action: 'get_whitelist',
@@ -762,9 +764,18 @@ async function handleExport(config: StoredConfig, includeIncidents = false): Pro
       timestamp: Date.now(),
     })) as GetWhitelistResponse | undefined;
 
-    const whitelist: WhitelistEntry[] = whitelistResponse?.success
+    const idbWhitelist: WhitelistEntry[] = whitelistResponse?.success
       ? (whitelistResponse.whitelist ?? [])
       : [];
+
+    // 2. Entrées legacy depuis chrome.storage.local['m2_whitelist']
+    //    Présent uniquement sur les installations antérieures à la migration IDB.
+    //    Format : tableau plat de domain_hash (strings) — pas de added_at.
+    const legacyStorage = await browser.storage.local.get(['m2_whitelist']);
+    const legacyDomains = legacyStorage['m2_whitelist'] as string[] | undefined;
+
+    // 3. Fusion et déduplication (priorité IDB, legacy comble les manques)
+    const whitelist: WhitelistEntry[] = mergeWhitelists(idbWhitelist, legacyDomains);
 
     // Métadonnées hashes mots de passe (pas les hashes eux-mêmes — NC-DPO-01)
     const pwHashResponse = (await browser.runtime.sendMessage({

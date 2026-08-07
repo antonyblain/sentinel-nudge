@@ -2,19 +2,21 @@
  * @file background/handlers/export-handler.ts
  * @description Handler EXPORT pour le service worker — export des données RGPD Art. 20.
  *
- * Expose quatre actions dispatchées par le MessageRouter (module 'EXPORT') :
+ * Expose cinq actions dispatchées par le MessageRouter (module 'EXPORT') :
  *
  * - `get_all_events`        — Tous les événements de nudge déchiffrés (90 derniers jours)
  * - `get_all_quiz_sessions` — Toutes les sessions quiz brutes (champs en clair exportables)
  * - `get_whitelist`         — Toutes les entrées whitelist (domain_hash, module, added_at)
- * - `get_password_hash_meta`— Métadonnées agrégées des hashes mots de passe (count, oldest, newest)
- *                             Les hashes eux-mêmes ne sont JAMAIS exportés (NC-DPO-01).
+ * - `get_all_whitelist_entries` — Alias T-042 : entrées whitelist IDB pour la fusion portabilité
+ *                                 (la fusion avec chrome.storage.local est effectuée côté options.ts)
+ * - `get_password_hash_meta`    — Métadonnées agrégées des hashes mots de passe (count, oldest, newest)
+ *                                 Les hashes eux-mêmes ne sont JAMAIS exportés (NC-DPO-01).
  *
  * Sécurité :
  * - Les erreurs techniques ne sont pas exposées au client (raison générique 'internal_error').
  * - Les hashes de mots de passe ne transitent jamais dans la réponse (NC-DPO-01).
  *
- * Référence : DAT §8.3 (Droit à la portabilité), SFD §3.4 (Section Données), TACHE-013
+ * Référence : DAT §8.3 (Droit à la portabilité), SFD §3.4 (Section Données), TACHE-013, T-042
  */
 
 import type { StorageService } from '../storage-service';
@@ -73,6 +75,26 @@ export function createExportHandler(storage: StorageService, cryptoKey: CryptoKe
       }
 
       case 'get_whitelist': {
+        try {
+          const whitelist = await storage.getAllWhitelist();
+          return {
+            success: true,
+            action: 'show',
+            data: { whitelist },
+          };
+        } catch {
+          return {
+            success: false,
+            action: 'error',
+            reason: 'internal_error',
+          };
+        }
+      }
+
+      // T-042 : alias dédié pour la fusion whitelist (Art. 20 RGPD — portabilité).
+      // Retourne les entrées IDB uniquement ; la fusion avec chrome.storage.local['m2_whitelist']
+      // est effectuée côté options.ts dans handleExport() (accès direct à chrome.storage.local).
+      case 'get_all_whitelist_entries': {
         try {
           const whitelist = await storage.getAllWhitelist();
           return {
