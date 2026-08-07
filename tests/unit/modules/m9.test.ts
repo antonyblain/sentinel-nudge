@@ -13,6 +13,8 @@
  * - TC-M9-DIAG-UPDATE-02 : updateM9DiagnosticsOnAction émet incident m9_handler_error (échec)
  * - TC-M9-DIAG-HANDLER-01 : handler M9 met à jour diagnostics si incidentService fourni
  * - TC-M9-DIAG-HANDLER-02 : handler M9 sans incidentService — fonctionne sans diagnostic
+ *
+ * T-189 lot 3 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -22,36 +24,17 @@ import type { StorageService } from '@/background/storage-service';
 import type { NudgeMessage } from '@/shared/types/messages';
 import type { IncidentService } from '@/background/services/incident-service';
 import { DIAGNOSTICS_M9_KEY, M9_DIAGNOSTICS_DEFAULT } from '@/shared/types/diagnostics';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mock chrome.storage.local
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
-const mockLocalStorage: Record<string, unknown> = {};
-const removedKeys: string[] = [];
+
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((_keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        _keys.forEach((k) => {
-          if (k in mockLocalStorage) result[k] = mockLocalStorage[k];
-        });
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((key: string | string[], callback?: () => void) => {
-        const keys = Array.isArray(key) ? key : [key];
-        keys.forEach((k) => {
-          removedKeys.push(k);
-          delete mockLocalStorage[k];
-        });
-        callback?.();
-      }),
-    },
+    local: storage,
   },
 } as unknown as typeof chrome;
 
@@ -93,8 +76,7 @@ function createMockIncidentService(): Partial<IncidentService> {
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  Object.keys(mockLocalStorage).forEach((k) => delete mockLocalStorage[k]);
-  removedKeys.length = 0;
+  resetStorage();
   vi.clearAllMocks();
 });
 
@@ -265,7 +247,7 @@ describe('TC-M9-DIAG-READ-01 — readM9Diagnostics retourne valeur par défaut s
   });
 
   it('retourne M9_DIAGNOSTICS_DEFAULT si la shape est corrompue', async () => {
-    mockLocalStorage[DIAGNOSTICS_M9_KEY] = { corrupt: true };
+    await storage.set({ [DIAGNOSTICS_M9_KEY]: { corrupt: true } });
 
     const diag = await readM9DiagnosticsService();
 
@@ -274,10 +256,7 @@ describe('TC-M9-DIAG-READ-01 — readM9Diagnostics retourne valeur par défaut s
   });
 
   it('lit un diagnostics.m9 valide depuis le storage', async () => {
-    mockLocalStorage[DIAGNOSTICS_M9_KEY] = {
-      ready: true,
-      last_action_ts: 1234567890,
-    };
+    await storage.set({ [DIAGNOSTICS_M9_KEY]: { ready: true, last_action_ts: 1234567890 } });
 
     const diag = await readM9DiagnosticsService();
 
@@ -288,15 +267,17 @@ describe('TC-M9-DIAG-READ-01 — readM9Diagnostics retourne valeur par défaut s
 
   it('lit un diagnostics.m9 avec last_incident', async () => {
     const incidentTs = Date.now() - 5000;
-    mockLocalStorage[DIAGNOSTICS_M9_KEY] = {
-      ready: false,
-      last_action_ts: incidentTs,
-      last_incident: {
-        type: 'm9_handler_error',
-        severity: 'error',
-        ts: incidentTs,
+    await storage.set({
+      [DIAGNOSTICS_M9_KEY]: {
+        ready: false,
+        last_action_ts: incidentTs,
+        last_incident: {
+          type: 'm9_handler_error',
+          severity: 'error',
+          ts: incidentTs,
+        },
       },
-    };
+    });
 
     const diag = await readM9DiagnosticsService();
 
@@ -317,7 +298,7 @@ describe('TC-M9-DIAG-UPDATE-01 — updateM9DiagnosticsOnAction (succès)', () =>
     expect(result.last_incident).toBeUndefined();
 
     // Vérifie la persistance dans le storage
-    const stored = mockLocalStorage[DIAGNOSTICS_M9_KEY] as Record<string, unknown>;
+    const stored = (await storage.get(DIAGNOSTICS_M9_KEY))[DIAGNOSTICS_M9_KEY] as Record<string, unknown>;
     expect(stored['ready']).toBe(true);
 
     // Aucun incident émis
@@ -362,11 +343,11 @@ describe('TC-M9-DIAG-UPDATE-02 — updateM9DiagnosticsOnAction (échec + inciden
 
 describe('TC-M9-DIAG-HANDLER-01 — handler M9 avec incidentService', () => {
   it('met à jour diagnostics.m9 après logEvent réussi', async () => {
-    const storage = createMockStorage();
+    const mockStorageService = createMockStorage();
     const fakeKey = createFakeKey();
     const incidentService = createMockIncidentService() as IncidentService;
 
-    const handler = createM9Handler(storage as StorageService, fakeKey, incidentService);
+    const handler = createM9Handler(mockStorageService as StorageService, fakeKey, incidentService);
     const msg = buildM9Message({ score: 3, type: 'password' });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
@@ -404,17 +385,17 @@ describe('TC-M9-DIAG-HANDLER-01 — handler M9 avec incidentService', () => {
 
 describe('TC-M9-DIAG-HANDLER-02 — handler M9 sans incidentService (rétro-compatibilité)', () => {
   it('fonctionne correctement sans incidentService (paramètre optionnel)', async () => {
-    const storage = createMockStorage();
+    const mockStorageService = createMockStorage();
     const fakeKey = createFakeKey();
 
     // Sans incidentService — rétro-compat service-worker.ts
-    const handler = createM9Handler(storage as StorageService, fakeKey);
+    const handler = createM9Handler(mockStorageService as StorageService, fakeKey);
     const msg = buildM9Message({ score: 4, type: 'passphrase' });
     const response = await handler(msg, {} as chrome.runtime.MessageSender);
 
     expect(response.success).toBe(true);
     expect(response.action).toBe('skip');
-    expect(storage.logEvent).toHaveBeenCalledOnce();
+    expect(mockStorageService.logEvent).toHaveBeenCalledOnce();
   });
 
   it('retourne une erreur sans incidentService si logEvent échoue', async () => {
@@ -436,10 +417,12 @@ describe('TC-M9-DIAG-HANDLER-02 — handler M9 sans incidentService (rétro-comp
 // Export réexporté depuis le handler
 describe('readM9Diagnostics — export du handler', () => {
   it('readM9Diagnostics (export handler) est identique à readM9Diagnostics (service)', async () => {
-    mockLocalStorage[DIAGNOSTICS_M9_KEY] = {
-      ready: true,
-      last_action_ts: 999,
-    };
+    await storage.set({
+      [DIAGNOSTICS_M9_KEY]: {
+        ready: true,
+        last_action_ts: 999,
+      },
+    });
 
     const fromHandler = await readM9Diagnostics();
     const fromService = await readM9DiagnosticsService();

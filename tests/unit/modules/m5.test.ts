@@ -8,6 +8,8 @@
  * - handleToastAction : update_now, remind_4h, why, closed
  * - Contrainte anti-snooze infini (CA-M5-06)
  * - initBootM5 : boot happy path, snooze corrompu, pending_m5_update_reminder (TACHE-087)
+ *
+ * T-189 lot 3 : mock inline remplacé par createMockChromeStorage() (wrapper JSON-strict P-018).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -33,12 +35,13 @@ import {
   PENDING_M5_UPDATE_REMINDER_KEY,
   PENDING_M5_UPDATE_REMINDER_TTL_MS,
 } from '@/shared/types/diagnostics';
+import { createMockChromeStorage } from '../../helpers/mock-chrome-storage';
 
 // ---------------------------------------------------------------------------
-// Mocks
+// Mock chrome.storage.local — wrapper JSON-strict T-189 / P-018
 // ---------------------------------------------------------------------------
 
-const mockLocalStorage: Record<string, unknown> = {};
+const { storage, reset: resetStorage } = createMockChromeStorage();
 
 /** Statut courant de requestUpdateCheck (modifiable par chaque test) */
 let currentUpdateStatus = 'no_update';
@@ -48,22 +51,7 @@ const mockTabContext = { fullscreen: false, form_active: false };
 
 global.chrome = {
   storage: {
-    local: {
-      get: vi.fn((keys: string[], callback: (r: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
-        for (const k of keys) {
-          if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-        }
-        callback(result);
-      }),
-      set: vi.fn((items: Record<string, unknown>, callback?: () => void) => {
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      }),
-      remove: vi.fn((_keys: string | string[], callback?: () => void) => {
-        callback?.();
-      }),
-    },
+    local: storage,
   },
   tabs: {
     // chrome.tabs.create retourne une Promise nativement en MV3
@@ -143,38 +131,15 @@ function createMockIncidentService(): {
 }
 
 // ---------------------------------------------------------------------------
-// Tests
+// Setup
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
-  // Réinitialiser le storage mock
-  Object.keys(mockLocalStorage).forEach((k) => {
-    delete mockLocalStorage[k];
-  });
+  resetStorage();
   currentUpdateStatus = 'no_update';
   vi.clearAllMocks();
 
   // Remettre les mocks callback en place après vi.clearAllMocks()
-  (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockImplementation(
-    (keys: string[], callback: (r: Record<string, unknown>) => void) => {
-      const result: Record<string, unknown> = {};
-      for (const k of keys) {
-        if (mockLocalStorage[k] !== undefined) result[k] = mockLocalStorage[k];
-      }
-      callback(result);
-    },
-  );
-  (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-    (items: Record<string, unknown>, callback?: () => void) => {
-      Object.assign(mockLocalStorage, items);
-      callback?.();
-    },
-  );
-  (chrome.storage.local.remove as ReturnType<typeof vi.fn>).mockImplementation(
-    (_keys: string | string[], callback?: () => void) => {
-      callback?.();
-    },
-  );
   (chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(
     (_queryInfo: object, callback: (tabs: chrome.tabs.Tab[]) => void) => {
       callback([{ id: 42, active: true, index: 0 } as chrome.tabs.Tab]);
@@ -192,6 +157,10 @@ beforeEach(() => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe('M5Handler — fonctions utilitaires storage', () => {
   it('getLastNudgeDate retourne 0 si jamais nudgé', async () => {
     const date = await getLastNudgeDate();
@@ -207,23 +176,24 @@ describe('M5Handler — fonctions utilitaires storage', () => {
     const before = Date.now();
     await setSnoozeCount(2);
 
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_KEY]).toBe(2);
-    const savedDate = mockLocalStorage[M5_LAST_NUDGE_KEY] as number;
+    const snoozeCount = (await storage.get(M5_SNOOZE_COUNT_KEY))[M5_SNOOZE_COUNT_KEY];
+    expect(snoozeCount).toBe(2);
+    const savedDate = (await storage.get(M5_LAST_NUDGE_KEY))[M5_LAST_NUDGE_KEY] as number;
     expect(savedDate).toBeGreaterThanOrEqual(before);
   });
 
   it('resetSnoozeCount remet le compteur à 0', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_KEY] = 3;
+    await storage.set({ [M5_SNOOZE_COUNT_KEY]: 3 });
     await resetSnoozeCount();
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_KEY]).toBe(0);
+    expect((await storage.get(M5_SNOOZE_COUNT_KEY))[M5_SNOOZE_COUNT_KEY]).toBe(0);
   });
 
   it("setUpToDateState persiste l'état is_up_to_date", async () => {
     await setUpToDateState(true);
-    expect(mockLocalStorage[M5_UP_TO_DATE_KEY]).toBe(true);
+    expect((await storage.get(M5_UP_TO_DATE_KEY))[M5_UP_TO_DATE_KEY]).toBe(true);
 
     await setUpToDateState(false);
-    expect(mockLocalStorage[M5_UP_TO_DATE_KEY]).toBe(false);
+    expect((await storage.get(M5_UP_TO_DATE_KEY))[M5_UP_TO_DATE_KEY]).toBe(false);
   });
 });
 
@@ -231,16 +201,16 @@ describe('M5Handler — check_update : no_update', () => {
   it('marque navigateur à jour et retourne skip avec raison no_update', async () => {
     currentUpdateStatus = 'no_update';
 
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     const response = await handler(buildM5Message('check_update'), mockSender);
 
     expect(response.success).toBe(true);
     expect(response.action).toBe('skip');
     expect(response.reason).toBe('no_update');
-    expect(mockLocalStorage[M5_UP_TO_DATE_KEY]).toBe(true);
+    expect((await storage.get(M5_UP_TO_DATE_KEY))[M5_UP_TO_DATE_KEY]).toBe(true);
   });
 });
 
@@ -248,9 +218,9 @@ describe('M5Handler — check_update : throttled (CA-M5-05)', () => {
   it('programme une alarme de réessai dans 1h et retourne skip', async () => {
     currentUpdateStatus = 'throttled';
 
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     const response = await handler(buildM5Message('check_update'), mockSender);
 
@@ -270,11 +240,11 @@ describe('M5Handler — check_update : délai de grâce 48h', () => {
     currentUpdateStatus = 'update_available';
 
     // Simuler un nudge récent (30 min ago)
-    mockLocalStorage[M5_LAST_NUDGE_KEY] = Date.now() - 30 * 60 * 1000;
+    await storage.set({ [M5_LAST_NUDGE_KEY]: Date.now() - 30 * 60 * 1000 });
 
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     const response = await handler(buildM5Message('check_update'), mockSender);
 
@@ -287,11 +257,11 @@ describe('M5Handler — check_update : délai de grâce 48h', () => {
     currentUpdateStatus = 'update_available';
 
     // Simuler un nudge ancien (50h ago)
-    mockLocalStorage[M5_LAST_NUDGE_KEY] = Date.now() - 50 * 60 * 60 * 1000;
+    await storage.set({ [M5_LAST_NUDGE_KEY]: Date.now() - 50 * 60 * 60 * 1000 });
 
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     const response = await handler(buildM5Message('check_update'), mockSender);
 
@@ -308,11 +278,11 @@ describe('M5Handler — check_update : délai de grâce 48h', () => {
 
 describe('M5Handler — toast_action : update_now', () => {
   it('ouvre chrome://settings/help et remet snoozeCount à 0', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_KEY] = 2;
+    await storage.set({ [M5_SNOOZE_COUNT_KEY]: 2 });
 
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     await handler(
       buildM5Message('toast_action', { user_action: 'update_now', snooze_count: 2 }),
@@ -320,22 +290,22 @@ describe('M5Handler — toast_action : update_now', () => {
     );
 
     expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome://settings/help' });
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_KEY]).toBe(0);
+    expect((await storage.get(M5_SNOOZE_COUNT_KEY))[M5_SNOOZE_COUNT_KEY]).toBe(0);
   });
 });
 
 describe('M5Handler — toast_action : remind_4h', () => {
   it('incrémente snoozeCount et programme une alarme de 4h', async () => {
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     await handler(
       buildM5Message('toast_action', { user_action: 'remind_4h', snooze_count: 1 }),
       mockSender,
     );
 
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_KEY]).toBe(2);
+    expect((await storage.get(M5_SNOOZE_COUNT_KEY))[M5_SNOOZE_COUNT_KEY]).toBe(2);
     expect(chrome.alarms.create).toHaveBeenCalledWith(
       'm5_snooze',
       expect.objectContaining({ delayInMinutes: 240 }),
@@ -343,26 +313,26 @@ describe('M5Handler — toast_action : remind_4h', () => {
   });
 
   it('CA-M5-06 : snoozeCount ne dépasse pas MAX_SNOOZE_COUNT', async () => {
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     await handler(
       buildM5Message('toast_action', { user_action: 'remind_4h', snooze_count: MAX_SNOOZE_COUNT }),
       mockSender,
     );
 
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_KEY]).toBe(MAX_SNOOZE_COUNT);
+    expect((await storage.get(M5_SNOOZE_COUNT_KEY))[M5_SNOOZE_COUNT_KEY]).toBe(MAX_SNOOZE_COUNT);
   });
 });
 
 describe('M5Handler — toast_action : closed', () => {
   it("remet snoozeCount à 0 et enregistre l'événement", async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_KEY] = 2;
+    await storage.set({ [M5_SNOOZE_COUNT_KEY]: 2 });
 
-    const storage = createMockStorageService();
+    const storageService = createMockStorageService();
     const cryptoKey = createMockCryptoKey();
-    const handler = createM5Handler(storage, cryptoKey);
+    const handler = createM5Handler(storageService, cryptoKey);
 
     const response = await handler(
       buildM5Message('toast_action', { user_action: 'closed', snooze_count: 2 }),
@@ -370,8 +340,8 @@ describe('M5Handler — toast_action : closed', () => {
     );
 
     expect(response.success).toBe(true);
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_KEY]).toBe(0);
-    expect(storage.logEvent).toHaveBeenCalledWith(
+    expect((await storage.get(M5_SNOOZE_COUNT_KEY))[M5_SNOOZE_COUNT_KEY]).toBe(0);
+    expect(storageService.logEvent).toHaveBeenCalledWith(
       'M5',
       expect.objectContaining({ action: 'closed' }),
       cryptoKey,
@@ -395,7 +365,7 @@ describe('M5Handler — constantes', () => {
 
 describe('initBootM5 — boot happy path (snooze_count valide)', () => {
   it('TC-M5-BOOT-01 : snooze_count valide → ready=true, pas d\'incident', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 2;
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: 2 });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM5(service as IncidentService);
@@ -408,12 +378,12 @@ describe('initBootM5 — boot happy path (snooze_count valide)', () => {
   });
 
   it('TC-M5-BOOT-02 : diagnostics.m5 persisté avec ready=true', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 0;
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: 0 });
 
     const { service } = createMockIncidentService();
     await initBootM5(service as IncidentService);
 
-    const stored = mockLocalStorage['diagnostics.m5'] as Record<string, unknown>;
+    const stored = (await storage.get('diagnostics.m5'))['diagnostics.m5'] as Record<string, unknown>;
     expect(stored).toBeDefined();
     expect(stored['ready']).toBe(true);
     expect(stored['snooze_count']).toBe(0);
@@ -421,7 +391,7 @@ describe('initBootM5 — boot happy path (snooze_count valide)', () => {
   });
 
   it('TC-M5-BOOT-03 : readM5Diagnostics retourne l\'état persisté après boot', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 1;
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: 1 });
 
     const { service } = createMockIncidentService();
     await initBootM5(service as IncidentService);
@@ -444,11 +414,11 @@ describe('initBootM5 — snooze_count absent (premier boot)', () => {
     expect(incidents).toHaveLength(0);
 
     // m5_snooze_count initialisé à 0 dans le storage
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY]).toBe(0);
+    expect((await storage.get(M5_SNOOZE_COUNT_STORAGE_KEY))[M5_SNOOZE_COUNT_STORAGE_KEY]).toBe(0);
   });
 
   it('TC-M5-BOOT-05 : snooze_count null → comportement identique à absent', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = null;
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: null });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM5(service as IncidentService);
@@ -461,7 +431,7 @@ describe('initBootM5 — snooze_count absent (premier boot)', () => {
 
 describe('initBootM5 — snooze_count corrompu', () => {
   it('TC-M5-BOOT-06 : snooze_count = string → incident m5_snooze_corrupted (error)', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 'invalid';
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: 'invalid' });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM5(service as IncidentService);
@@ -476,7 +446,7 @@ describe('initBootM5 — snooze_count corrompu', () => {
   });
 
   it('TC-M5-BOOT-07 : snooze_count négatif → invalide → incident + réinitialisation', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = -1;
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: -1 });
 
     const { service, incidents } = createMockIncidentService();
     const diag = await initBootM5(service as IncidentService);
@@ -486,7 +456,7 @@ describe('initBootM5 — snooze_count corrompu', () => {
   });
 
   it('TC-M5-BOOT-08 : snooze_count = objet → invalide → incident', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = { corrupted: true };
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: { corrupted: true } });
 
     const { service, incidents } = createMockIncidentService();
     await initBootM5(service as IncidentService);
@@ -495,7 +465,7 @@ describe('initBootM5 — snooze_count corrompu', () => {
   });
 
   it('TC-M5-BOOT-09 : diagnostics.m5.last_incident reflète la corruption', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 'bad';
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: 'bad' });
 
     const { service } = createMockIncidentService();
     const diag = await initBootM5(service as IncidentService);
@@ -507,34 +477,34 @@ describe('initBootM5 — snooze_count corrompu', () => {
   });
 
   it('TC-M5-BOOT-10 : m5_snooze_count réinitialisé à 0 dans storage après corruption', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 'corrupted';
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: 'corrupted' });
 
     const { service } = createMockIncidentService();
     await initBootM5(service as IncidentService);
 
-    expect(mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY]).toBe(0);
+    expect((await storage.get(M5_SNOOZE_COUNT_STORAGE_KEY))[M5_SNOOZE_COUNT_STORAGE_KEY]).toBe(0);
   });
 });
 
 describe('initBootM5 — état initial conservatif', () => {
   it('TC-M5-BOOT-11 : diagnostics.m5 posé à ready=false au début du boot (R-BOOT-03)', async () => {
-    mockLocalStorage[M5_SNOOZE_COUNT_STORAGE_KEY] = 0;
+    await storage.set({ [M5_SNOOZE_COUNT_STORAGE_KEY]: 0 });
 
     let conservativeStateObserved = false;
     let callCount = 0;
-    (global.chrome.storage.local.set as ReturnType<typeof vi.fn>).mockImplementation(
-      (items: Record<string, unknown>, callback?: () => void) => {
-        callCount++;
-        if (callCount === 1 && items['diagnostics.m5']) {
-          const diag = items['diagnostics.m5'] as Record<string, unknown>;
-          if (diag['ready'] === false) {
-            conservativeStateObserved = true;
-          }
+
+    // Intercepter les appels à storage.set via vi.spyOn pour observer l'état conservatif
+    const originalSet = storage.set.bind(storage);
+    vi.spyOn(storage, 'set').mockImplementation(async (items, callback) => {
+      callCount++;
+      if (callCount === 1 && items['diagnostics.m5']) {
+        const diag = items['diagnostics.m5'] as Record<string, unknown>;
+        if (diag['ready'] === false) {
+          conservativeStateObserved = true;
         }
-        Object.assign(mockLocalStorage, items);
-        callback?.();
-      },
-    );
+      }
+      return originalSet(items, callback);
+    });
 
     const { service } = createMockIncidentService();
     await initBootM5(service as IncidentService);
