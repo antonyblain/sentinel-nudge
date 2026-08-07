@@ -3,8 +3,8 @@
 ## Phase P2 — Analyste métier
 
 **Projet :** Sentinel Nudge
-**Version :** 1.2
-**Date de production :** 2026-04-11 (v1.0/v1.1) — 2026-04-19 (v1.2 stub)
+**Version :** 1.2.1
+**Date de production :** 2026-04-11 (v1.0/v1.1) — 2026-04-19 (v1.2 stub) — 2026-04-20 (v1.2.1)
 **Statut :** v1.2 — addendum §9 stub ouvert (enrichissement incrémental par PR séparées, cf. LL-032)
 **Commanditaire :** Antony (RSSI)
 **Niveau de sensibilité :** Exposé
@@ -17,6 +17,7 @@
 | ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2026-04-11 | Version initiale                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | 1.1     | 2026-04-11 | INC-001 : renommage stores `quiz_sessions` / `weekly_scores` — INC-002 : schéma `password_hashes` (clé `id`, champ `value` chiffré, index `tag`, champ `iv`) — INC-003 : sel en représentation hexadécimale — INC-004 : chiffrement étendu à `quiz_sessions` et `weekly_scores` — INC-007 : domain_hash salé `SHA-256(installation_salt + domain)` — OMI-002 : ajout ENF-PBD-09 droit à la portabilité                                                            |
+| 1.2.1   | 2026-04-20 | Enrichissement §2.M7 — intégration ARB-061-01/02/03 depuis addendum §9 (mini-DAT T-061 v1.1) — ajout §2.5.6 service heartbeat, §2.5.7 canary service, §2.5.8 politique quota M7 — §9.2 mise à jour colonnes intégration (LL-032 incrémental) |
 | 1.2     | 2026-04-19 | **Stub v1.2 (orchestrateur direct, cf. LL-032)** : ouverture du document à l'intégration progressive des travaux P5 — ajout addendum §9 référençant UC-01 à UC-15 (post-mortem M7 + 4 mini-DAT P5), 3 ARB structurants (ARB-061-01/02/03), et 2 ADR Accepted (ADR-001 SW-BOOT-CONTRACT, ADR-002 CROSS-LIFECYCLE-INTENT). Corps §1 à §8 inchangé à ce stade — l'intégration détaillée sera portée par des PR incrémentales (une par UC, une par ARB, une par ADR). |
 
 ---
@@ -939,6 +940,109 @@ When le hash est comparé
 Then aucun nudge M7 ne s'affiche (réutilisation intra-domaine)
 ```
 
+#### 2.5.6 Service heartbeat (ARB-061-01)
+
+**Rôle** : matérialiser l'état de santé de M7 à tout instant via l'objet `diagnostics.m7` persisté dans `chrome.storage.local`. Consommé par TACHE-062 (badge dégradé si `ready=false` depuis > 1h).
+
+**Déclenchement** : à chaque réveil du Service Worker (boot sequence), indépendamment d'une action utilisateur.
+
+**Actions** :
+
+| Moment | Action |
+|--------|--------|
+| Début boot SW | `heartbeatService.onBootStart()` — `ready=false`, `canary_verified=false`, `boot_count++` |
+| Canary vérifié OK | `heartbeatService.onBootSuccess()` — `ready=true`, `canary_verified=true`, `last_boot_ts=now` |
+| Canary en échec | `heartbeatService.onBootFailure()` — `ready=false` persisté |
+| Réutilisation détectée | `heartbeatService.onDetection()` — `last_detection_ts=now` |
+
+**Objet `M7Diagnostics`** (interface TypeScript dans `src/shared/types/diagnostics.ts`) :
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `ready` | boolean | `true` ssi boot terminé sans erreur ET canary vérifié dans la session courante |
+| `last_boot_ts` | number | Timestamp ms du dernier boot avec `ready=true` |
+| `last_detection_ts` | number \| null | Timestamp ms de la dernière détection de réutilisation |
+| `boot_count` | number | Compteur monotone croissant de boots depuis l'installation |
+| `canary_verified` | boolean | `true` ssi canary vérifié dans la session courante |
+
+**Invariant (ADR-001 SW-BOOT-CONTRACT)** : `ready=true` implique `canary_verified=true`. Toute régression de la séquence de boot est observable via `ready=false` depuis > 1h (signal TACHE-062 badge dégradé).
+
+**Décision architecturale** : ARB-061-01 — `IncidentService` accède à `IDBDatabase` via getter public `getDB()` sur `StorageService` (Option A retenue). Isolation SRP préservée. Options B (fusion dans `StorageService`) et C (double connexion IDB) rejetées.
+
+---
+
+#### 2.5.7 Canary service (ARB-061-02)
+
+**Rôle** : watchdog cryptographique prouvant que la clé AES-256-GCM chargée au boot est fonctionnelle et cohérente avec la base `password_hashes`. Détecte en amont les régressions P-016 (clé absente) et P-018 (sérialisation corrompue).
+
+**Principe** : chiffrement de la constante `CANARY_PLAINTEXT = 'SN-CANARY-v1'` avec la clé AES du module. Le ciphertext et l'IV sont persistés dans `chrome.storage.local` en `Array<number>` (règle P-018 — interdit `ArrayBuffer`/`Uint8Array` direct).
+
+**États observables** :
+
+| État | Trigger | Conséquence |
+|------|---------|-------------|
+| `canary_ok` | `verify()` → `{ ok: true }` | `heartbeatService.onBootSuccess()` — M7 opérationnel |
+| `canary_reinit` | `verify()` → `{ ok: false, reason: 'absent' }` ET clé AES fonctionnelle sur un hash existant | Re-`init()` avec la clé courante ; `IncidentService.log('canary_failed', 'warn', { reason: 'absent' })` ; données M7 préservées |
+| `canary_failed` | `verify()` → `{ ok: false, reason: 'decrypt_failed'/'mismatch' }` | `IncidentService.log('canary_failed', 'error', { reason })` ; régénération clé AES ; `heartbeatService.onBootFailure()` si re-vérification échoue |
+
+**Précaution avant régénération (CM-EOP1)** : avant de conclure `canary_failed → régénération`, tenter de déchiffrer un `password_hash` existant avec la clé courante. Si réussi, la clé est intacte — état `canary_reinit` (pas de régénération, pas de perte des hashes).
+
+**Buffer mémoire pré-initDB** : les incidents (`boot_fail`, `canary_failed`) peuvent se produire avant que `initDB()` soit terminé. Un buffer mémoire borné à 10 entrées est maintenu en mémoire et flushed au premier tick après `initDB()` — évite la perte silencieuse des incidents de boot les plus critiques.
+
+**Décision architecturale** : ARB-061-02 — buffer mémoire borné 10 entrées, flush immédiat après `initDB()` (Option B retenue). Option A (perte silencieuse) rejetée : les incidents `boot_fail` / `canary_failed` se produisent avant `initDB()` et sont les plus critiques pour la traçabilité ISO 27001 A.8.15.
+
+---
+
+#### 2.5.8 Politique quota M7 (ARB-061-03)
+
+**Promotion en `CRITICAL_MODULES`** : M7 bypasse le quota global de 3 nudges/jour applicable aux modules éducatifs. Rationale : M7 est une alerte sécurité (réutilisation de mot de passe = risque de compromission en cascade), pas un nudge éducatif (cf. P-020).
+
+**Rate-limit propre M7** (indépendant du quota global) :
+
+| Règle | Valeur | Stockage |
+|-------|--------|---------|
+| Cooldown par domaine | 30 jours depuis le dernier nudge affiché | `last_m7_nudge` par `domain_hash` — `chrome.storage.local` |
+| Suppression permanente par domaine | "Ne plus afficher" → `domain_hash` ajouté à `suppression_list` | IndexedDB `whitelist` (module='M7') |
+| Silencieux si cooldown non écoulé | Événement loggué sans affichage toast | IndexedDB `events` |
+
+**Borne registre d'incidents** : `MAX_INCIDENTS = 500` entrées FIFO dans IndexedDB store `m7_incidents`. INV-SEC-04 est un **prérequis impératif** : la purge cible d'abord `severity=info` puis `severity=warn`, et seulement `severity=error` en dernier recours — garantit que les incidents critiques ne sont pas masqués par une saturation de bruit. Budget disque estimé : 100–250 Ko (négligeable).
+
+**Décision architecturale** : ARB-061-03 — borne MAX_INCIDENTS = 500 (Option A retenue), INV-SEC-04 prérequis non négociable. Option B (borne 100) rejetée : insuffisant pour la rétention forensique (quelques minutes en cas de boucle d'incidents).
+
+**Critères d'acceptation** :
+
+**CA-M7-08 — Bypass quota global M7**
+
+```gherkin
+Given M7 est dans CRITICAL_MODULES
+And le quota global de 3 nudges/jour est atteint pour d'autres modules
+When une réutilisation de mot de passe est détectée
+Then le nudge M7 s'affiche (bypass quota global)
+  And le cooldown domaine 30 jours est vérifié indépendamment
+```
+
+**CA-M7-09 — Canary reinit sans perte de données**
+
+```gherkin
+Given le canary est absent de chrome.storage.local
+And la clé AES permet de déchiffrer un password_hash existant
+When le boot SW déclenche canaryService.verify()
+Then la clé AES n'est PAS régénérée
+  And canaryService.init() est appelé avec la clé courante
+  And les password_hashes existants restent déchiffrables
+  And un incident severity=warn type='canary_failed' reason='absent' est loggué
+```
+
+**CA-M7-10 — Borne FIFO incidents avec priorité severity**
+
+```gherkin
+Given 500 incidents sont stockés dans m7_incidents dont au moins un severity=error
+When un 501e incident severity=info est inséré
+Then l'entrée severity=info ou severity=warn la plus ancienne est supprimée
+  And le store contient exactement 500 entrées
+  And aucune entrée severity=error n'est supprimée
+```
+
 ---
 
 ### 2.6 M9 — Indicateur de force du mot de passe
@@ -1782,11 +1886,11 @@ Trois arbitrages du mini-DAT `p5-minidat-tache-061-heartbeat-m7-v1.1.md` ont val
 
 | ARB        | Décision                                                                                           | Impact SFD                                                                                                  |
 | ---------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| ARB-061-01 | Heartbeat M7 via `chrome.alarms` toutes les 5 min (Option A)                                       | §2.M7 — ajouter service heartbeat + machine à états « dormance SW → réveil alarm → vérif canary »           |
-| ARB-061-02 | Canary service : watchdog sur intégrité `encryption_key_material` + `installation_salt` (Option B) | §2.M7 — ajouter composant canary-service + événements `canary_ok` / `canary_recovery`                       |
-| ARB-061-03 | Promotion M7 en `CRITICAL_MODULES` (bypass quota global) (Option A)                                | §2.M7 — préciser politique de quota : cooldown 30j + suppression_list IndexedDB au lieu du quota 3/j global |
+| ARB-061-01 | Heartbeat M7 via `chrome.alarms` toutes les 5 min (Option A) — getter `getDB()` public sur `StorageService` | **§2.5.6** — service heartbeat + états boot SW + objet `M7Diagnostics` |
+| ARB-061-02 | Canary service : watchdog `canary_ok` / `canary_reinit` / `canary_failed` — buffer mémoire 10 entrées pré-initDB (Option B) | **§2.5.7** — canary service + états observables + CM-EOP1 |
+| ARB-061-03 | Promotion M7 en `CRITICAL_MODULES` (bypass quota global) — MAX_INCIDENTS=500 + INV-SEC-04 obligatoire (Option A) | **§2.5.8** — politique quota M7 + CA-M7-08/09/10 |
 
-**Intégration détaillée** — portée par PR T-062 badge dégradé + T-167 bump incrémental §2.M7.
+**Intégration détaillée** — §2.5.6, §2.5.7 et §2.5.8 intégrés par cette PR (v1.2.1). Travaux restants : T-062 badge dégradé popup.
 
 ### 9.3 ADR Accepted référencés
 
@@ -1805,11 +1909,11 @@ Deux ADR `Accepted` s'appliquent transversalement à tous les modules du SFD :
 | ----------------------------------------------------------------- | ----------- | ------------------- |
 | Intégration détaillée UC-01 dans §2 + couverture E2E              | Must v1.1   | T-175               |
 | Intégration détaillée UC-02 à UC-05 dans §2 + recette             | Must v1.1   | T-068 + T-175       |
-| Intégration détaillée ARB-061-01/02/03 dans §2.M7                 | Must v1.1   | bump §2.M7 dédié    |
+| ~~Intégration détaillée ARB-061-01/02/03 dans §2.M7~~             | ~~Must v1.1~~ | **Intégré v1.2.1** |
 | Intégration détaillée ADR-001/002 comme sections transverses §2.0 | Should v1.1 | bump SFD §2.0 dédié |
 
 ---
 
 _Spécifications Fonctionnelles Détaillées produites par l'Analyste métier — Fabrique — Phase P2_
-_Version 1.2 — 2026-04-19 (stub addendum §9 produit directement par l'orchestrateur, cf. LL-032)_
+_Version 1.2.1 — 2026-04-20 (enrichissement §2.M7 ARB-061-01/02/03, cf. LL-032 incrémental)_
 _Ce document sera soumis au Référent qualité avant transmission au Commanditaire._
