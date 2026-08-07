@@ -699,40 +699,15 @@ void (async () => {
         await heartbeatService.onBootSuccess();
       } else {
         // Canary invalide — appliquer CM-EOP1 (§11.5 mini-DAT)
-        // Avant de régénérer la clé, tester si elle déchiffre une entrée password_hashes
+        // T-080 : délégation à verifyKeyAgainstPasswordHashes() — logique extraite et testable
+        // null = store vide → clé non vérifiable → chemin régénération
         const hashCount = await storageService.getPasswordHashCount();
         let keyOk = false;
 
         if (hashCount > 0) {
-          // CM-EOP1 : tenter de déchiffrer la plus ancienne entrée password_hashes
-          // pour distinguer "clé OK + canary corrompu" de "clé KO"
           try {
-            const db = storageService.getDB();
-            keyOk = await new Promise<boolean>((resolve) => {
-              const tx = db.transaction('password_hashes', 'readonly');
-              const store = tx.objectStore('password_hashes');
-              const idx = store.index('first_seen');
-              const req = idx.openCursor(null, 'next');
-              req.onsuccess = async () => {
-                const cursor = req.result;
-                if (!cursor) {
-                  resolve(false);
-                  return;
-                }
-                const rec = cursor.value as { value: ArrayBuffer; iv: Uint8Array };
-                try {
-                  await crypto.subtle.decrypt(
-                    { name: 'AES-GCM', iv: rec.iv },
-                    cryptoKey!,
-                    rec.value,
-                  );
-                  resolve(true);
-                } catch {
-                  resolve(false);
-                }
-              };
-              req.onerror = () => resolve(false);
-            });
+            const verifyResult = await storageService.verifyKeyAgainstPasswordHashes(cryptoKey!);
+            keyOk = verifyResult === true;
           } catch {
             keyOk = false;
           }
