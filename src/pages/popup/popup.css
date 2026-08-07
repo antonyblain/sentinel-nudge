@@ -23,16 +23,23 @@
   padding: 0;
 }
 
+/* T-199 — html doit propager height pour que min-height: 100% sur #popup-root fonctionne */
+html {
+  height: 100%;
+}
+
 body {
   font-family: var(--sn-font-body);
   font-size: var(--sn-font-size-body);
   font-weight: var(--sn-font-weight-normal);
   line-height: var(--sn-line-height);
   color: var(--sn-color-fg);
-  background-color: var(
-    --sn-color-surface
-  ); /* T-157(b): aligner body.bg avec popup-root (evite artefact coins Aegis Light) */
+  /* T-199 — background transparent : le fond visible est porté uniquement par #popup-root
+     (qui a border-radius + overflow: hidden). Évite que le fond du body apparaisse aux
+     coins inférieurs, ce qui masquait l'arrondi inférieur de #popup-root. */
+  background: transparent;
   width: 320px;
+  height: 100%;
   min-height: 360px;
   max-height: 600px;
   overflow-y: hidden; /* T-157(d): pas de scrollbar residuelle MV3 */
@@ -46,6 +53,9 @@ body {
   overflow: hidden;
   box-shadow: var(--sn-shadow-lg);
   position: relative; /* requis pour ::before/::after dégradés thème Matrix */
+  /* T-199 — couvre toute la hauteur du body pour masquer le fond transparent
+     et garantir que les 4 coins arrondis sont visibles (y compris les coins inférieurs) */
+  min-height: 100%;
 }
 
 /* (a) T-157 — Midnight Obsidian : border-radius popup-root = radius-xl (20px, maquette v3) */
