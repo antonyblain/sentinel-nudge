@@ -12,6 +12,7 @@
  * - TACHE-090 (pending_m17_toast cross-lifecycle, R-CLI-01 à 07 ADR-002)
  * - TACHE-091 (migration pending_m7_toast timestamp → expires_at, R-CLI-03)
  * - TACHE-078 (instrumentation storage_write_fail aux sites critiques — OBS-04)
+ * - T-043 (plafond whitelist M2 user-consented 10 000 entrées — incident m2_whitelist_full)
  *
  * Ils constituent le contrat d'interface entre les services de boot, les handlers
  * et les consommateurs (popup TACHE-062, page état santé TACHE-109, tests).
@@ -588,6 +589,7 @@ export const PENDING_M17_TOAST_TTL_MS = 5 * 60 * 1000;
  * TACHE-088 : ajout de m6_install_date_corrupted et quiz_deferred_stale (incidents M6).
  * TACHE-089 : ajout de m9_handler_error et m17_handler_error (Option B M9/M17).
  * TACHE-078 : enrichissement de storage_write_fail (module, site, hint — OBS-04).
+ * T-043 : ajout de m2_whitelist_full (plafond whitelist M2 user-consented).
  */
 export type M7IncidentType =
   | 'boot_fail' // Clé AES absente ou non importable au boot SW
@@ -607,7 +609,8 @@ export type M7IncidentType =
   | 'm6_install_date_corrupted' // M6 — m6_install_date absent ou invalide au boot (TACHE-088)
   | 'quiz_deferred_stale' // M6 — pending_m6_quiz dépassé son expires_at (TACHE-088)
   | 'm9_handler_error' // M9 — exception dans le handler (logEvent IDB inaccessible) (TACHE-089)
-  | 'm17_handler_error'; // M17 — exception dans le handler (logEvent ou storage) (TACHE-089)
+  | 'm17_handler_error' // M17 — exception dans le handler (logEvent ou storage) (TACHE-089)
+  | 'm2_whitelist_full'; // M2 — plafond 10 000 entrées user-consented atteint, ajout rejeté (T-043)
 
 /** Sévérité d'un incident (M7 et autres modules SW) */
 export type M7IncidentSeverity = 'info' | 'warn' | 'error';
@@ -633,6 +636,7 @@ export type M7IncidentSeverity = 'info' | 'warn' | 'error';
  * TACHE-088 : ajout de m6_install_date_corrupted et quiz_deferred_stale (M6).
  * TACHE-089 : ajout de m9_handler_error et m17_handler_error (Option B M9/M17).
  * TACHE-078 : enrichissement de storage_write_fail (module, site, hint — OBS-04).
+ * T-043 : ajout de m2_whitelist_full (plafond whitelist M2 user-consented).
  */
 export type IncidentContext =
   | { type: 'boot_fail'; hint: 'key_absent' | 'import_failed'; boot_count: number }
@@ -738,6 +742,14 @@ export type IncidentContext =
        */
       error_name: string;
       code_path: 'handleSensitiveDataDetected' | 'handleToastAction';
+    }
+  | {
+      type: 'm2_whitelist_full';
+      /**
+       * Nombre d'entrées actuelles dans la whitelist M2 au moment du rejet (T-043).
+       * INV-SEC-02 : uniquement le count — aucun domain_hash ou domaine en clair.
+       */
+      current_count: number;
     };
 
 /**

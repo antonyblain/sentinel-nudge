@@ -28,3 +28,24 @@ export const MODULE_IDS: readonly ModuleId[] = ['M2', 'M3', 'M5', 'M6', 'M7', 'M
  * Référence : DAT §6.2 (flux QuotaManager — quota KO + critique)
  */
 export const CRITICAL_MODULES: readonly ModuleId[] = ['M2', 'M7', 'M17'] as const;
+
+/**
+ * Nombre maximum d'entrées dans la whitelist M2 (domaines user-consented).
+ *
+ * La whitelist M2 stocke les domaines explicitement approuvés par l'utilisateur
+ * (action 'trusted' sur l'overlay). Sans plafond, la croissance est illimitée
+ * et risque de saturer le quota chrome.storage.local (5 Mo).
+ *
+ * Décision T-043 — Option A (rejet silencieux + incident) :
+ * - La whitelist est user-consented : un retrait LIFO serait trompeur
+ *   (supprimer silencieusement un choix explicite de l'utilisateur).
+ * - Quand le plafond est atteint, l'ajout est rejeté et un incident
+ *   m2_whitelist_full (severity=warn) est enregistré dans le registre.
+ *
+ * Valeur : 10 000 entrées.
+ * Estimation empreinte : ~10 000 × 80 B (hash SHA-256 hex + module + added_at) ≈ 800 Ko.
+ * Marge confortable par rapport au quota 5 Mo partagé avec les autres stores.
+ *
+ * Référence : T-043, DAT §8.1 (whitelist store IndexedDB)
+ */
+export const M2_WHITELIST_MAX_ENTRIES = 10_000 as const;

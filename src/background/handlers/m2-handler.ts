@@ -33,8 +33,10 @@ import { StorageService } from '@/background/storage-service';
 import { browser } from '@/shared/browser/browser-adapter';
 import type { NudgeMessage, NudgeResponse } from '@/shared/types/messages';
 import type { ModuleHandler } from '@/background/message-router';
+import type { IncidentService } from '@/background/services/incident-service';
 import { createLogger } from '@/shared/utils/logger';
 import { classifyError } from '@/shared/utils/classify-error';
+import { M2_WHITELIST_MAX_ENTRIES } from '@/shared/constants/modules';
 
 /** Logger scopé M2Handler — mitigation R-M7-08 / TACHE-104 */
 const logger = createLogger('M2Handler');
@@ -167,15 +169,17 @@ async function handleRiskDetected(
  * - 'abandoned' : enregistre l'événement (neutre pour M3)
  * - 'why'       : ouvre la page d'explication M2
  *
- * @param storageService - Service de stockage IndexedDB
- * @param payload        - Payload avec l'action et le domain_hash
- * @param cryptoKey      - Clé AES-256-GCM
+ * @param storageService  - Service de stockage IndexedDB
+ * @param payload         - Payload avec l'action et le domain_hash
+ * @param cryptoKey       - Clé AES-256-GCM
+ * @param incidentService - Registre d'incidents pour log m2_whitelist_full (T-043) — null en test
  * @returns Réponse NudgeResponse
  */
 async function handleOverlayAction(
   storageService: StorageService,
   payload: Record<string, unknown>,
   cryptoKey: CryptoKey,
+  incidentService: IncidentService | null,
 ): Promise<NudgeResponse> {
   const user_action = payload['user_action'];
   const domain_hash = payload['domain_hash'];
@@ -188,7 +192,20 @@ async function handleOverlayAction(
   try {
     // Ajout en whitelist si l'utilisateur fait confiance au domaine
     if (user_action === 'trusted') {
-      await storageService.addToWhitelist(domain_hash, 'M2');
+      // T-043 Option A : plafond 10 000 entrées. La whitelist est user-consented;
+      // un retrait LIFO serait trompeur. Rejet silencieux + incident warn.
+      const currentCount = await storageService.countWhitelistEntries('M2');
+      if (currentCount >= M2_WHITELIST_MAX_ENTRIES) {
+        logger.warn('m2_whitelist_full', { count: currentCount });
+        if (incidentService) {
+          await incidentService.log('m2_whitelist_full', 'warn', {
+            type: 'm2_whitelist_full',
+            current_count: currentCount,
+          });
+        }
+      } else {
+        await storageService.addToWhitelist(domain_hash, 'M2');
+      }
     }
 
     // Abandon : retirer le domaine de la session dedup pour permettre
@@ -251,13 +268,15 @@ async function handleOpenExplanation(): Promise<NudgeResponse> {
  * - 'overlay_action' : traitement de l'interaction utilisateur sur l'overlay
  * - 'open_explanation' : ouverture de la page d'explication statique
  *
- * @param storageService - Service de stockage IndexedDB
- * @param cryptoKey      - Clé AES-256-GCM pour le chiffrement
+ * @param storageService  - Service de stockage IndexedDB
+ * @param cryptoKey       - Clé AES-256-GCM pour le chiffrement
+ * @param incidentService - Registre d'incidents pour log m2_whitelist_full (T-043)
  * @returns Handler conforme à l'interface ModuleHandler
  */
 export function createM2Handler(
   storageService: StorageService,
   cryptoKey: CryptoKey,
+  incidentService: IncidentService | null = null,
 ): ModuleHandler {
   return async (
     msg: NudgeMessage,
@@ -265,7 +284,7 @@ export function createM2Handler(
   ): Promise<NudgeResponse> => {
     // Action 'overlay_action' (retour UI après interaction)
     if (msg.action === 'overlay_action') {
-      return handleOverlayAction(storageService, msg.payload, cryptoKey);
+      return handleOverlayAction(storageService, msg.payload, cryptoKey, incidentService);
     }
 
     // Action 'open_explanation' (clic sur "En savoir plus" dans l'overlay)
