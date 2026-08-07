@@ -43,7 +43,7 @@
 4. Exigences non fonctionnelles détaillées
    - 4.1 Privacy by design — mapping par module
    - 4.2 Performance — budget par module
-   - 4.3 Accessibilité — checklist WCAG 2.1 AA par composant UI
+   - 4.3 Accessibilité — checklist WCAG 2.2 AA par composant UI
    - 4.4 Internationalisation — structure i18n
    - 4.5 Sécurité — décisions du comité de sécurité
 5. Matrice de traçabilité CdC → SFD
@@ -1637,7 +1637,7 @@ Chaque page utilise `chrome.i18n.getMessage('key')` pour afficher le texte dans 
 | M17                | 5ms (pattern matching)   | < 1 Mo                       | 500ms                         |
 | **Total au repos** | **< 0.1% CPU**           | **< 20 Mo**                  | —                             |
 
-### 4.3 Accessibilité — checklist WCAG 2.1 AA
+### 4.3 Accessibilité — checklist WCAG 2.2 AA
 
 | Composant UI        | Clavier                        | Lecteur d'écran                                                          | Contraste | Cible 44px             | Zoom 200%  |
 | ------------------- | ------------------------------ | ------------------------------------------------------------------------ | --------- | ---------------------- | ---------- |
